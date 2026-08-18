@@ -1,0 +1,14 @@
+{
+  "target": "A",
+  "repo": "g0ldencybersec_sus_params",
+  "proposed_sites": [
+    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "reason": "Module-level attribute assignment for API key configuration is removed in v1; must be replaced with an explicit client object, e.g. client = OpenAI(api_key=...)."},
+    {"file": "PoC.py", "line": 11, "snippet": "response = openai.ChatCompletion.create(", "reason": "Module-level namespaced call pattern openai.ChatCompletion.create(...) is removed in v1; must migrate to client.chat.completions.create(...)."},
+    {"file": "PoC.py", "line": 192, "snippet": "except openai.error.RateLimitError as e:", "reason": "openai.error submodule is removed in v1; RateLimitError now lives at the top level as openai.RateLimitError."},
+    {"file": "PoC.py", "line": 201, "snippet": "except openai.error.ServiceUnavailableError as e:", "reason": "openai.error submodule is removed in v1; ServiceUnavailableError (or its v1 equivalent) now lives at the top level, not under openai.error."}
+  ],
+  "considered_and_rejected": [
+    {"file": "PoC.py", "line": 17, "snippet": "'role': response.choices[0].message.role,", "reason": "This is attribute-style response access, which is explicitly out of scope for this migration per the spec (both dict-style and attribute-style access remain valid in v1)."},
+    {"file": "PoC.py", "line": 18, "snippet": "'content': response.choices[0].message.content.strip()", "reason": "Same as above: attribute-style response access is explicitly out of scope for this migration."}
+  ]
+}

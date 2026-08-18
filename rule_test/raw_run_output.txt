@@ -1,0 +1,181 @@
+######################################################################
+BASELINES (no rule) -- REAL agent output, loaded from agent_runs/*.json
+######################################################################
+
+=== GREP raw | Target A ===
+GT total=13  Proposed total=17  TP=13  FP=4  FN=0
+Overall recall = 13/13 = 100.0%   Overall precision = 13/17 = 76.5%
+  class=literal                  recall=4/4 (100%)       precision=4/8 (50%)
+  class=helper-wrapped           recall=9/9 (100%)       precision=9/9 (100%)
+
+=== GREP raw | Target B ===
+GT total=21  Proposed total=141  TP=21  FP=120  FN=0
+Overall recall = 21/21 = 100.0%   Overall precision = 21/141 = 14.9%
+  class=literal                  recall=16/16 (100%)     precision=16/79 (20%)
+  class=decorator/registration   recall=N/A (0 GT)       precision=0/47 (0%)
+  class=test/mock                recall=4/4 (100%)       precision=4/6 (67%)
+  class=client-side              recall=1/1 (100%)       precision=1/9 (11%)
+
+=== AGENT raw (REAL, fresh run) | Target A ===
+GT total=13  Proposed total=13  TP=13  FP=0  FN=0
+Overall recall = 13/13 = 100.0%   Overall precision = 13/13 = 100.0%
+  class=literal                  recall=4/4 (100%)       precision=4/4 (100%)
+  class=helper-wrapped           recall=9/9 (100%)       precision=9/9 (100%)
+
+=== AGENT raw (REAL, fresh run) | Target B ===
+GT total=21  Proposed total=21  TP=21  FP=0  FN=0
+Overall recall = 21/21 = 100.0%   Overall precision = 21/21 = 100.0%
+  class=literal                  recall=16/16 (100%)     precision=16/16 (100%)
+  class=test/mock                recall=4/4 (100%)       precision=4/4 (100%)
+  class=client-side              recall=1/1 (100%)       precision=1/1 (100%)
+
+######################################################################
+RULE = STRICT (correctly scoped: renamed-identifier table)
+######################################################################
+
+=== GREP + rule(strict) | Target A ===
+GT total=13  Proposed total=17  TP=13  FP=4  FN=0
+Overall recall = 13/13 = 100.0%   Overall precision = 13/17 = 76.5%
+  class=literal                  recall=4/4 (100%)       precision=4/8 (50%)
+  class=helper-wrapped           recall=9/9 (100%)       precision=9/9 (100%)
+
+=== GREP + rule(strict) | Target B ===
+GT total=21  Proposed total=123  TP=21  FP=102  FN=0
+Overall recall = 21/21 = 100.0%   Overall precision = 21/123 = 17.1%
+  class=literal                  recall=16/16 (100%)     precision=16/61 (26%)
+  class=decorator/registration   recall=N/A (0 GT)       precision=0/47 (0%)
+  class=test/mock                recall=4/4 (100%)       precision=4/6 (67%)
+  class=client-side              recall=1/1 (100%)       precision=1/9 (11%)
+
+=== AGENT(REAL) + rule(strict) | Target A ===
+GT total=13  Proposed total=13  TP=13  FP=0  FN=0
+Overall recall = 13/13 = 100.0%   Overall precision = 13/13 = 100.0%
+  class=literal                  recall=4/4 (100%)       precision=4/4 (100%)
+  class=helper-wrapped           recall=9/9 (100%)       precision=9/9 (100%)
+
+=== AGENT(REAL) + rule(strict) | Target B ===
+GT total=21  Proposed total=21  TP=21  FP=0  FN=0
+Overall recall = 21/21 = 100.0%   Overall precision = 21/21 = 100.0%
+  class=literal                  recall=16/16 (100%)     precision=16/16 (100%)
+  class=test/mock                recall=4/4 (100%)       precision=4/4 (100%)
+  class=client-side              recall=1/1 (100%)       precision=1/1 (100%)
+
+######################################################################
+RULE = NAIVE (blanket 'usage of a name from a migrated import' filter)
+######################################################################
+
+=== GREP + rule(naive) | Target A ===
+GT total=13  Proposed total=4  TP=0  FP=4  FN=13
+Overall recall = 0/13 = 0.0%   Overall precision = 0/4 = 0.0%
+  class=literal                  recall=0/4 (0%)         precision=0/4 (0%)
+  class=helper-wrapped           recall=0/9 (0%)         precision=N/A (0 proposed)
+  MISSED GT sites (false negatives):
+    TomaszRewak_MAGI/ai.py:6  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:7  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:51  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:52  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:64  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:65  [helper-wrapped]
+    batuhantoker_Flask-OpenAI-Chatbot/app.py:8  [literal]
+    batuhantoker_Flask-OpenAI-Chatbot/app.py:48  [helper-wrapped]
+    franalgaba_chatgpt-telegram-bot-serverless/app.py:41  [helper-wrapped]
+    g0ldencybersec_sus_params/PoC.py:7  [literal]
+    g0ldencybersec_sus_params/PoC.py:11  [helper-wrapped]
+    g0ldencybersec_sus_params/PoC.py:192  [literal]
+    g0ldencybersec_sus_params/PoC.py:201  [literal]
+
+=== GREP + rule(naive) | Target B ===
+GT total=21  Proposed total=14  TP=9  FP=5  FN=12
+Overall recall = 9/21 = 42.9%   Overall precision = 9/14 = 64.3%
+  class=literal                  recall=9/16 (56%)       precision=9/11 (82%)
+  class=test/mock                recall=0/4 (0%)         precision=N/A (0 proposed)
+  class=client-side              recall=0/1 (0%)         precision=0/3 (0%)
+  MISSED GT sites (false negatives):
+    QAInsights_jmeter-mcp-server/jmeter_server.py:23  [literal]
+    QAInsights_jmeter-mcp-server/main.py:9  [literal]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:11  [test/mock]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:12  [test/mock]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:21  [test/mock]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:22  [test/mock]
+    danilop_MCP2Lambda/main.py:30  [literal]
+    danilop_MCP2Lambda/mcp_client_bedrock/main.py:44  [client-side]
+    m0xai_trello-mcp-server/main.py:23  [literal]
+    securityfortech_secops-mcp/main.py:26  [literal]
+    tonyzorin_youtrack-mcp/main.py:25  [literal]
+    tonyzorin_youtrack-mcp/main.py:27  [literal]
+
+=== AGENT(REAL) + rule(naive) | Target A ===
+GT total=13  Proposed total=0  TP=0  FP=0  FN=13
+Overall recall = 0/13 = 0.0%   Overall precision = 0/0 = nan%
+  class=literal                  recall=0/4 (0%)         precision=N/A (0 proposed)
+  class=helper-wrapped           recall=0/9 (0%)         precision=N/A (0 proposed)
+  MISSED GT sites (false negatives):
+    TomaszRewak_MAGI/ai.py:6  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:7  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:51  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:52  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:64  [helper-wrapped]
+    TomaszRewak_MAGI/ai.py:65  [helper-wrapped]
+    batuhantoker_Flask-OpenAI-Chatbot/app.py:8  [literal]
+    batuhantoker_Flask-OpenAI-Chatbot/app.py:48  [helper-wrapped]
+    franalgaba_chatgpt-telegram-bot-serverless/app.py:41  [helper-wrapped]
+    g0ldencybersec_sus_params/PoC.py:7  [literal]
+    g0ldencybersec_sus_params/PoC.py:11  [helper-wrapped]
+    g0ldencybersec_sus_params/PoC.py:192  [literal]
+    g0ldencybersec_sus_params/PoC.py:201  [literal]
+
+=== AGENT(REAL) + rule(naive) | Target B ===
+GT total=21  Proposed total=9  TP=9  FP=0  FN=12
+Overall recall = 9/21 = 42.9%   Overall precision = 9/9 = 100.0%
+  class=literal                  recall=9/16 (56%)       precision=9/9 (100%)
+  class=test/mock                recall=0/4 (0%)         precision=N/A (0 proposed)
+  class=client-side              recall=0/1 (0%)         precision=N/A (0 proposed)
+  MISSED GT sites (false negatives):
+    QAInsights_jmeter-mcp-server/jmeter_server.py:23  [literal]
+    QAInsights_jmeter-mcp-server/main.py:9  [literal]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:11  [test/mock]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:12  [test/mock]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:21  [test/mock]
+    QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:22  [test/mock]
+    danilop_MCP2Lambda/main.py:30  [literal]
+    danilop_MCP2Lambda/mcp_client_bedrock/main.py:44  [client-side]
+    m0xai_trello-mcp-server/main.py:23  [literal]
+    securityfortech_secops-mcp/main.py:26  [literal]
+    tonyzorin_youtrack-mcp/main.py:25  [literal]
+    tonyzorin_youtrack-mcp/main.py:27  [literal]
+
+######################################################################
+SUPERSEDED -- circular reconstruction from prior turn, kept for audit only
+######################################################################
+
+=== AGENT raw (SUPERSEDED reconstruction) | Target A ===
+GT total=13  Proposed total=13  TP=13  FP=0  FN=0
+Overall recall = 13/13 = 100.0%   Overall precision = 13/13 = 100.0%
+  class=literal                  recall=4/4 (100%)       precision=4/4 (100%)
+  class=helper-wrapped           recall=9/9 (100%)       precision=9/9 (100%)
+
+=== AGENT raw (SUPERSEDED reconstruction) | Target B ===
+GT total=21  Proposed total=38  TP=21  FP=17  FN=0
+Overall recall = 21/21 = 100.0%   Overall precision = 21/38 = 55.3%
+  class=literal                  recall=16/16 (100%)     precision=16/33 (48%)
+  class=test/mock                recall=4/4 (100%)       precision=4/4 (100%)
+  class=client-side              recall=1/1 (100%)       precision=1/1 (100%)
+
+=== AGENT(SUPERSEDED) + rule(strict) | Target A ===
+GT total=13  Proposed total=13  TP=13  FP=0  FN=0
+Overall recall = 13/13 = 100.0%   Overall precision = 13/13 = 100.0%
+  class=literal                  recall=4/4 (100%)       precision=4/4 (100%)
+  class=helper-wrapped           recall=9/9 (100%)       precision=9/9 (100%)
+
+=== AGENT(SUPERSEDED) + rule(strict) | Target B ===
+GT total=21  Proposed total=21  TP=21  FP=0  FN=0
+Overall recall = 21/21 = 100.0%   Overall precision = 21/21 = 100.0%
+  class=literal                  recall=16/16 (100%)     precision=16/16 (100%)
+  class=test/mock                recall=4/4 (100%)       precision=4/4 (100%)
+  class=client-side              recall=1/1 (100%)       precision=1/1 (100%)
+
+######################################################################
+DETERMINISM CHECK: re-running my own grep script a second time
+######################################################################
+Target A: identical candidate set to first pass? True
+Target B: identical candidate set to first pass? True

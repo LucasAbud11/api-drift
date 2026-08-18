@@ -1,0 +1,19 @@
+{
+  "target": "B",
+  "repo": "m0xai_trello-mcp-server",
+  "proposed_sites": [
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed in v2 and FastMCP is renamed to MCPServer; must become `from mcp.server.mcpserver import MCPServer`."},
+    {"file": "main.py", "line": 23, "snippet": "mcp = FastMCP(\"Trello MCP Server\")", "reason": "FastMCP class is renamed to MCPServer in v2; this constructor call must use the new identifier."},
+    {"file": "server/tools/board.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "reason": "mcp.server.fastmcp module path is removed; Context now lives at mcp.server.mcpserver (name itself unchanged)."},
+    {"file": "server/tools/card.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "reason": "mcp.server.fastmcp module path is removed; Context now lives at mcp.server.mcpserver (name itself unchanged)."},
+    {"file": "server/tools/list.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "reason": "mcp.server.fastmcp module path is removed; Context now lives at mcp.server.mcpserver (name itself unchanged)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "server/tools/tools.py", "line": 11, "snippet": "mcp.add_tool(board.get_board)", "reason": "This is the repo's imperative tool-registration mechanism; .add_tool() signature is explicitly confirmed unchanged in v2. All 20 mcp.add_tool(...) calls in this file are unaffected."},
+    {"file": "server/utils/trello_api.py", "line": 21, "snippet": "self.client = httpx.AsyncClient(base_url=self.base_url)", "reason": "This is the application's own HTTP client used to call the real Trello REST API (api.trello.com), not the MCP SDK's internal transport. The SDK's httpx->httpx2 swap is internal-only and irrelevant here. All other httpx usage in this file (GET/POST/PUT/DELETE methods, exception handling) is likewise unaffected app-level code."},
+    {"file": "server/tools/board.py", "line": 37, "snippet": "await ctx.error(error_msg)", "reason": "Plain ctx.error() call without an extra= kwarg is confirmed unchanged in v2. Same reasoning applies to all other ctx.error(error_msg) calls in board.py, card.py, and list.py (14 total)."},
+    {"file": "server/tools/board.py", "line": 20, "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:", "reason": "Context class keeps its own name in v2 (only its import path moves). The type annotation usage itself doesn't need textual edits once the import line is fixed; same applies to all other `ctx: Context` annotations across board.py, card.py, and list.py."},
+    {"file": "server/tools/checklist.py", "line": 1, "snippet": "\"\"\"This module contains tools for managing Trello checklists.\"\"\"", "reason": "checklist.py has no mcp.server.fastmcp import and its tool functions take no ctx parameter at all, so it is entirely unaffected by this migration."},
+    {"file": "server/services/board.py", "line": 1, "snippet": "N/A - no MCP SDK references found in server/services or server/dtos", "reason": "Service and DTO layers are pure business logic / pydantic models with no MCP SDK imports or usage; not affected by any of the confirmed changes."}
+  ]
+}

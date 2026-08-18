@@ -78,3 +78,30 @@ fixed). That single rule would have eliminated all 17 of the agent's false
 positives and pushed Target B literal precision from 48.5% to 100% — turning
 a 33-point precision edge over grep into something close to a clean sweep on
 the one axis where the agent still stumbled.
+
+**2026-08-18 update (revision 1, superseded below) — this was an untested
+prediction; it was tested by reconstructing "agent output" as ground truth
+∪ the 17 documented false positives, then applying the rule to that
+reconstruction. Reaching 100% precision was therefore guaranteed by
+construction, not measured — flagged as circular and redone.**
+
+**2026-08-18 update (revision 2) — 9 fresh, walled-off detection agents
+were actually re-run from scratch (raw output persisted to
+`rule_test/agent_runs/*.json` before scoring). See `rule_test/rule_test.md`
+for full detail. The real run does not reproduce the 55.3% figure at all:
+zero false positives on either target, 100%/100% recall and precision
+across the board — every agent independently rejected all 17 `ctx: Context`
+sites with correct reasoning.** This can't cleanly be attributed to "the
+rule works" vs. "the fresh migration spec already stated the fact that
+made the mistake possible" (item 3 of the reconstructed spec says outright
+that `Context` keeps its name) — the original spec text was never
+persisted, so which explanation is right can't be settled here. Either way,
+**the 48.5%→100% figure this recommendation was built on has not
+reproduced under independent re-run and should not be cited as a stable
+property of the agent.** Grep's side is unaffected by this correction
+(14.9%→17.1% under the rule, deterministic, confirmed by re-running the
+grep script twice) and remains dominated by decorator overmatch and
+keyword collisions the rule has no leverage on. Ship the rule anyway — it
+is provably safe (zero recall cost, both the circular reconstruction and
+the real run) and costs nothing when there's nothing to filter — but stop
+citing the specific percentage as justification.

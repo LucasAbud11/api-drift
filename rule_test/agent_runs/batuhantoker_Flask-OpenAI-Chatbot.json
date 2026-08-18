@@ -1,0 +1,12 @@
+{
+  "target": "A",
+  "repo": "batuhantoker_Flask-OpenAI-Chatbot",
+  "proposed_sites": [
+    {"file": "app.py", "line": 8, "snippet": "openai.api_key = \"OPENAI_API\"", "reason": "Module-level assignment to openai.api_key no longer configures the client in v1; must be replaced with an explicit client = OpenAI(api_key=...) construction (breaking change #1)."},
+    {"file": "app.py", "line": 48, "snippet": "output = openai.ChatCompletion.create(", "reason": "Module-level namespaced call pattern openai.ChatCompletion.create(...) is removed in v1 and must migrate to client.chat.completions.create(...) (breaking change #2). Reached via chat() -> get_response() -> /get route handler, so this is a live call path."}
+  ],
+  "considered_and_rejected": [
+    {"file": "app.py", "line": 60, "snippet": "for item in output['choices']:", "reason": "Dict-style response access is explicitly out of scope for this migration; both dict-style and attribute-style access remain valid in v1."},
+    {"file": "app.py", "line": 61, "snippet": "chatgpt_output = item['message']['content']", "reason": "Dict-style response access is explicitly out of scope for this migration; both dict-style and attribute-style access remain valid in v1."}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "target": "B",
+  "repo": "QAInsights_jmeter-mcp-server",
+  "proposed_sites": [
+    {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "Import path mcp.server.fastmcp is removed in v2; must become 'from mcp.server.mcpserver import MCPServer' (module path change plus class rename)."},
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "reason": "FastMCP class is renamed to MCPServer in v2; this construction must become MCPServer(\"jmeter\")."},
+    {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "Import path mcp.server.fastmcp is removed in v2; must become 'from mcp.server.mcpserver import MCPServer' (module path change plus class rename)."},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "reason": "FastMCP class is renamed to MCPServer in v2; this construction must become MCPServer(\"jmeter\")."},
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "reason": "String literal references the old module path being removed in v2; this stub setup mirrors the real import chain used by jmeter_server.py and should reference 'mcp.server.mcpserver' for consistency with the updated import path."},
+    {"file": "tests/test_jmeter_server.py", "line": 12, "snippet": "class FastMCP:", "reason": "This mock class stands in for the real FastMCP/MCPServer SDK class being imported and constructed in jmeter_server.py; since the real class is renamed to MCPServer, this stub should be renamed to match what production code will import and construct."},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "reason": "This sets the attribute name that jmeter_server.py's import statement looks up on the stub module. Since jmeter_server.py will change to 'from mcp.server.mcpserver import MCPServer', the stub module must expose an attribute named MCPServer, not FastMCP, or the import will fail with AttributeError."},
+    {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "reason": "Registers the stub under the old module path key in sys.modules. Since jmeter_server.py will import from mcp.server.mcpserver, this key must become 'mcp.server.mcpserver' or the stubbed import will raise ModuleNotFoundError during tests."}
+  ],
+  "considered_and_rejected": [
+    {"file": "jmeter_server.py", "line": 121, "snippet": "@mcp.tool()", "reason": "The @mcp.tool() decorator signature and behavior are explicitly confirmed unchanged in v2; only the class used to construct `mcp` changes, not the decorator usage pattern."},
+    {"file": "jmeter_server.py", "line": 132, "snippet": "@mcp.tool()", "reason": "Same as above — decorator unaffected by migration."},
+    {"file": "jmeter_server.py", "line": 150, "snippet": "@mcp.tool()", "reason": "Same as above — decorator unaffected by migration."},
+    {"file": "jmeter_server.py", "line": 303, "snippet": "@mcp.tool()", "reason": "Same as above — decorator unaffected by migration."},
+    {"file": "jmeter_server.py", "line": 402, "snippet": "@mcp.tool()", "reason": "Same as above — decorator unaffected by migration."},
+    {"file": "jmeter_server.py", "line": 473, "snippet": "@mcp.tool()", "reason": "Same as above — decorator unaffected by migration."},
+    {"file": "jmeter_server.py", "line": 595, "snippet": "mcp.run(transport='stdio')", "reason": "mcp.run(...) is an instance method call on the server object; its signature/behavior is not among the confirmed changes (only the class name/import path changed, not this method)."},
+    {"file": "analyzer/mcp/__init__.py", "line": 1, "snippet": "\"\"\"MCP interface for the JMeter Test Results Analyzer.", "reason": "This module is just a docstring/package marker; it contains no actual imports of mcp.server.fastmcp, FastMCP, Context, or any other SDK symbol, so nothing here is affected despite the 'mcp' name matching."},
+    {"file": "windsurf_db_reader.py", "line": 1, "snippet": "(no mcp/fastmcp/httpx references found)", "reason": "Searched this file and windsurf_db_reader_alternative.py for any mcp, fastmcp, FastMCP, or httpx references — none found; these are unrelated database-reading utility scripts, not part of the MCP migration surface."}
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "target": "B",
+  "repo": "tonyzorin_youtrack-mcp",
+  "proposed_sites": [
+    {"file": "main.py", "line": 10, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "Module path mcp.server.fastmcp is removed in v2 (moves to mcp.server.mcpserver) and the imported class FastMCP is renamed to MCPServer; both the import path and the identifier must change."},
+    {"file": "main.py", "line": 25, "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:", "reason": "Return-type annotation uses FastMCP, which is renamed to MCPServer in v2; must be updated to match the new class name (and import)."},
+    {"file": "main.py", "line": 27, "snippet": "mcp = FastMCP(", "reason": "Direct construction of the FastMCP class, which no longer exists under that name in v2 — must become MCPServer(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 4, "snippet": "Uses FastMCP directly for clean stdio/SSE transport support.", "reason": "Docstring/comment prose, not executable code; not a call site requiring a functional edit (cosmetic only)."},
+    {"file": "main.py", "line": 26, "snippet": "\"\"\"Create and configure the FastMCP server with all tools registered.\"\"\"", "reason": "Docstring text, not a call site."},
+    {"file": "main.py", "line": 39, "snippet": "logger.info(f\"Registered {len(tools)} tools with FastMCP\")", "reason": "Log message string, not a functional API call site — no behavior depends on this text."},
+    {"file": "main.py", "line": 37, "snippet": "mcp.add_tool(func, name=name)", "reason": "add_tool() is explicitly confirmed unchanged in v2 per the migration spec."},
+    {"file": "main.py", "line": 70, "snippet": "mcp.run(transport=transport)", "reason": "Not mentioned as changed in the migration spec; only the class construction/import/annotation are affected, not its instance methods like run()."},
+    {"file": "youtrack_mcp/mcp_server.py", "line": 10, "snippet": "class MCPServer:", "reason": "This is the repo's own pre-existing, unrelated business-logic class (a tool-collection wrapper around IssueTools/ProjectTools/etc.) that never imports the MCP SDK. Its name coincidentally matches the v2 SDK class name but it is not the SDK's FastMCP/MCPServer and requires no change."},
+    {"file": "youtrack_mcp/mcp_server.py", "line": 50, "snippet": "function = tool_config.get(\"function\") or getattr(\n                self.issue_tools, tool_name, None\n            )", "reason": "Dynamic getattr-based discovery operates only on the repo's own tool classes (IssueTools, ProjectTools, etc.), not on any SDK object; pure business logic, unaffected by the migration."},
+    {"file": "youtrack_mcp/tools/loader.py", "line": 377, "snippet": "attr = getattr(tool_class, name)", "reason": "Reflection over repo-defined tool classes to discover business-logic tool methods; does not touch FastMCP/MCPServer, Context, httpx, or any client tool metadata object from the SDK."},
+    {"file": "tests/docker/test_mcp_docker.py", "line": 126, "snippet": "if \"inputSchema\" in attachment_tool:", "reason": "This reads a raw JSON-RPC 'tools/list' response dict obtained via subprocess/stdio (no mcp SDK import in this file at all), not an SDK-returned tool object's .inputSchema attribute. The wire-protocol JSON key is unaffected by the SDK's internal Python attribute naming convention change described in item 4 of the spec."},
+    {"file": "tests/docker/test_mcp_docker.py", "line": 127, "snippet": "props = attachment_tool[\"inputSchema\"].get(\n                                \"properties\", {}\n                            )", "reason": "Same as above — dict access on a raw JSON-RPC wire response, not an SDK client tool object; not affected."},
+    {"file": "youtrack_mcp/api/client.py", "line": 11, "snippet": "import requests", "reason": "Application-level HTTP client uses the `requests` library, not `httpx` at all — confirmed no httpx usage exists anywhere in this repo, so the SDK's internal httpx->httpx2 transport change is irrelevant here."},
+    {"file": "tests/unit/test_api_mcp_wrappers.py", "line": 10, "snippet": "from youtrack_mcp.api import mcp_wrappers", "reason": "Imports the repo's own youtrack_mcp.api.mcp_wrappers module (parameter-normalization helpers), not the mcp SDK package; unaffected."}
+  ]
+}

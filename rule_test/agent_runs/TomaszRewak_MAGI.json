@@ -1,0 +1,21 @@
+{
+  "target": "A",
+  "repo": "TomaszRewak_MAGI",
+  "proposed_sites": [
+    {"file": "ai.py", "line": 6, "snippet": "openai.api_key = key", "reason": "Module-level assignment to openai.api_key is removed in v1; must be replaced with constructing an explicit client object (e.g. client = OpenAI(api_key=key))."},
+    {"file": "ai.py", "line": 7, "snippet": "response = openai.ChatCompletion.create(", "reason": "openai.ChatCompletion.create is a removed module-level namespaced call pattern in v1; must migrate to client.chat.completions.create(...)."},
+    {"file": "ai.py", "line": 51, "snippet": "openai.api_key = key", "reason": "Module-level assignment to openai.api_key is removed in v1; must be replaced with constructing an explicit client object."},
+    {"file": "ai.py", "line": 52, "snippet": "response = openai.ChatCompletion.create(", "reason": "openai.ChatCompletion.create is a removed module-level namespaced call pattern in v1; must migrate to client.chat.completions.create(...)."},
+    {"file": "ai.py", "line": 64, "snippet": "openai.api_key = key", "reason": "Module-level assignment to openai.api_key is removed in v1; must be replaced with constructing an explicit client object."},
+    {"file": "ai.py", "line": 65, "snippet": "response = openai.ChatCompletion.create(", "reason": "openai.ChatCompletion.create is a removed module-level namespaced call pattern in v1; must migrate to client.chat.completions.create(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "ai.py", "line": 27, "snippet": "content = response['choices'][0]['message']['content']", "reason": "Dict-style response access is explicitly out of scope for this migration per the spec (response object access patterns are unaffected)."},
+    {"file": "ai.py", "line": 60, "snippet": "return response['choices'][0]['message']['content']", "reason": "Dict-style response access is explicitly out of scope for this migration."},
+    {"file": "ai.py", "line": 75, "snippet": "content = response['choices'][0]['message']['content']", "reason": "Dict-style response access is explicitly out of scope for this migration."},
+    {"file": "main.py", "line": 74, "snippet": "is_yes_or_no_question = ai.is_yes_or_no_question(question['query'], key)", "reason": "This calls into the repo's own helper function, not the openai SDK directly; the migration-affected code lives inside ai.py, not at this call site."},
+    {"file": "main.py", "line": 82, "snippet": "except Exception as e:", "reason": "Generic Exception catch, not a reference to openai.error.* submodule; no exception class from openai.error is used anywhere in the repo."},
+    {"file": "main.py", "line": 113, "snippet": "answer = ai.get_answer(question['query'], personality, key)", "reason": "Helper function call, not a direct openai SDK usage."},
+    {"file": "main.py", "line": 116, "snippet": "classification = ai.classify_answer(question['query'], personality, answer, key)", "reason": "Helper function call, not a direct openai SDK usage."}
+  ]
+}

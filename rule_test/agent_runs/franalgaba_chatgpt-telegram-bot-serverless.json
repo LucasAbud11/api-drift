@@ -1,0 +1,11 @@
+{
+  "target": "A",
+  "repo": "franalgaba_chatgpt-telegram-bot-serverless",
+  "proposed_sites": [
+    {"file": "app.py", "line": 41, "snippet": "    message = openai.ChatCompletion.create(", "reason": "Module-level namespaced call pattern openai.ChatCompletion.create(...) is removed in v1; must migrate to a client-based call like client.chat.completions.create(...) (migration rule #2)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "app.py", "line": 21, "snippet": "OPENAI_API_KEY = os.environ[\"OPENAI_API_KEY\"]", "reason": "This only reads the env var into a local variable; it is never assigned to openai.api_key or any other module-level openai attribute anywhere in the repo, so migration rule #1 (bare module-level attribute assignment) does not apply. The SDK's automatic pickup of the OPENAI_API_KEY env var is unaffected by this migration's scope."},
+    {"file": "app.py", "line": 5, "snippet": "import openai", "reason": "Bare import statement, not a call site; no code change is mandated at the import line itself under any of the three migration rules."}
+  ]
+}

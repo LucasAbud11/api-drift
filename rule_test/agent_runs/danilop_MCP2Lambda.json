@@ -1,0 +1,22 @@
+{
+  "target": "B",
+  "repo": "danilop_MCP2Lambda",
+  "proposed_sites": [
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "reason": "mcp.server.fastmcp module path is removed in v2; must import from mcp.server.mcpserver instead. Also FastMCP itself is renamed to MCPServer, so the imported identifier must change too."},
+    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "reason": "FastMCP class is renamed to MCPServer in v2; this construction call must use the new class name."},
+    {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "input_schema={'json': tool.inputSchema}", "reason": "tool is an MCP SDK Tool object obtained via session.list_tools() (through MCPClient.get_available_tools); in v2 its field is renamed from inputSchema (camelCase) to input_schema (snake_case)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 68, "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:", "reason": "Context is used only as a type annotation here; per the spec Context keeps its own name in v2 (only its import path changes, which is already captured at the import line). No edit needed at this usage site."},
+    {"file": "main.py", "line": 94, "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:", "reason": "Same as above: Context annotation usage, name unchanged, only the import statement needs updating."},
+    {"file": "main.py", "line": 136, "snippet": "def lambda_function(parameters: dict, ctx: Context) -> str:", "reason": "Context annotation inside the dynamically-created per-Lambda tool function; name is unchanged in v2, so this dynamic-code site needs no edit beyond the already-flagged import."},
+    {"file": "main.py", "line": 73, "snippet": "ctx.info(\"Calling AWS Lambda ListFunctions...\")", "reason": "Plain ctx.info() call without an extra= keyword argument; confirmed unchanged in v2."},
+    {"file": "main.py", "line": 113, "snippet": "ctx.error(error_message)", "reason": "Plain ctx.error() call without extra=; confirmed unchanged in v2."},
+    {"file": "main.py", "line": 125, "snippet": "mcp.tool()(list_lambda_functions_impl)", "reason": "@mcp.tool()/.tool() decorator usage is unchanged in v2 per spec; only the class it's called on (mcp = MCPServer(...)) is renamed, already captured separately."},
+    {"file": "main.py", "line": 145, "snippet": "decorated_function = mcp.tool(name=tool_name)(lambda_function)", "reason": "Dynamic tool registration in the loop uses the unchanged .tool() decorator API and unchanged Context annotation; nothing in this dynamic code path touches changed surface beyond the already-flagged mcp object construction/import."},
+    {"file": "mcp_client_bedrock/converse_tools.py", "line": 35, "snippet": "'inputSchema': tool['input_schema']", "reason": "This builds AWS Bedrock's own toolSpec dict (the key name required by Bedrock's converse API), not an attribute read off an MCP SDK Tool object. Unrelated to the MCP SDK camelCase->snake_case rename."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 44, "snippet": "result = await self.session.call_tool(tool_name, arguments=arguments)", "reason": "self.session is a plain mcp.ClientSession (single session), not ClientSessionGroup; ClientSession.call_tool() is explicitly unchanged per the spec."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 1, "snippet": "from mcp import ClientSession, StdioServerParameters", "reason": "These are imported from the top-level mcp package (not mcp.server.fastmcp), and neither ClientSession nor StdioServerParameters is affected by this migration."},
+    {"file": "pyproject.toml", "line": 10, "snippet": "\"mcp==1.3.0\",", "reason": "Version pin in dependency metadata, not a code call site; flagged only as context for the version bump, not something to individually edit."}
+  ]
+}

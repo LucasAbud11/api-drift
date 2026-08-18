@@ -1,0 +1,16 @@
+{
+  "target": "B",
+  "repo": "securityfortech_secops-mcp",
+  "proposed_sites": [
+    {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed in v2 and moves to mcp.server.mcpserver; additionally FastMCP is renamed to MCPServer, so both the import path and the imported identifier must change to `from mcp.server.mcpserver import MCPServer`."},
+    {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "reason": "Constructs the server using the old class name FastMCP; per the migration spec this class is renamed to MCPServer, so this call site must become MCPServer(name=\"secops-mcp\", ...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "tools/httpx.py", "line": 21, "snippet": "cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input", "reason": "This invokes the external ProjectDiscovery `httpx` CLI security tool via subprocess, not the Python httpx package and not the MCP SDK's internal HTTP transport dependency. Rule 6 explicitly says the SDK's httpx->httpx2 change is internal and irrelevant to unrelated application usage of the word/package 'httpx'."},
+    {"file": "main.py", "line": 15, "snippet": "from tools.httpx import run_httpx", "reason": "Imports this repo's own tools/httpx.py module (a CLI wrapper), unrelated to the Python httpx package or MCP SDK transport."},
+    {"file": "main.py", "line": 93, "snippet": "def httpx_wrapper(", "reason": "Name coincidentally matches 'httpx' but is a wrapper function for the ProjectDiscovery httpx CLI tool, not related to the MCP SDK's transport dependency."},
+    {"file": "main.py", "line": 31, "snippet": "@mcp.tool()", "reason": "The @mcp.tool() decorator is explicitly confirmed unchanged in the migration spec; same applies to all other @mcp.tool() decorator usages throughout main.py (lines 42, 52, 62, 72, 82, 92, 101, 110, 119, 128, 136, 145, 155, 182, 207, 236, 255)."},
+    {"file": "main.py", "line": 279, "snippet": "mcp.run(transport=\"stdio\")", "reason": "mcp.run() is not among the confirmed changes in the migration spec; only the FastMCP class name/import path and Context import path are affected, not the run() method's behavior or signature."},
+    {"file": "requirements.txt", "line": 10, "snippet": "httpx==0.28.1", "reason": "This is a transitive pinned dependency version (used internally by requests/mcp), not an application call site in code; and per rule 6 the SDK's internal httpx dependency change is not something application code needs to react to."}
+  ]
+}
