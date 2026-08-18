@@ -325,3 +325,47 @@ question. Full writeup, per-run breakdown, and the exact host
 reproduction script (the 16MB host itself isn't committed, only
 `build_host.sh`, pinned to Django commit `84d09a5`):
 `rule_test/scale_experiment/report.md`.
+
+**2026-08-18 update (revision 7) — two diagnostics on the recall drop,
+then the composition experiment it implied, which eliminated the
+coverage ceiling entirely.** Before touching entanglement, two questions
+about revision 6's 85%-recall dilution result needed answers.
+
+*Diagnostic 1: is the 9-miss recurrence judgment or search?* Pulled the
+actual tool-call history (not just final answers) from all 3 dilution
+subagent transcripts. The file was read in full in all 3 runs, so none
+of the 9 misses is a retrieval failure. They split into two mechanisms:
+4/9 are judgment failures (reached, individually reasoned about,
+explicitly wrong — the same "self-contained stub, therefore unaffected"
+argument already diagnosed at small scale); 5/9 are a third thing with
+no small-scale analogue at all — content read into context but never
+converted into a verdict in any bucket, no reasoning trace anywhere.
+Full evidence: `rule_test/scale_experiment/cluster_diagnosis.md`.
+
+*Diagnostic 2: redesign FLAG-UNCERTAIN around something observable.*
+Approved: name-impersonation (site is part of building a `sys.modules`/
+`types.ModuleType` stand-in for an SDK path — mechanical, anchored to
+concrete syntax) as primary, test/mock-path floor as a mandatory backup,
+dropped the "matches a worked spec example" option as reintroducing the
+same self-assessment problem it was meant to fix.
+
+*The composition experiment diagnostic 1 implied: grep for recall, agent
+for judgment only.* Grep produces a coverage-tuned candidate set
+(precision irrelevant); the agent adjudicates every candidate into the
+three buckets using the two approved mandatory rules, searching for
+nothing. Run 3x at small scale (118 candidates) and 3x on the diluted
+host (214 candidates, 96 of them Django noise). Result:
+**100% recall, 100% precision, zero closed-world violations, in all 6
+runs, at both scales, identically.** The exact 3-site cluster that was
+missed 9 times under search-based dilution was confidently and correctly
+proposed in all 6 adjudication-only runs — the mandatory rules didn't
+even need to divert it to FLAG-UNCERTAIN. Separating search from
+judgment removed the coupling that caused mechanism B: the same
+reasoning pass being asked to both find every relevant line in a large
+host and individually justify a verdict on each one. Not established:
+an adjudication-volume ceiling (214 candidates was comfortably handled;
+where a much larger candidate list would break down is untested), or
+anything about entanglement, or that this study's known-in-advance grep
+vocabulary generalizes to a real migration where nobody has already
+enumerated the exact breaking terms. Full report: `rule_test/
+composition_experiment/report.md`.

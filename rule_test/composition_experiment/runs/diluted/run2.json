@@ -1,0 +1,1315 @@
+{
+  "target": "B",
+  "repo": "composition_diluted",
+  "run": 2,
+  "proposed_sites": [
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 7,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from mcp.server.fastmcp; whole module tree moved to mcp.server.mcpserver, no compatibility alias exists."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 26,
+      "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); identifier renamed to MCPServer, construction site's own text must change."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 6,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import from mcp.server.fastmcp is broken; module moved to mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 23,
+      "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context also lives under mcp.server.fastmcp, and that whole submodule tree moved to mcp.server.mcpserver; import line itself must change."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context import path moved with the rest of the fastmcp submodule tree; import line's own text must change."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context import path moved with the rest of the fastmcp submodule tree; import line's own text must change."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 10,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import from mcp.server.fastmcp is broken; module moved to mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 25,
+      "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
+      "pattern": "1",
+      "reason": "Return type annotation references FastMCP by name; per the spec's own worked example, fixing the import does not make this resolve since the identifier itself was renamed to MCPServer \u2014 annotation text must change."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 27,
+      "snippet": "    mcp = FastMCP(",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 6,
+      "snippet": "from mcp.server.fastmcp import FastMCP, Context",
+      "pattern": "1",
+      "reason": "Imports FastMCP (renamed to MCPServer) from a module path that moved; line's own text must change regardless of the Context co-import."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 30,
+      "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 44,
+      "snippet": "                input_schema={'json': tool.inputSchema}",
+      "pattern": "2",
+      "reason": "tool.inputSchema is attribute access on a protocol object; per the camelCase->snake_case rename this must become tool.input_schema."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 4,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import from mcp.server.fastmcp is broken; module moved to mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 23,
+      "snippet": "mcp = FastMCP(\"jmeter\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+      "line": 2,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import from mcp.server.fastmcp is broken; module moved to mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+      "line": 9,
+      "snippet": "mcp = FastMCP(\"jmeter\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 11,
+      "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
+      "pattern": "1",
+      "reason": "Rule 1 anchor: constructs a module object representing an mcp.* path as impersonation machinery for the real package. The path string encodes the now-nonexistent 'mcp.server.fastmcp' location; for the mock to remain a faithful stand-in intercepting the SDK's real (moved) import path under v2, this string must change to 'mcp.server.mcpserver'."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 21,
+      "snippet": "fastmcp_mod.FastMCP = FastMCP",
+      "pattern": "1",
+      "reason": "Rule 1 anchor: sets an attribute on the constructed stand-in module to expose a class under the SDK name FastMCP. Under v2 the SDK symbol is MCPServer, so this attribute name must change for the mock to expose the correct v2 symbol."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 22,
+      "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
+      "pattern": "1",
+      "reason": "Rule 1 anchor: sys.modules assignment for an mcp.* path. Key targets the old broken path; must become 'mcp.server.mcpserver' for the interception to remain meaningful once production code's import is fixed to the v2 path."
+    }
+  ],
+  "flag_uncertain": [
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 12,
+      "snippet": "class FastMCP:",
+      "reason": "File path contains /tests/, so Rule 2 blocks a REJECT verdict here. Genuinely ambiguous whether this line's own text must change: analogous to the ctx:Context counting-convention case, the class could in principle keep the local name FastMCP and still be exposed under a renamed module attribute (fastmcp_mod.MCPServer = FastMCP) without altering this definition line \u2014 or it could need renaming to MCPServer for the mock to be a correct/clear stand-in for the v2 symbol. Facts above don't settle which."
+    }
+  ],
+  "considered_and_rejected": [
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 15,
+      "snippet": "from tools.httpx import run_httpx",
+      "reason": "Local project module 'tools.httpx' (see integrations/securityfortech_secops-mcp/tools/httpx.py in this same list), not the mcp SDK, not even the python httpx library \u2014 no fact above applies."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 31,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() on the high-level MCPServer/FastMCP API is unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 42,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 52,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 62,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 72,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 82,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 92,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 101,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 110,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 119,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 128,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 136,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 145,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 155,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 182,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 207,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 236,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 255,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/tools/httpx.py",
+      "line": 10,
+      "snippet": "    \"\"\"Run httpx to probe HTTP servers.",
+      "reason": "Docstring referencing the external CLI probing tool 'httpx' (ProjectDiscovery), invoked via subprocess below \u2014 not the python httpx library and not the MCP SDK's internal transport (fact 6 scope)."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/tools/httpx.py",
+      "line": 14,
+      "snippet": "        options: Additional httpx options (e.g., [\"-status-code\", \"-title\"])",
+      "reason": "Docstring describing options for the external CLI tool 'httpx', unrelated to the MCP SDK's transport (fact 6)."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/tools/httpx.py",
+      "line": 21,
+      "snippet": "        cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input",
+      "reason": "Subprocess command invoking the external CLI tool 'httpx', not the python httpx library and unrelated to the MCP SDK's internal transport (fact 6)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 20,
+      "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:",
+      "reason": "Counting convention: fixing the import statement alone makes this ctx: Context annotation resolve again; the annotation's own text doesn't need to change."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 41,
+      "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 59,
+      "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 80,
+      "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 20,
+      "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 41,
+      "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 63,
+      "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\"",
+      "reason": "Counting convention: continuation of a ctx: Context parameter; resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 87,
+      "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 109,
+      "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 11,
+      "snippet": "    mcp.add_tool(board.get_board)",
+      "reason": "Fact 4: MCPServer.add_tool() is unchanged in v2."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 12,
+      "snippet": "    mcp.add_tool(board.get_boards)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 13,
+      "snippet": "    mcp.add_tool(board.get_board_labels)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 14,
+      "snippet": "    mcp.add_tool(board.create_board_label)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 17,
+      "snippet": "    mcp.add_tool(list.get_list)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 18,
+      "snippet": "    mcp.add_tool(list.get_lists)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 19,
+      "snippet": "    mcp.add_tool(list.create_list)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 20,
+      "snippet": "    mcp.add_tool(list.update_list)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 21,
+      "snippet": "    mcp.add_tool(list.delete_list)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 24,
+      "snippet": "    mcp.add_tool(card.get_card)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 25,
+      "snippet": "    mcp.add_tool(card.get_cards)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 26,
+      "snippet": "    mcp.add_tool(card.create_card)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 27,
+      "snippet": "    mcp.add_tool(card.update_card)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 28,
+      "snippet": "    mcp.add_tool(card.delete_card)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 31,
+      "snippet": "    mcp.add_tool(checklist.get_checklist)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 32,
+      "snippet": "    mcp.add_tool(checklist.get_card_checklists)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 33,
+      "snippet": "    mcp.add_tool(checklist.create_checklist)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 34,
+      "snippet": "    mcp.add_tool(checklist.update_checklist)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 35,
+      "snippet": "    mcp.add_tool(checklist.delete_checklist)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 36,
+      "snippet": "    mcp.add_tool(checklist.add_checkitem)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 37,
+      "snippet": "    mcp.add_tool(checklist.update_checkitem)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 38,
+      "snippet": "    mcp.add_tool(checklist.delete_checkitem)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 21,
+      "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 42,
+      "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 63,
+      "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 87,
+      "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload",
+      "reason": "Counting convention: continuation of a ctx: Context parameter, resolves once the import is fixed."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 112,
+      "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 4,
+      "snippet": "import httpx",
+      "reason": "Fact 6: this is the app's own independent use of the httpx library for its Trello REST client, not passed into any MCP SDK function; unaffected by the SDK's internal httpx->httpx2 transport move."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 21,
+      "snippet": "        self.client = httpx.AsyncClient(base_url=self.base_url)",
+      "reason": "Fact 6: independent app-level httpx.AsyncClient for the Trello API client, not passed into MCP SDK functions \u2014 unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 34,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Fact 6: exception handling for the app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 36,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 41,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 43,
+      "snippet": "            raise httpx.RequestError(f\"Failed to get {endpoint}: {str(e)}\")",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 51,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 53,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 58,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 60,
+      "snippet": "            raise httpx.RequestError(f\"Failed to post to {endpoint}: {str(e)}\")",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 68,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 70,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 75,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 77,
+      "snippet": "            raise httpx.RequestError(f\"Failed to put to {endpoint}: {str(e)}\")",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 87,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 89,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 94,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 96,
+      "snippet": "            raise httpx.RequestError(f\"Failed to delete {endpoint}: {str(e)}\")",
+      "reason": "Fact 6: app's own independent httpx usage, unaffected."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 3,
+      "snippet": "YouTrack MCP Server - A Model Context Protocol server for JetBrains YouTrack.",
+      "reason": "Descriptive docstring text; no import/construction/annotation referencing a broken symbol, no fact requires it to change for functional correctness."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 4,
+      "snippet": "Uses FastMCP directly for clean stdio/SSE transport support.",
+      "reason": "Docstring text mentioning FastMCP, not executable code (not an import/construction/annotation); doesn't need to change for the migration to be functionally fixed."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 26,
+      "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\"",
+      "reason": "Docstring text, not executable code; not a required site."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 37,
+      "snippet": "        mcp.add_tool(func, name=name)",
+      "reason": "Fact 4: add_tool() unchanged."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 39,
+      "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
+      "reason": "String literal in a log message, not executable reference to the broken symbol; doesn't need to change for functional correctness."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 68,
+      "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 94,
+      "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 136,
+      "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:",
+      "reason": "Counting convention: resolves once the import is fixed, own text unchanged."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 1,
+      "snippet": "from mcp import ClientSession, StdioServerParameters",
+      "reason": "Fact 5: import paths for ClientSession/StdioServerParameters did not change."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 2,
+      "snippet": "from mcp.client.stdio import stdio_client",
+      "reason": "Fact 5: import path for stdio_client did not change."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 6,
+      "snippet": "    def __init__(self, server_params: StdioServerParameters):",
+      "reason": "Type annotation on an unaffected class (StdioServerParameters); no fact indicates this class changed."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 25,
+      "snippet": "        self._client = stdio_client(self.server_params)",
+      "reason": "stdio_client usage with import path and call shape unaffected per fact 5."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 27,
+      "snippet": "        session = ClientSession(self.read, self.write)",
+      "reason": "Plain positional-arg ClientSession construction; none of the changed parameters (cursor, timeout, get_server_capabilities) are involved here."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 2,
+      "snippet": "from mcp import StdioServerParameters",
+      "reason": "Fact 5: import path for StdioServerParameters did not change."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 25,
+      "snippet": "    server_params = StdioServerParameters(",
+      "reason": "StdioServerParameters construction; no fact above indicates this constructor's parameters changed."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 121,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 132,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 150,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 303,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 402,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 473,
+      "snippet": "@mcp.tool()",
+      "reason": "Fact 4: @mcp.tool() unchanged in v2."
+    },
+    {
+      "file": "django/forms/boundfield.py",
+      "line": 82,
+      "snippet": "    def get_context(self):",
+      "reason": "Django's own BoundField.get_context() rendering method; unrelated to the MCP SDK's Context class or mcp.get_context() removal (fact 3)."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 251,
+      "snippet": "        context = self.get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 264,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 278,
+      "snippet": "        context = self.get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 330,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 331,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 364,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 367,
+      "snippet": "        return super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 383,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 384,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 397,
+      "snippet": "            subwidgets.append(widget.get_context(name, value_, widget_attrs)[\"widget\"])",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 493,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 494,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 594,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 597,
+      "snippet": "        return super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 713,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 714,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 763,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 764,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 889,
+      "snippet": "    In addition to the values added by Widget.get_context(), this widget",
+      "reason": "Docstring referencing Django's own Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 912,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 913,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 942,
+      "snippet": "                widget.get_context(widget_name, widget_value, widget_attrs)[\"widget\"]",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 1097,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() method, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 1098,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 1106,
+      "snippet": "        ).get_context(",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 1117,
+      "snippet": "        ).get_context(",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/widgets.py",
+      "line": 1129,
+      "snippet": "        ).get_context(",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/formsets.py",
+      "line": 530,
+      "snippet": "    def get_context(self):",
+      "reason": "Django FormSet.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/forms.py",
+      "line": 222,
+      "snippet": "    def get_context(self):",
+      "reason": "Django Form.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/utils.py",
+      "line": 46,
+      "snippet": "    def get_context(self):",
+      "reason": "Django RenderableMixin.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/utils.py",
+      "line": 48,
+      "snippet": "            \"Subclasses of RenderableMixin must provide a get_context() method.\"",
+      "reason": "Django RenderableMixin error message, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/utils.py",
+      "line": 54,
+      "snippet": "        context = context or self.get_context()",
+      "reason": "Django RenderableMixin.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/utils.py",
+      "line": 134,
+      "snippet": "    def get_context(self):",
+      "reason": "Django ErrorDict/ErrorList get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/forms/utils.py",
+      "line": 179,
+      "snippet": "    def get_context(self):",
+      "reason": "Django get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/core/cache/backends/filebased.py",
+      "line": 112,
+      "snippet": "        filelist = random.sample(filelist, int(num_entries / self._cull_frequency))",
+      "reason": "Python's random.sample for cache eviction; keyword-overlap noise ('sample'), no relation to any fact above."
+    },
+    {
+      "file": "django/core/management/templates.py",
+      "line": 19,
+      "snippet": "from django.template import Context, Engine",
+      "reason": "Django's own template Context class, unrelated to the MCP SDK's Context."
+    },
+    {
+      "file": "django/core/management/templates.py",
+      "line": 140,
+      "snippet": "        context = Context(",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 234,
+      "snippet": "            connections[alias].force_debug_cursor = True",
+      "reason": "Django DB connection's force_debug_cursor flag; unrelated 'cursor' keyword overlap, not MCP's nextCursor/progressToken fields."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 695,
+      "snippet": "    Context manager that captures queries executed by the specified connection.",
+      "reason": "Docstring referring to a generic Python context manager, unrelated to the MCP SDK's Context class."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 715,
+      "snippet": "        self.force_debug_cursor = self.connection.force_debug_cursor",
+      "reason": "Django DB force_debug_cursor flag, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 716,
+      "snippet": "        self.connection.force_debug_cursor = True",
+      "reason": "Django DB force_debug_cursor flag, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 726,
+      "snippet": "        self.connection.force_debug_cursor = self.force_debug_cursor",
+      "reason": "Django DB force_debug_cursor flag, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 765,
+      "snippet": "    \"\"\"Context manager to temporarily add paths to sys.path.\"\"\"",
+      "reason": "Docstring referring to a generic Python context manager, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 835,
+      "snippet": "    Context manager to temporarily freeze time.time(). This temporarily",
+      "reason": "Docstring referring to a generic Python context manager, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/utils.py",
+      "line": 978,
+      "snippet": "    Context manager to temporarily register lookups on a model field using",
+      "reason": "Docstring referring to a generic Python context manager, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/test/testcases.py",
+      "line": 1469,
+      "snippet": "        \"\"\"Context manager to capture transaction.on_commit() callbacks.\"\"\"",
+      "reason": "Docstring referring to a generic Python context manager, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/__init__.py",
+      "line": 56,
+      "snippet": "from .context import Context, ContextPopException, RequestContext  # NOQA isort:skip",
+      "reason": "Django's own template Context import, unrelated to MCP SDK's Context."
+    },
+    {
+      "file": "django/template/__init__.py",
+      "line": 75,
+      "snippet": "__all__ += (\"Template\", \"Context\", \"RequestContext\")",
+      "reason": "Django's own template Context name, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context_processors.py",
+      "line": 19,
+      "snippet": "    Context processor that provides a CSRF token, or the string 'NOTPROVIDED' if",
+      "reason": "Docstring describing a Django context processor, unrelated to MCP SDK's Context class."
+    },
+    {
+      "file": "django/template/defaultfilters.py",
+      "line": 6,
+      "snippet": "from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation, getcontext",
+      "reason": "Python's decimal.Context, unrelated to MCP SDK's Context class."
+    },
+    {
+      "file": "django/template/defaultfilters.py",
+      "line": 203,
+      "snippet": "    rounded_d = d.quantize(exp, ROUND_HALF_UP, Context(prec=prec))",
+      "reason": "Python's decimal.Context usage, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/engine.py",
+      "line": 8,
+      "snippet": "from .context import Context, _builtin_context_processors",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/engine.py",
+      "line": 97,
+      "snippet": "        >>> from django.template import Context, Template",
+      "reason": "Docstring example of Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/engine.py",
+      "line": 99,
+      "snippet": "        >>> context = Context({'name': \"world\"})",
+      "reason": "Docstring example of Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/engine.py",
+      "line": 192,
+      "snippet": "        # Django < 1.8 accepted a Context in `context` even though that's",
+      "reason": "Comment about Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/engine.py",
+      "line": 194,
+      "snippet": "        if isinstance(context, Context):",
+      "reason": "isinstance check against Django's own template Context class, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/engine.py",
+      "line": 197,
+      "snippet": "            return t.render(Context(context, autoescape=self.autoescape))",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 135,
+      "snippet": "class Context(BaseContext):",
+      "reason": "Definition of Django's own template Context class, unrelated to MCP SDK's Context."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 152,
+      "snippet": "            raise RuntimeError(\"Context is already bound to a template\")",
+      "reason": "Django's own template Context error message, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 165,
+      "snippet": "        \"Push other_dict to the stack of dictionaries in the Context\"",
+      "reason": "Docstring for Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 217,
+      "snippet": "class RequestContext(Context):",
+      "reason": "Django's own RequestContext subclassing its own Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 219,
+      "snippet": "    This subclass of template.Context automatically populates itself using",
+      "reason": "Docstring for Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 249,
+      "snippet": "            raise RuntimeError(\"Context is already bound to a template\")",
+      "reason": "Django's own template Context error message, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 261,
+      "snippet": "                    f\"Context processor {processor.__qualname__} didn't return a \"",
+      "reason": "Django context processor error message, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 277,
+      "snippet": "        # Context.new don't include values from context processors.",
+      "reason": "Comment about Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 285,
+      "snippet": "    Create a suitable Context from a plain dict and optionally an HttpRequest.",
+      "reason": "Docstring for Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/context.py",
+      "line": 292,
+      "snippet": "        context = Context(context, **kwargs)",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/base.py",
+      "line": 21,
+      "snippet": "Each Node has a render() method, which takes a Context and returns a string of",
+      "reason": "Docstring referencing Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/base.py",
+      "line": 45,
+      "snippet": ">>> c = template.Context({'test':True, 'varvalue': 'Hello'})",
+      "reason": "Docstring example of Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/base.py",
+      "line": 48,
+      "snippet": ">>> c = template.Context({'test':False, 'varvalue': 'Hello'})",
+      "reason": "Docstring example of Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/base.py",
+      "line": 143,
+      "snippet": "        # e.g. Template('...').render(Context({...}))",
+      "reason": "Comment referencing Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/defaulttags.py",
+      "line": 37,
+      "snippet": "from .context import Context",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/defaulttags.py",
+      "line": 287,
+      "snippet": "        # The Context object behaves like a stack where each template tag can",
+      "reason": "Comment about Django's own template Context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/template/defaulttags.py",
+      "line": 1463,
+      "snippet": "    return VerbatimNode(nodelist.render(Context()))",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/utils/lorem_ipsum.py",
+      "line": 235,
+      "snippet": "        \" \".join(random.sample(WORDS, random.randint(3, 12)))",
+      "reason": "Python's random.sample, keyword-overlap noise, no relation to any fact above."
+    },
+    {
+      "file": "django/utils/lorem_ipsum.py",
+      "line": 283,
+      "snippet": "            word_list += random.sample(WORDS, c)",
+      "reason": "Python's random.sample, keyword-overlap noise, no relation to any fact above."
+    },
+    {
+      "file": "django/contrib/auth/forms.py",
+      "line": 40,
+      "snippet": "    def get_context(self, name, value, attrs):",
+      "reason": "Django Widget.get_context() override, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/contrib/auth/forms.py",
+      "line": 41,
+      "snippet": "        context = super().get_context(name, value, attrs)",
+      "reason": "Django Widget.get_context(), unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/csrf.py",
+      "line": 5,
+      "snippet": "from django.template import Context, Engine, TemplateDoesNotExist, loader",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/csrf.py",
+      "line": 76,
+      "snippet": "            body = t.render(Context(c))",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/debug.py",
+      "line": 12,
+      "snippet": "from django.template import Context, Engine, TemplateDoesNotExist",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/debug.py",
+      "line": 428,
+      "snippet": "        c = Context(self.get_traceback_data(), use_l10n=False)",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/debug.py",
+      "line": 435,
+      "snippet": "        c = Context(self.get_traceback_data(), autoescape=False, use_l10n=False)",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/debug.py",
+      "line": 639,
+      "snippet": "    c = Context(",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/debug.py",
+      "line": 659,
+      "snippet": "    c = Context(",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/static.py",
+      "line": 11,
+      "snippet": "from django.template import Context, Engine, TemplateDoesNotExist, loader",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/static.py",
+      "line": 84,
+      "snippet": "        c = Context()",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/defaults.py",
+      "line": 9,
+      "snippet": "from django.template import Context, Engine, TemplateDoesNotExist, loader",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/defaults.py",
+      "line": 40,
+      "snippet": "    Context:",
+      "reason": "Docstring parameter-listing label, referring to Django's own function argument named context, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/defaults.py",
+      "line": 78,
+      "snippet": "        body = template.render(Context(context))",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/defaults.py",
+      "line": 88,
+      "snippet": "    Context: None",
+      "reason": "Docstring parameter-listing label, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/defaults.py",
+      "line": 108,
+      "snippet": "    Context: None",
+      "reason": "Docstring parameter-listing label, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/defaults.py",
+      "line": 131,
+      "snippet": "    Context:",
+      "reason": "Docstring parameter-listing label, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/i18n.py",
+      "line": 9,
+      "snippet": "from django.template import Context, Engine",
+      "reason": "Django's own template Context import, unrelated to MCP SDK."
+    },
+    {
+      "file": "django/views/i18n.py",
+      "line": 228,
+      "snippet": "            template.render(Context(context)), 'text/javascript; charset=\"utf-8\"'",
+      "reason": "Django's own template Context construction, unrelated to MCP SDK."
+    }
+  ]
+}

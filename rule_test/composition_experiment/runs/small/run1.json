@@ -1,0 +1,739 @@
+{
+  "target": "B",
+  "repo": "composition_small",
+  "run": 1,
+  "proposed_sites": [
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 7,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from mcp.server.fastmcp; module tree moved, no compat alias exists (fact 1)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 26,
+      "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); identifier no longer exists under that name, must become MCPServer(...) (fact 1)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/main.py",
+      "line": 6,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from moved module path (fact 1)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/main.py",
+      "line": 23,
+      "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...) (fact 1)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context imported from mcp.server.fastmcp, which moved to mcp.server.mcpserver (fact 1)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context imported from mcp.server.fastmcp, which moved to mcp.server.mcpserver (fact 1)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context imported from mcp.server.fastmcp, which moved to mcp.server.mcpserver (fact 1)."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 10,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from moved module path (fact 1)."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 25,
+      "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
+      "pattern": "1",
+      "reason": "Return type annotation referencing FastMCP; per the spec's own worked example this is a separate site that must change to MCPServer, even after the import is fixed."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 27,
+      "snippet": "    mcp = FastMCP(",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...) (fact 1)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/main.py",
+      "line": 6,
+      "snippet": "from mcp.server.fastmcp import FastMCP, Context",
+      "pattern": "1",
+      "reason": "Imports FastMCP (and Context) from the moved module path; own text must change even though Context alone would be covered by the import fix, because FastMCP itself must be renamed (fact 1)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/main.py",
+      "line": 30,
+      "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...) (fact 1)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 44,
+      "snippet": "                input_schema={'json': tool.inputSchema}",
+      "pattern": "2",
+      "reason": "Python attribute access tool.inputSchema must become tool.input_schema (fact 2)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 4,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from moved module path (fact 1)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 23,
+      "snippet": "mcp = FastMCP(\"jmeter\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...) (fact 1)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/main.py",
+      "line": 2,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from moved module path (fact 1)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/main.py",
+      "line": 9,
+      "snippet": "mcp = FastMCP(\"jmeter\")",
+      "pattern": "1",
+      "reason": "Construction of FastMCP(...); must become MCPServer(...) (fact 1)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 11,
+      "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
+      "pattern": "1",
+      "reason": "RULE 1 anchor: constructs a module object representing an mcp.* path used to satisfy jmeter_server.py's FastMCP import (confirmed by reading the file). Since jmeter_server.py's import must move to mcp.server.mcpserver, this string literal itself must change to keep the mock intercepting the right path."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 21,
+      "snippet": "fastmcp_mod.FastMCP = FastMCP",
+      "pattern": "1",
+      "reason": "RULE 1 anchor: sets an attribute exposing a stand-in class under the SDK name FastMCP. Once the app imports MCPServer instead, this line's own text (attribute name) must change to expose MCPServer."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 22,
+      "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
+      "pattern": "1",
+      "reason": "RULE 1 anchor: assigns into sys.modules[...] under the old module path string; must change to 'mcp.server.mcpserver' to keep intercepting the migrated import."
+    }
+  ],
+  "flag_uncertain": [
+    {
+      "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 12,
+      "snippet": "class FastMCP:",
+      "reason": "RULE 1 (part of the mock-building machinery feeding fastmcp_mod.FastMCP = FastMCP two lines later) and RULE 2 (test file path) both apply, so REJECT is not permitted. However it is genuinely ambiguous whether this line's own text (the class name) must change: the mock could keep the class named FastMCP internally and only rename the exposed attribute (line 21) and module key (lines 11/22), so the class definition itself may not strictly need editing."
+    }
+  ],
+  "considered_and_rejected": [
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 15,
+      "snippet": "from tools.httpx import run_httpx",
+      "reason": "Imports a local application module (tools/httpx.py), not the mcp SDK or the httpx library; unrelated to any migration fact."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 31,
+      "snippet": "@mcp.tool()",
+      "reason": "Decorator on the high-level MCPServer/FastMCP API is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 42,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 52,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 62,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 72,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 82,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 92,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 101,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 110,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 119,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 128,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 136,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 145,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 155,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 182,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 207,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 236,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/main.py",
+      "line": 255,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator (fact 4)."
+    },
+    {
+      "file": "securityfortech_secops-mcp/tools/httpx.py",
+      "line": 10,
+      "snippet": "    \"\"\"Run httpx to probe HTTP servers.",
+      "reason": "Confirmed by reading the file: this wraps the external 'httpx' CLI binary via subprocess, not the Python httpx library or the MCP SDK; unrelated to fact 6."
+    },
+    {
+      "file": "securityfortech_secops-mcp/tools/httpx.py",
+      "line": 14,
+      "snippet": "        options: Additional httpx options (e.g., [\"-status-code\", \"-title\"])",
+      "reason": "Docstring referring to CLI flags of the external httpx binary invoked via subprocess; unrelated to the MCP SDK's transport change."
+    },
+    {
+      "file": "securityfortech_secops-mcp/tools/httpx.py",
+      "line": 21,
+      "snippet": "        cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input",
+      "reason": "Invokes the external httpx CLI binary via subprocess.run, not the Python httpx library; unaffected by fact 6, which concerns only the SDK's own internal transport."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 20,
+      "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:",
+      "reason": "Counting convention: fixing the Context import at line 8 in this same file makes this annotation resolve again without its own text changing."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 41,
+      "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 59,
+      "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 80,
+      "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 20,
+      "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:",
+      "reason": "Counting convention: covered by the Context import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 41,
+      "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 63,
+      "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\"",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 87,
+      "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 109,
+      "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 11,
+      "snippet": "    mcp.add_tool(board.get_board)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 12,
+      "snippet": "    mcp.add_tool(board.get_boards)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 13,
+      "snippet": "    mcp.add_tool(board.get_board_labels)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 14,
+      "snippet": "    mcp.add_tool(board.create_board_label)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 17,
+      "snippet": "    mcp.add_tool(list.get_list)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 18,
+      "snippet": "    mcp.add_tool(list.get_lists)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 19,
+      "snippet": "    mcp.add_tool(list.create_list)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 20,
+      "snippet": "    mcp.add_tool(list.update_list)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 21,
+      "snippet": "    mcp.add_tool(list.delete_list)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 24,
+      "snippet": "    mcp.add_tool(card.get_card)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 25,
+      "snippet": "    mcp.add_tool(card.get_cards)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 26,
+      "snippet": "    mcp.add_tool(card.create_card)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 27,
+      "snippet": "    mcp.add_tool(card.update_card)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 28,
+      "snippet": "    mcp.add_tool(card.delete_card)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 31,
+      "snippet": "    mcp.add_tool(checklist.get_checklist)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 32,
+      "snippet": "    mcp.add_tool(checklist.get_card_checklists)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 33,
+      "snippet": "    mcp.add_tool(checklist.create_checklist)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 34,
+      "snippet": "    mcp.add_tool(checklist.update_checklist)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 35,
+      "snippet": "    mcp.add_tool(checklist.delete_checklist)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 36,
+      "snippet": "    mcp.add_tool(checklist.add_checkitem)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 37,
+      "snippet": "    mcp.add_tool(checklist.update_checkitem)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+      "line": 38,
+      "snippet": "    mcp.add_tool(checklist.delete_checkitem)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 21,
+      "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:",
+      "reason": "Counting convention: covered by the Context import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 42,
+      "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 63,
+      "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 87,
+      "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 112,
+      "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:",
+      "reason": "Counting convention: covered by the import fix at line 8 in the same file."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 4,
+      "snippet": "import httpx",
+      "reason": "Confirmed by reading the file: used solely to call the third-party Trello REST API (api.trello.com), never passed into any MCP SDK function; unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 21,
+      "snippet": "        self.client = httpx.AsyncClient(base_url=self.base_url)",
+      "reason": "AsyncClient constructed for the app's own Trello REST calls, not passed into any MCP SDK function; fact 6 explicitly excludes this case."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 34,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Exception handling for the app's independent Trello REST client; unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 36,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 41,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 43,
+      "snippet": "            raise httpx.RequestError(f\"Failed to get {endpoint}: {str(e)}\")",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 51,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 53,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 58,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 60,
+      "snippet": "            raise httpx.RequestError(f\"Failed to post to {endpoint}: {str(e)}\")",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 68,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 70,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 75,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 77,
+      "snippet": "            raise httpx.RequestError(f\"Failed to put to {endpoint}: {str(e)}\")",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 87,
+      "snippet": "        except httpx.HTTPStatusError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 89,
+      "snippet": "            raise httpx.HTTPStatusError(",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 94,
+      "snippet": "        except httpx.RequestError as e:",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+      "line": 96,
+      "snippet": "            raise httpx.RequestError(f\"Failed to delete {endpoint}: {str(e)}\")",
+      "reason": "Independent app usage of httpx, unaffected per fact 6."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 3,
+      "snippet": "YouTrack MCP Server - A Model Context Protocol server for JetBrains YouTrack.",
+      "reason": "Plain module docstring prose; does not reference FastMCP or any migrated symbol at all."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 4,
+      "snippet": "Uses FastMCP directly for clean stdio/SSE transport support.",
+      "reason": "Docstring prose mentioning FastMCP as text, not an import/construction/type annotation the interpreter evaluates; no fact requires editing documentation strings for the code to function."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 26,
+      "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\"",
+      "reason": "Docstring prose, not executable code referencing the FastMCP symbol; does not need to change for the migration to function."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 37,
+      "snippet": "        mcp.add_tool(func, name=name)",
+      "reason": "MCPServer.add_tool() is unchanged in v2 (fact 4)."
+    },
+    {
+      "file": "tonyzorin_youtrack-mcp/main.py",
+      "line": 39,
+      "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
+      "reason": "Runtime log message string literal containing the word FastMCP; not a code reference to the symbol, so it does not break and its own text need not change for the migration."
+    },
+    {
+      "file": "danilop_MCP2Lambda/main.py",
+      "line": 68,
+      "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:",
+      "reason": "Counting convention: covered by the Context import fix at line 6 in the same file."
+    },
+    {
+      "file": "danilop_MCP2Lambda/main.py",
+      "line": 94,
+      "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:",
+      "reason": "Counting convention: covered by the import fix at line 6 in the same file."
+    },
+    {
+      "file": "danilop_MCP2Lambda/main.py",
+      "line": 136,
+      "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:",
+      "reason": "Counting convention: covered by the import fix at line 6 in the same file."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 1,
+      "snippet": "from mcp import ClientSession, StdioServerParameters",
+      "reason": "Import paths for ClientSession/StdioServerParameters did not change (fact 5)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 2,
+      "snippet": "from mcp.client.stdio import stdio_client",
+      "reason": "Import path for stdio_client did not change (fact 5)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 6,
+      "snippet": "    def __init__(self, server_params: StdioServerParameters):",
+      "reason": "StdioServerParameters class/import unaffected; no described shape change (fact 5)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 25,
+      "snippet": "        self._client = stdio_client(self.server_params)",
+      "reason": "stdio_client usage unaffected; import path and function unchanged (fact 5)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 27,
+      "snippet": "        session = ClientSession(self.read, self.write)",
+      "reason": "ClientSession constructor with read/write is not among the described client changes (cursor removal, args removal on ClientSessionGroup, timeout type, get_server_capabilities); unaffected (fact 5)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 2,
+      "snippet": "from mcp import StdioServerParameters",
+      "reason": "Import path for StdioServerParameters did not change (fact 5)."
+    },
+    {
+      "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 25,
+      "snippet": "    server_params = StdioServerParameters(",
+      "reason": "StdioServerParameters construction unaffected; no described constructor change (fact 5)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 121,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator on high-level API (fact 4)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 132,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator on high-level API (fact 4)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 150,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator on high-level API (fact 4)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 303,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator on high-level API (fact 4)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 402,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator on high-level API (fact 4)."
+    },
+    {
+      "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 473,
+      "snippet": "@mcp.tool()",
+      "reason": "Unchanged decorator on high-level API (fact 4)."
+    }
+  ]
+}

@@ -1,0 +1,592 @@
+[
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 7,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 15,
+    "snippet": "from tools.httpx import run_httpx"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 26,
+    "snippet": "mcp = FastMCP(name=\"secops-mcp\","
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 31,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 42,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 52,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 62,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 72,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 82,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 92,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 101,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 110,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 119,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 128,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 136,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 145,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 155,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 182,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 207,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 236,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 255,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/httpx.py",
+    "line": 10,
+    "snippet": "    \"\"\"Run httpx to probe HTTP servers."
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/httpx.py",
+    "line": 14,
+    "snippet": "        options: Additional httpx options (e.g., [\"-status-code\", \"-title\"])"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/httpx.py",
+    "line": 21,
+    "snippet": "        cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 6,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 23,
+    "snippet": "mcp = FastMCP(\"Trello MCP Server\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 20,
+    "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 41,
+    "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 59,
+    "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 80,
+    "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 20,
+    "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 41,
+    "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 63,
+    "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\""
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 87,
+    "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 109,
+    "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 11,
+    "snippet": "    mcp.add_tool(board.get_board)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 12,
+    "snippet": "    mcp.add_tool(board.get_boards)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 13,
+    "snippet": "    mcp.add_tool(board.get_board_labels)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 14,
+    "snippet": "    mcp.add_tool(board.create_board_label)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 17,
+    "snippet": "    mcp.add_tool(list.get_list)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 18,
+    "snippet": "    mcp.add_tool(list.get_lists)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 19,
+    "snippet": "    mcp.add_tool(list.create_list)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 20,
+    "snippet": "    mcp.add_tool(list.update_list)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 21,
+    "snippet": "    mcp.add_tool(list.delete_list)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 24,
+    "snippet": "    mcp.add_tool(card.get_card)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 25,
+    "snippet": "    mcp.add_tool(card.get_cards)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 26,
+    "snippet": "    mcp.add_tool(card.create_card)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 27,
+    "snippet": "    mcp.add_tool(card.update_card)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 28,
+    "snippet": "    mcp.add_tool(card.delete_card)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 31,
+    "snippet": "    mcp.add_tool(checklist.get_checklist)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 32,
+    "snippet": "    mcp.add_tool(checklist.get_card_checklists)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 33,
+    "snippet": "    mcp.add_tool(checklist.create_checklist)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 34,
+    "snippet": "    mcp.add_tool(checklist.update_checklist)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 35,
+    "snippet": "    mcp.add_tool(checklist.delete_checklist)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 36,
+    "snippet": "    mcp.add_tool(checklist.add_checkitem)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 37,
+    "snippet": "    mcp.add_tool(checklist.update_checkitem)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 38,
+    "snippet": "    mcp.add_tool(checklist.delete_checkitem)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 21,
+    "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 42,
+    "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 63,
+    "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 87,
+    "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 112,
+    "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 4,
+    "snippet": "import httpx"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 21,
+    "snippet": "        self.client = httpx.AsyncClient(base_url=self.base_url)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 34,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 36,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 41,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 43,
+    "snippet": "            raise httpx.RequestError(f\"Failed to get {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 51,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 53,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 58,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 60,
+    "snippet": "            raise httpx.RequestError(f\"Failed to post to {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 68,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 70,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 75,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 77,
+    "snippet": "            raise httpx.RequestError(f\"Failed to put to {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 87,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 89,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 94,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 96,
+    "snippet": "            raise httpx.RequestError(f\"Failed to delete {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 3,
+    "snippet": "YouTrack MCP Server - A Model Context Protocol server for JetBrains YouTrack."
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 4,
+    "snippet": "Uses FastMCP directly for clean stdio/SSE transport support."
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 10,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 25,
+    "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 26,
+    "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 27,
+    "snippet": "    mcp = FastMCP("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 37,
+    "snippet": "        mcp.add_tool(func, name=name)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 39,
+    "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 6,
+    "snippet": "from mcp.server.fastmcp import FastMCP, Context"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 30,
+    "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 68,
+    "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 94,
+    "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 136,
+    "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 1,
+    "snippet": "from mcp import ClientSession, StdioServerParameters"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 2,
+    "snippet": "from mcp.client.stdio import stdio_client"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 6,
+    "snippet": "    def __init__(self, server_params: StdioServerParameters):"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 25,
+    "snippet": "        self._client = stdio_client(self.server_params)"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 27,
+    "snippet": "        session = ClientSession(self.read, self.write)"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 2,
+    "snippet": "from mcp import StdioServerParameters"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 25,
+    "snippet": "    server_params = StdioServerParameters("
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 44,
+    "snippet": "                input_schema={'json': tool.inputSchema}"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 4,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 23,
+    "snippet": "mcp = FastMCP(\"jmeter\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 121,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 132,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 150,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 303,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 402,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 473,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/main.py",
+    "line": 2,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/main.py",
+    "line": 9,
+    "snippet": "mcp = FastMCP(\"jmeter\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 11,
+    "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 12,
+    "snippet": "class FastMCP:"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 21,
+    "snippet": "fastmcp_mod.FastMCP = FastMCP"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 22,
+    "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod"
+  }
+]

@@ -1,0 +1,83 @@
+--- adjudication cost, small scale ---
+  QAInsights_jmeter-mcp-server: 14 candidates
+  danilop_MCP2Lambda: 13 candidates
+  m0xai_trello-mcp-server: 59 candidates
+  securityfortech_secops-mcp: 24 candidates
+  tonyzorin_youtrack-mcp: 8 candidates
+  TOTAL: 118 candidates handed to the agent
+
+--- adjudication cost, diluted scale ---
+  QAInsights_jmeter-mcp-server: 14 candidates
+  danilop_MCP2Lambda: 13 candidates
+  django: 96 candidates
+  m0xai_trello-mcp-server: 59 candidates
+  securityfortech_secops-mcp: 24 candidates
+  tonyzorin_youtrack-mcp: 8 candidates
+  TOTAL: 214 candidates handed to the agent
+
+##### SCALE: small #####
+Candidate set size (grep, coverage-tuned): 118
+Ground truth sites in this scale: 20
+Confirmed: grep candidate set has 100% recall on GT before any adjudication.
+
+Validating 3 run file(s)...
+  OK  run1.json
+  OK  run2.json
+  OK  run3.json
+
+=== small/run1 ===
+  adjudicated: 118 / 118 candidates (proposed=20 flag=1 reject=97, dupes=0)
+  TP=20 FP=0 GT=20  recall(proposed-only)=100.0%  precision=100.0%
+  GT sites surfaced (proposed OR flagged, i.e. NOT silently lost): 20/20 = 100.0%
+
+=== small/run2 ===
+  adjudicated: 118 / 118 candidates (proposed=20 flag=1 reject=97, dupes=0)
+  TP=20 FP=0 GT=20  recall(proposed-only)=100.0%  precision=100.0%
+  GT sites surfaced (proposed OR flagged, i.e. NOT silently lost): 20/20 = 100.0%
+
+=== small/run3 ===
+  adjudicated: 118 / 118 candidates (proposed=20 flag=1 reject=97, dupes=0)
+  TP=20 FP=0 GT=20  recall(proposed-only)=100.0%  precision=100.0%
+  GT sites surfaced (proposed OR flagged, i.e. NOT silently lost): 20/20 = 100.0%
+
+=== small AGGREGATE (3 runs) ===
+Precision on proposed-only: 60/60 = 100.0%
+Recall on proposed-only:    60/60 = 100.0%
+Surfaced rate (proposed OR flag_uncertain, i.e. not silently lost): 100.0%
+Total closed-world violations: out_of_contract=0  unadjudicated=0
+Total GT misses landing in confident REJECT: 0
+Total GT misses never adjudicated (true mechanism-B recurrence): 0
+
+##### SCALE: diluted #####
+Candidate set size (grep, coverage-tuned): 214
+Ground truth sites in this scale: 20
+Confirmed: grep candidate set has 100% recall on GT before any adjudication.
+
+Validating 3 run file(s)...
+  OK  run1.json
+  OK  run2.json
+  OK  run3.json
+
+=== diluted/run1 ===
+  adjudicated: 214 / 214 candidates (proposed=20 flag=1 reject=193, dupes=0)
+  TP=20 FP=0 GT=20  recall(proposed-only)=100.0%  precision=100.0%
+  GT sites surfaced (proposed OR flagged, i.e. NOT silently lost): 20/20 = 100.0%
+
+=== diluted/run2 ===
+  adjudicated: 214 / 214 candidates (proposed=20 flag=1 reject=193, dupes=0)
+  TP=20 FP=0 GT=20  recall(proposed-only)=100.0%  precision=100.0%
+  GT sites surfaced (proposed OR flagged, i.e. NOT silently lost): 20/20 = 100.0%
+
+=== diluted/run3 ===
+  adjudicated: 214 / 214 candidates (proposed=20 flag=1 reject=193, dupes=0)
+  TP=20 FP=0 GT=20  recall(proposed-only)=100.0%  precision=100.0%
+  GT sites surfaced (proposed OR flagged, i.e. NOT silently lost): 20/20 = 100.0%
+
+=== diluted AGGREGATE (3 runs) ===
+Precision on proposed-only: 60/60 = 100.0%
+Recall on proposed-only:    60/60 = 100.0%
+Surfaced rate (proposed OR flag_uncertain, i.e. not silently lost): 100.0%
+Total closed-world violations: out_of_contract=0  unadjudicated=0
+Total GT misses landing in confident REJECT: 0
+Total GT misses never adjudicated (true mechanism-B recurrence): 0
+

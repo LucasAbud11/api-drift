@@ -1,0 +1,1072 @@
+[
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 7,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 15,
+    "snippet": "from tools.httpx import run_httpx"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 26,
+    "snippet": "mcp = FastMCP(name=\"secops-mcp\","
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 31,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 42,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 52,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 62,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 72,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 82,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 92,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 101,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 110,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 119,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 128,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 136,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 145,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 155,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 182,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 207,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 236,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/main.py",
+    "line": 255,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/tools/httpx.py",
+    "line": 10,
+    "snippet": "    \"\"\"Run httpx to probe HTTP servers."
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/tools/httpx.py",
+    "line": 14,
+    "snippet": "        options: Additional httpx options (e.g., [\"-status-code\", \"-title\"])"
+  },
+  {
+    "file": "integrations/securityfortech_secops-mcp/tools/httpx.py",
+    "line": 21,
+    "snippet": "        cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/main.py",
+    "line": 6,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/main.py",
+    "line": 23,
+    "snippet": "mcp = FastMCP(\"Trello MCP Server\")"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 20,
+    "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 41,
+    "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 59,
+    "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 80,
+    "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 20,
+    "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 41,
+    "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 63,
+    "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\""
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 87,
+    "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 109,
+    "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 11,
+    "snippet": "    mcp.add_tool(board.get_board)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 12,
+    "snippet": "    mcp.add_tool(board.get_boards)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 13,
+    "snippet": "    mcp.add_tool(board.get_board_labels)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 14,
+    "snippet": "    mcp.add_tool(board.create_board_label)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 17,
+    "snippet": "    mcp.add_tool(list.get_list)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 18,
+    "snippet": "    mcp.add_tool(list.get_lists)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 19,
+    "snippet": "    mcp.add_tool(list.create_list)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 20,
+    "snippet": "    mcp.add_tool(list.update_list)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 21,
+    "snippet": "    mcp.add_tool(list.delete_list)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 24,
+    "snippet": "    mcp.add_tool(card.get_card)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 25,
+    "snippet": "    mcp.add_tool(card.get_cards)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 26,
+    "snippet": "    mcp.add_tool(card.create_card)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 27,
+    "snippet": "    mcp.add_tool(card.update_card)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 28,
+    "snippet": "    mcp.add_tool(card.delete_card)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 31,
+    "snippet": "    mcp.add_tool(checklist.get_checklist)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 32,
+    "snippet": "    mcp.add_tool(checklist.get_card_checklists)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 33,
+    "snippet": "    mcp.add_tool(checklist.create_checklist)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 34,
+    "snippet": "    mcp.add_tool(checklist.update_checklist)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 35,
+    "snippet": "    mcp.add_tool(checklist.delete_checklist)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 36,
+    "snippet": "    mcp.add_tool(checklist.add_checkitem)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 37,
+    "snippet": "    mcp.add_tool(checklist.update_checkitem)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/tools.py",
+    "line": 38,
+    "snippet": "    mcp.add_tool(checklist.delete_checkitem)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 21,
+    "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 42,
+    "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 63,
+    "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 87,
+    "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 112,
+    "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 4,
+    "snippet": "import httpx"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 21,
+    "snippet": "        self.client = httpx.AsyncClient(base_url=self.base_url)"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 34,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 36,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 41,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 43,
+    "snippet": "            raise httpx.RequestError(f\"Failed to get {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 51,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 53,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 58,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 60,
+    "snippet": "            raise httpx.RequestError(f\"Failed to post to {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 68,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 70,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 75,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 77,
+    "snippet": "            raise httpx.RequestError(f\"Failed to put to {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 87,
+    "snippet": "        except httpx.HTTPStatusError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 89,
+    "snippet": "            raise httpx.HTTPStatusError("
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 94,
+    "snippet": "        except httpx.RequestError as e:"
+  },
+  {
+    "file": "integrations/m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 96,
+    "snippet": "            raise httpx.RequestError(f\"Failed to delete {endpoint}: {str(e)}\")"
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 3,
+    "snippet": "YouTrack MCP Server - A Model Context Protocol server for JetBrains YouTrack."
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 4,
+    "snippet": "Uses FastMCP directly for clean stdio/SSE transport support."
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 10,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 25,
+    "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:"
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 26,
+    "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\""
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 27,
+    "snippet": "    mcp = FastMCP("
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 37,
+    "snippet": "        mcp.add_tool(func, name=name)"
+  },
+  {
+    "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+    "line": 39,
+    "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/main.py",
+    "line": 6,
+    "snippet": "from mcp.server.fastmcp import FastMCP, Context"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/main.py",
+    "line": 30,
+    "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/main.py",
+    "line": 68,
+    "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/main.py",
+    "line": 94,
+    "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/main.py",
+    "line": 136,
+    "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 1,
+    "snippet": "from mcp import ClientSession, StdioServerParameters"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 2,
+    "snippet": "from mcp.client.stdio import stdio_client"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 6,
+    "snippet": "    def __init__(self, server_params: StdioServerParameters):"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 25,
+    "snippet": "        self._client = stdio_client(self.server_params)"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 27,
+    "snippet": "        session = ClientSession(self.read, self.write)"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 2,
+    "snippet": "from mcp import StdioServerParameters"
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 25,
+    "snippet": "    server_params = StdioServerParameters("
+  },
+  {
+    "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 44,
+    "snippet": "                input_schema={'json': tool.inputSchema}"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 4,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 23,
+    "snippet": "mcp = FastMCP(\"jmeter\")"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 121,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 132,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 150,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 303,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 402,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 473,
+    "snippet": "@mcp.tool()"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+    "line": 2,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+    "line": 9,
+    "snippet": "mcp = FastMCP(\"jmeter\")"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 11,
+    "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 12,
+    "snippet": "class FastMCP:"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 21,
+    "snippet": "fastmcp_mod.FastMCP = FastMCP"
+  },
+  {
+    "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 22,
+    "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod"
+  },
+  {
+    "file": "django/forms/boundfield.py",
+    "line": 82,
+    "snippet": "    def get_context(self):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 251,
+    "snippet": "        context = self.get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 264,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 278,
+    "snippet": "        context = self.get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 330,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 331,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 364,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 367,
+    "snippet": "        return super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 383,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 384,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 397,
+    "snippet": "            subwidgets.append(widget.get_context(name, value_, widget_attrs)[\"widget\"])"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 493,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 494,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 594,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 597,
+    "snippet": "        return super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 713,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 714,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 763,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 764,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 889,
+    "snippet": "    In addition to the values added by Widget.get_context(), this widget"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 912,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 913,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 942,
+    "snippet": "                widget.get_context(widget_name, widget_value, widget_attrs)[\"widget\"]"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 1097,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 1098,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 1106,
+    "snippet": "        ).get_context("
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 1117,
+    "snippet": "        ).get_context("
+  },
+  {
+    "file": "django/forms/widgets.py",
+    "line": 1129,
+    "snippet": "        ).get_context("
+  },
+  {
+    "file": "django/forms/formsets.py",
+    "line": 530,
+    "snippet": "    def get_context(self):"
+  },
+  {
+    "file": "django/forms/forms.py",
+    "line": 222,
+    "snippet": "    def get_context(self):"
+  },
+  {
+    "file": "django/forms/utils.py",
+    "line": 46,
+    "snippet": "    def get_context(self):"
+  },
+  {
+    "file": "django/forms/utils.py",
+    "line": 48,
+    "snippet": "            \"Subclasses of RenderableMixin must provide a get_context() method.\""
+  },
+  {
+    "file": "django/forms/utils.py",
+    "line": 54,
+    "snippet": "        context = context or self.get_context()"
+  },
+  {
+    "file": "django/forms/utils.py",
+    "line": 134,
+    "snippet": "    def get_context(self):"
+  },
+  {
+    "file": "django/forms/utils.py",
+    "line": 179,
+    "snippet": "    def get_context(self):"
+  },
+  {
+    "file": "django/core/cache/backends/filebased.py",
+    "line": 112,
+    "snippet": "        filelist = random.sample(filelist, int(num_entries / self._cull_frequency))"
+  },
+  {
+    "file": "django/core/management/templates.py",
+    "line": 19,
+    "snippet": "from django.template import Context, Engine"
+  },
+  {
+    "file": "django/core/management/templates.py",
+    "line": 140,
+    "snippet": "        context = Context("
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 234,
+    "snippet": "            connections[alias].force_debug_cursor = True"
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 695,
+    "snippet": "    Context manager that captures queries executed by the specified connection."
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 715,
+    "snippet": "        self.force_debug_cursor = self.connection.force_debug_cursor"
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 716,
+    "snippet": "        self.connection.force_debug_cursor = True"
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 726,
+    "snippet": "        self.connection.force_debug_cursor = self.force_debug_cursor"
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 765,
+    "snippet": "    \"\"\"Context manager to temporarily add paths to sys.path.\"\"\""
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 835,
+    "snippet": "    Context manager to temporarily freeze time.time(). This temporarily"
+  },
+  {
+    "file": "django/test/utils.py",
+    "line": 978,
+    "snippet": "    Context manager to temporarily register lookups on a model field using"
+  },
+  {
+    "file": "django/test/testcases.py",
+    "line": 1469,
+    "snippet": "        \"\"\"Context manager to capture transaction.on_commit() callbacks.\"\"\""
+  },
+  {
+    "file": "django/template/__init__.py",
+    "line": 56,
+    "snippet": "from .context import Context, ContextPopException, RequestContext  # NOQA isort:skip"
+  },
+  {
+    "file": "django/template/__init__.py",
+    "line": 75,
+    "snippet": "__all__ += (\"Template\", \"Context\", \"RequestContext\")"
+  },
+  {
+    "file": "django/template/context_processors.py",
+    "line": 19,
+    "snippet": "    Context processor that provides a CSRF token, or the string 'NOTPROVIDED' if"
+  },
+  {
+    "file": "django/template/defaultfilters.py",
+    "line": 6,
+    "snippet": "from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation, getcontext"
+  },
+  {
+    "file": "django/template/defaultfilters.py",
+    "line": 203,
+    "snippet": "    rounded_d = d.quantize(exp, ROUND_HALF_UP, Context(prec=prec))"
+  },
+  {
+    "file": "django/template/engine.py",
+    "line": 8,
+    "snippet": "from .context import Context, _builtin_context_processors"
+  },
+  {
+    "file": "django/template/engine.py",
+    "line": 97,
+    "snippet": "        >>> from django.template import Context, Template"
+  },
+  {
+    "file": "django/template/engine.py",
+    "line": 99,
+    "snippet": "        >>> context = Context({'name': \"world\"})"
+  },
+  {
+    "file": "django/template/engine.py",
+    "line": 192,
+    "snippet": "        # Django < 1.8 accepted a Context in `context` even though that's"
+  },
+  {
+    "file": "django/template/engine.py",
+    "line": 194,
+    "snippet": "        if isinstance(context, Context):"
+  },
+  {
+    "file": "django/template/engine.py",
+    "line": 197,
+    "snippet": "            return t.render(Context(context, autoescape=self.autoescape))"
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 135,
+    "snippet": "class Context(BaseContext):"
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 152,
+    "snippet": "            raise RuntimeError(\"Context is already bound to a template\")"
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 165,
+    "snippet": "        \"Push other_dict to the stack of dictionaries in the Context\""
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 217,
+    "snippet": "class RequestContext(Context):"
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 219,
+    "snippet": "    This subclass of template.Context automatically populates itself using"
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 249,
+    "snippet": "            raise RuntimeError(\"Context is already bound to a template\")"
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 261,
+    "snippet": "                    f\"Context processor {processor.__qualname__} didn't return a \""
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 277,
+    "snippet": "        # Context.new don't include values from context processors."
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 285,
+    "snippet": "    Create a suitable Context from a plain dict and optionally an HttpRequest."
+  },
+  {
+    "file": "django/template/context.py",
+    "line": 292,
+    "snippet": "        context = Context(context, **kwargs)"
+  },
+  {
+    "file": "django/template/base.py",
+    "line": 21,
+    "snippet": "Each Node has a render() method, which takes a Context and returns a string of"
+  },
+  {
+    "file": "django/template/base.py",
+    "line": 45,
+    "snippet": ">>> c = template.Context({'test':True, 'varvalue': 'Hello'})"
+  },
+  {
+    "file": "django/template/base.py",
+    "line": 48,
+    "snippet": ">>> c = template.Context({'test':False, 'varvalue': 'Hello'})"
+  },
+  {
+    "file": "django/template/base.py",
+    "line": 143,
+    "snippet": "        # e.g. Template('...').render(Context({...}))"
+  },
+  {
+    "file": "django/template/defaulttags.py",
+    "line": 37,
+    "snippet": "from .context import Context"
+  },
+  {
+    "file": "django/template/defaulttags.py",
+    "line": 287,
+    "snippet": "        # The Context object behaves like a stack where each template tag can"
+  },
+  {
+    "file": "django/template/defaulttags.py",
+    "line": 1463,
+    "snippet": "    return VerbatimNode(nodelist.render(Context()))"
+  },
+  {
+    "file": "django/utils/lorem_ipsum.py",
+    "line": 235,
+    "snippet": "        \" \".join(random.sample(WORDS, random.randint(3, 12)))"
+  },
+  {
+    "file": "django/utils/lorem_ipsum.py",
+    "line": 283,
+    "snippet": "            word_list += random.sample(WORDS, c)"
+  },
+  {
+    "file": "django/contrib/auth/forms.py",
+    "line": 40,
+    "snippet": "    def get_context(self, name, value, attrs):"
+  },
+  {
+    "file": "django/contrib/auth/forms.py",
+    "line": 41,
+    "snippet": "        context = super().get_context(name, value, attrs)"
+  },
+  {
+    "file": "django/views/csrf.py",
+    "line": 5,
+    "snippet": "from django.template import Context, Engine, TemplateDoesNotExist, loader"
+  },
+  {
+    "file": "django/views/csrf.py",
+    "line": 76,
+    "snippet": "            body = t.render(Context(c))"
+  },
+  {
+    "file": "django/views/debug.py",
+    "line": 12,
+    "snippet": "from django.template import Context, Engine, TemplateDoesNotExist"
+  },
+  {
+    "file": "django/views/debug.py",
+    "line": 428,
+    "snippet": "        c = Context(self.get_traceback_data(), use_l10n=False)"
+  },
+  {
+    "file": "django/views/debug.py",
+    "line": 435,
+    "snippet": "        c = Context(self.get_traceback_data(), autoescape=False, use_l10n=False)"
+  },
+  {
+    "file": "django/views/debug.py",
+    "line": 639,
+    "snippet": "    c = Context("
+  },
+  {
+    "file": "django/views/debug.py",
+    "line": 659,
+    "snippet": "    c = Context("
+  },
+  {
+    "file": "django/views/static.py",
+    "line": 11,
+    "snippet": "from django.template import Context, Engine, TemplateDoesNotExist, loader"
+  },
+  {
+    "file": "django/views/static.py",
+    "line": 84,
+    "snippet": "        c = Context()"
+  },
+  {
+    "file": "django/views/defaults.py",
+    "line": 9,
+    "snippet": "from django.template import Context, Engine, TemplateDoesNotExist, loader"
+  },
+  {
+    "file": "django/views/defaults.py",
+    "line": 40,
+    "snippet": "    Context:"
+  },
+  {
+    "file": "django/views/defaults.py",
+    "line": 78,
+    "snippet": "        body = template.render(Context(context))"
+  },
+  {
+    "file": "django/views/defaults.py",
+    "line": 88,
+    "snippet": "    Context: None"
+  },
+  {
+    "file": "django/views/defaults.py",
+    "line": 108,
+    "snippet": "    Context: None"
+  },
+  {
+    "file": "django/views/defaults.py",
+    "line": 131,
+    "snippet": "    Context:"
+  },
+  {
+    "file": "django/views/i18n.py",
+    "line": 9,
+    "snippet": "from django.template import Context, Engine"
+  },
+  {
+    "file": "django/views/i18n.py",
+    "line": 228,
+    "snippet": "            template.render(Context(context)), 'text/javascript; charset=\"utf-8\"'"
+  }
+]
