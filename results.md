@@ -105,3 +105,32 @@ keyword collisions the rule has no leverage on. Ship the rule anyway — it
 is provably safe (zero recall cost, both the circular reconstruction and
 the real run) and costs nothing when there's nothing to filter — but stop
 citing the specific percentage as justification.
+
+**2026-08-18 update (revision 3, resolved) — the original session's
+transcript was located on disk and read directly; see
+`rule_test/ablation_and_root_cause.md` and
+`rule_test/original_session_recovered/`.** "Spec text was never
+persisted" (above) is now wrong — it was found. The recovered original
+Target B spec is 9 dense items (vs. this session's 6-item simplification)
+and its item 1 explicitly states that a *type annotation referencing
+`FastMCP`* is broken while staying silent on whether a downstream
+*`Context`* reference counts the same way — an asymmetry my reconstruction
+accidentally resolved (in both ablation conditions) by never dwelling on
+import-failure mechanics the way the original does. The original agents'
+own recorded reasoning confirms this directly: not confusion about
+whether `Context` was renamed, but a defensible-but-wrong argument that
+"the import fails, so every line depending on it is broken too" — exactly
+the "depends on" mechanism this file described from the start, now
+confirmed in the agents' own words rather than inferred. A 20-run ablation
+on the two repos that can actually show the effect (m0xai, danilop; the
+other three have zero `ctx: Context` sites and can't) produced zero
+variance and zero false positives in both conditions — the sentence about
+`Context`'s name was never the operative variable. Grep's real, recovered
+baseline command was also re-run verbatim: 21.0% precision (vs. the
+reported 21.9%, matching almost exactly) confirming the earlier
+reconstruction was directionally right, and its vocabulary never searches
+for bare `Context` at all — the rule removes zero candidates from the
+real grep baseline, not just "barely helps." This session's own
+simplified spec, not the rule or the agent, is why the benchmark now
+reads as saturated; see `ablation_and_root_cause.md` for the proposed
+fix (reinstate the real 9-item spec, then scale repo/fan-out size).

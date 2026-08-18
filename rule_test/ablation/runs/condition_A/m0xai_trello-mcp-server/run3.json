@@ -1,0 +1,10 @@
+{
+  "condition": "A", "repo": "m0xai_trello-mcp-server", "run": 3,
+  "proposed_sites": [
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed; must become 'from mcp.server.mcpserver import MCPServer' (also covers the FastMCP->MCPServer rename since the imported symbol is used directly below)."},
+    {"file": "main.py", "line": 23, "snippet": "mcp = FastMCP(\"Trello MCP Server\")", "reason": "Constructs the server class by its old name; FastMCP no longer exists under that name in v2, must become MCPServer(\"Trello MCP Server\")."},
+    {"file": "server/tools/board.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "reason": "Context moved with the rest of the module; import path must change to mcp.server.mcpserver (Context itself keeps its name, only the path changes)."},
+    {"file": "server/tools/card.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "reason": "Same as above: import path change only, Context class name is unaffected."},
+    {"file": "server/tools/list.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "reason": "Same as above: import path change only, Context class name is unaffected."}
+  ]
+}

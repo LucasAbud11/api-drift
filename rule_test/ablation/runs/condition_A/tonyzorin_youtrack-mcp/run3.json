@@ -1,0 +1,10 @@
+{
+  "condition": "A",
+  "repo": "tonyzorin_youtrack-mcp",
+  "run": 3,
+  "proposed_sites": [
+    {"file": "main.py", "line": 10, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "The mcp.server.fastmcp module path is removed in v2; must import from mcp.server.mcpserver, and the class FastMCP is renamed to MCPServer, so this becomes `from mcp.server.mcpserver import MCPServer`."},
+    {"file": "main.py", "line": 25, "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:", "reason": "Return-type annotation uses the old class identifier FastMCP, which no longer exists under that name in v2; must become MCPServer."},
+    {"file": "main.py", "line": 27, "snippet": "    mcp = FastMCP(", "reason": "Constructs the server using the old class name FastMCP; the class is renamed to MCPServer in v2, so this constructor call must become MCPServer(."}
+  ]
+}

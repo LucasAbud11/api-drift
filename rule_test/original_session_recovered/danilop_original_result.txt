@@ -1,0 +1,59 @@
+Extracted verbatim from the original session's task-notification for
+"Detection pass: danilop MCP2Lambda" (agentId a27330b2858ad147e).
+Finding #3 below contains the single clearest piece of evidence in this whole
+investigation: the agent states its reasoning explicitly, gets the causal
+mechanism technically right, and still reaches the "count it separately"
+conclusion that ground truth defines as wrong.
+
+---
+
+All 9 `.py` files have been fully read. No test files exist in this repo. Here are my findings.
+
+## Findings
+
+**1. `main.py` line 6**
+```python
+from mcp.server.fastmcp import FastMCP, Context
+```
+Pattern 1 — imports `FastMCP` and `Context` from the now-removed `mcp.server.fastmcp` module tree. Both must move to `mcp.server.mcpserver`.
+
+**2. `main.py` line 30**
+```python
+mcp = FastMCP("MCP Gateway to AWS Lambda")
+```
+Pattern 1 — construction of `FastMCP(...)`, which no longer exists under this name/import.
+
+**3. `main.py` line 68**
+```python
+def list_lambda_functions_impl(ctx: Context) -> str:
+```
+Pattern 1 (downstream effect) — type annotation uses `Context`, which was imported from the broken `mcp.server.fastmcp` path at line 6. Since Python evaluates parameter annotations at function-definition time (no `from __future__ import annotations` in this file) and the import already fails, this name would be unresolved. Flagging as affected via the broken import chain, though the root cause is line 6.
+
+**4. `main.py` line 94**
+```python
+def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:
+```
+Same as above — `Context` annotation, Pattern 1 (downstream effect of the broken import).
+
+**5. `main.py` line 136**
+```python
+def lambda_function(parameters: dict, ctx: Context) -> str:
+```
+Same as above — `Context` annotation, Pattern 1 (downstream effect of the broken import).
+
+**6. `mcp_client_bedrock/main.py` line 44**
+```python
+input_schema={'json': tool.inputSchema}
+```
+Pattern 2 — attribute access `tool.inputSchema` on a `Tool` object returned from `mcp_client.get_available_tools()` (which comes from `ClientSession.list_tools()`). Must become `tool.input_schema`.
+
+## Explicitly checked and NOT flagged (with reasoning)
+
+- `main.py` lines 73, 77, 83, 101, 109, 113 — `ctx.info(...)` calls all pass only a positional message string, no `extra=` kwarg. Per pattern 3 caveat, unaffected.
+- `main.py` lines 125, 126, 145, 181, 182 — `mcp.tool()(...)` / `mcp.tool(name=...)(...)` — high-level `MCPServer`/`FastMCP` `.tool()` API is unchanged in v2 per pattern 4. Not flagged.
+- `mcp_client_bedrock/mcp_client.py` line 44 — `self.session.call_tool(tool_name, arguments=arguments)` — this is plain `ClientSession.call_tool`, not `ClientSessionGroup.call_tool`; explicitly called out as unaffected in pattern 5.
+- (further rejections omitted here; unchanged from the full transcript)
+
+## Total count of findings: 6
+
+(Findings #1 and #2 are the two primary breaks in `main.py`; #3–#5 are downstream `Context`-annotation breaks stemming directly from #1's import failure; #6 is the one `camelCase` attribute-access break in `mcp_client_bedrock/main.py`.)

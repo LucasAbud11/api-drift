@@ -1,0 +1,51 @@
+Extracted verbatim from the original session's task-notification for
+"Detection pass: m0xai trello-mcp-server" (agentId a44482f441ccdd13c).
+The reasoning on findings 4-19 is the direct evidence for the root-cause
+finding in ablation_and_root_cause.md: the agent is not confused about
+whether Context's *name* changed -- it explicitly calls each annotation site
+a downstream consequence of the broken import, the same "depends on" logic
+results.md itself already named as the mechanism.
+
+---
+
+No test files exist. All 17 .py files have been reviewed in full. Now compiling findings.
+
+Findings — grouped by file, in the order encountered:
+
+**main.py**
+1. Line 6: `from mcp.server.fastmcp import FastMCP` — Pattern 1 (FastMCP import from mcp.server.fastmcp, module tree moved, no compat alias).
+2. Line 23: `mcp = FastMCP("Trello MCP Server")` — Pattern 1 (construction of `FastMCP(...)`).
+
+**server/tools/board.py**
+3. Line 8: `from mcp.server.fastmcp import Context` — Pattern 1 (Context imported from mcp.server.fastmcp, which moved to mcp.server.mcpserver).
+4. Line 20: `async def get_board(ctx: Context, board_id: str) -> TrelloBoard:` — Pattern 1 (type annotation referencing the broken `Context` symbol imported above).
+5. Line 41: `async def get_boards(ctx: Context) -> List[TrelloBoard]:` — Pattern 1 (same, annotation using broken import).
+6. Line 59: `async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:` — Pattern 1 (same).
+7. Line 80: `async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:` — Pattern 1 (same).
+
+**server/tools/card.py**
+8. Line 8: `from mcp.server.fastmcp import Context` — Pattern 1.
+9. Line 21: `async def get_card(ctx: Context, card_id: str) -> TrelloCard:` — Pattern 1 (annotation).
+10. Line 42: `async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:` — Pattern 1 (annotation).
+11. Line 63: `async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:` — Pattern 1 (annotation).
+12. Line 86: `async def update_card(` / Line 87: `    ctx: Context, card_id: str, payload: UpdateCardPayload` — Pattern 1 (annotation, spans lines 86-87; the annotation itself is on line 87).
+13. Line 112: `async def delete_card(ctx: Context, card_id: str) -> dict:` — Pattern 1 (annotation).
+
+**server/tools/list.py**
+14. Line 8: `from mcp.server.fastmcp import Context` — Pattern 1.
+15. Line 20: `async def get_list(ctx: Context, list_id: str) -> TrelloList:` — Pattern 1 (annotation).
+16. Line 41: `async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:` — Pattern 1 (annotation).
+17. Line 62-63: `async def create_list(` / `    ctx: Context, board_id: str, name: str, pos: str = "bottom"` — Pattern 1 (annotation on line 63).
+18. Line 87: `async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:` — Pattern 1 (annotation).
+19. Line 109: `async def delete_list(ctx: Context, list_id: str) -> TrelloList:` — Pattern 1 (annotation).
+
+Not flagged (checked and confirmed unaffected):
+- `mcp.add_tool(...)` calls in server/tools/tools.py — explicitly unchanged per pattern 4, not flagged.
+- `mcp.run()`, `mcp.sse_app()` in main.py — not part of the listed breaking changes (not camelCase attribute access, not Context API, not listed method renames); not flagged.
+- `httpx.AsyncClient` in server/utils/trello_api.py — this is the app's own independent HTTP client for calling the Trello REST API, not passed into any MCP SDK function; per pattern 6's explicit caveat, not flagged.
+- `ctx.error(error_msg)` calls throughout board.py/card.py/list.py — all use a single positional message string, no `extra=` kwarg, no `message=` kwarg, no `client_id` usage, no `.log()` calls, no `mcp.get_context()` calls. Unaffected per pattern 3.
+- (further rejections omitted here; unchanged from the full transcript)
+
+Total findings: 19
+
+All 19 findings fall under Pattern 1 (FastMCP/Context import from the now-moved `mcp.server.fastmcp` module tree, its construction, and type annotations referencing the broken `Context` symbol). No occurrences of patterns 2, 3 (beyond confirmed-safe usage), 4 (lowlevel-only), 5, 6, 7, or 9 were found in this codebase.

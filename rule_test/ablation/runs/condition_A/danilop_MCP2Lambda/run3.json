@@ -1,0 +1,8 @@
+{
+  "condition": "A", "repo": "danilop_MCP2Lambda", "run": 3,
+  "proposed_sites": [
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "reason": "mcp.server.fastmcp module path is removed in v2 (must become mcp.server.mcpserver), and FastMCP is renamed to MCPServer, so this import line needs both the path and the imported identifier changed."},
+    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "reason": "FastMCP class is renamed to MCPServer in v2; this constructor call must be updated to MCPServer(...)."},
+    {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "input_schema={'json': tool.inputSchema}", "reason": "tool objects returned from session.list_tools() (via mcp_client.get_available_tools()) rename the inputSchema field to input_schema (camelCase to snake_case) per item 4; this attribute access must become tool.input_schema."}
+  ]
+}

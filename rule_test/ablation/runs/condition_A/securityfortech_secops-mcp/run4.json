@@ -1,0 +1,7 @@
+{
+  "condition": "A", "repo": "securityfortech_secops-mcp", "run": 4,
+  "proposed_sites": [
+    {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "The mcp.server.fastmcp module path is removed in v2; must become 'from mcp.server.mcpserver import MCPServer' — both the import path change and the FastMCP->MCPServer class rename apply here."},
+    {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "reason": "Constructs the FastMCP class directly; the class is renamed to MCPServer in v2, so this instantiation must be updated to MCPServer(...)."}
+  ]
+}

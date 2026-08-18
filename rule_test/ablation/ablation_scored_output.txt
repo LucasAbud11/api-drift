@@ -1,0 +1,32 @@
+=== condition_A ===
+  m0xai_trello-mcp-server (GT=5, of which ctx:Context-style ambiguous sites=3):
+    run1: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run2: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run3: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run4: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run5: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    -> recall range: 100-100%  precision range: 100-100%  FP range: 0-0
+  danilop_MCP2Lambda (GT=3, of which ctx:Context-style ambiguous sites=1):
+    run1: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run2: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run3: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run4: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run5: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    -> recall range: 100-100%  precision range: 100-100%  FP range: 0-0
+
+=== condition_B ===
+  m0xai_trello-mcp-server (GT=5, of which ctx:Context-style ambiguous sites=3):
+    run1: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run2: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run3: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run4: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    run5: TP=5 FP=0 FN=0 proposed=5  recall=100%  precision=100%
+    -> recall range: 100-100%  precision range: 100-100%  FP range: 0-0
+  danilop_MCP2Lambda (GT=3, of which ctx:Context-style ambiguous sites=1):
+    run1: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run2: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run3: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run4: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    run5: TP=3 FP=0 FN=0 proposed=3  recall=100%  precision=100%
+    -> recall range: 100-100%  precision range: 100-100%  FP range: 0-0
+

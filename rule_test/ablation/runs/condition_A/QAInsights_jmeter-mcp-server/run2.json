@@ -1,0 +1,15 @@
+{
+  "condition": "A",
+  "repo": "QAInsights_jmeter-mcp-server",
+  "run": 2,
+  "proposed_sites": [
+    {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed in v2; must import from mcp.server.mcpserver, and the class name FastMCP is renamed to MCPServer."},
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "reason": "FastMCP no longer exists under that name in v2; construction call must use the renamed class MCPServer."},
+    {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed in v2; must import from mcp.server.mcpserver, and the class name FastMCP is renamed to MCPServer."},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "reason": "FastMCP no longer exists under that name in v2; construction call must use the renamed class MCPServer."},
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "reason": "String literal encodes the old, now-removed module path 'mcp.server.fastmcp'; the stub must be created/registered under 'mcp.server.mcpserver' to match the production import jmeter_server.py will use post-migration."},
+    {"file": "tests/test_jmeter_server.py", "line": 12, "snippet": "class FastMCP:", "reason": "This stub class mocks the SDK's main server class, which production code will construct as MCPServer(...) after migration; the stub's exposed name must change to MCPServer to keep the mock aligned with the renamed import."},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "reason": "Attribute name FastMCP on the stub module must become MCPServer to match the renamed class that jmeter_server.py will import."},
+    {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "reason": "Registers the mock module under the old, removed module path 'mcp.server.fastmcp'; must be registered as 'mcp.server.mcpserver' so that the stubbed import matches jmeter_server.py's post-migration import statement."}
+  ]
+}

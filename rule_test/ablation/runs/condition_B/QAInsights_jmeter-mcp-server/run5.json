@@ -1,0 +1,13 @@
+{
+  "condition": "B", "repo": "QAInsights_jmeter-mcp-server", "run": 5,
+  "proposed_sites": [
+    {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed in v2; must import from mcp.server.mcpserver, and the class FastMCP is renamed to MCPServer."},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "reason": "Constructs the FastMCP class, which no longer exists under that name in v2 — must become MCPServer(\"jmeter\")."},
+    {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "reason": "mcp.server.fastmcp module path is removed in v2; must import from mcp.server.mcpserver, and the class FastMCP is renamed to MCPServer."},
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "reason": "Constructs the FastMCP class, which no longer exists under that name in v2 — must become MCPServer(\"jmeter\")."},
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "reason": "String literal references the removed v1 module path when constructing a stub module object."},
+    {"file": "tests/test_jmeter_server.py", "line": 12, "snippet": "class FastMCP:", "reason": "Test defines a stub class named FastMCP standing in for the SDK's server class; since the real class is renamed to MCPServer in v2, this stub should be renamed to match."},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "reason": "Attaches the stub under the attribute name FastMCP; must be MCPServer to match the renamed class jmeter_server.py will import in v2."},
+    {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "reason": "Registers the stub under the removed v1 module path key 'mcp.server.fastmcp'; must be registered under 'mcp.server.mcpserver'."}
+  ]
+}
