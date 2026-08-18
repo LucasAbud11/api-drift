@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opsmesh"
+version = "0.4.0"
+description = "Internal developer-platform tools exposed to AI agents over MCP, plus a small client-side orchestrator that talks to a fleet of MCP servers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [
+    { name = "Platform Engineering" },
+]
+dependencies = [
+    "mcp>=1.2.0,<2.0.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.5.0",
+    "click>=8.1.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+opsmesh = "opsmesh.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

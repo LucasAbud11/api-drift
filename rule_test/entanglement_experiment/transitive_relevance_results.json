@@ -1,0 +1,24 @@
+[
+  {
+    "label": "entangled host (OpsMesh)",
+    "total_files": 33,
+    "direct_relevant_files": 14,
+    "transitive_relevant_files": 21,
+    "raw_candidates": 69,
+    "current_final": 35,
+    "current_reduction_pct": 49.27536231884058,
+    "proposed_final": 44,
+    "proposed_reduction_pct": 36.23188405797102
+  },
+  {
+    "label": "diluted host (Django + 5 MCP repos + 4 OpenAI repos)",
+    "total_files": 685,
+    "direct_relevant_files": 13,
+    "transitive_relevant_files": 13,
+    "raw_candidates": 1121,
+    "current_final": 111,
+    "current_reduction_pct": 90.09812667261374,
+    "proposed_final": 111,
+    "proposed_reduction_pct": 90.09812667261374
+  }
+]

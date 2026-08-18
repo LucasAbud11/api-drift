@@ -1,0 +1,137 @@
+[
+  {
+    "run": 1,
+    "n_candidates_final": 35,
+    "missing_from_output": [],
+    "extra_in_output": [],
+    "proposed_count": 7,
+    "flag_count": 0,
+    "reject_count": 28,
+    "true_positives_propose": [
+      [
+        "src/opsmesh/client/session_group.py",
+        38
+      ],
+      [
+        "src/opsmesh/server/base.py",
+        16
+      ],
+      [
+        "src/opsmesh/server/base.py",
+        24
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        12
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        13
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        20
+      ],
+      [
+        "tests/test_server_base.py",
+        31
+      ]
+    ],
+    "gt_in_flag_uncertain": [],
+    "gt_missed_entirely": [],
+    "false_positives_propose": [],
+    "precision_strict_propose_only": 1.0,
+    "recall_strict_propose_only": 1.0,
+    "recall_surfaced_propose_or_flag": 1.0
+  },
+  {
+    "run": 2,
+    "n_candidates_final": 35,
+    "missing_from_output": [],
+    "extra_in_output": [],
+    "proposed_count": 7,
+    "flag_count": 0,
+    "reject_count": 28,
+    "true_positives_propose": [
+      [
+        "src/opsmesh/client/session_group.py",
+        38
+      ],
+      [
+        "src/opsmesh/server/base.py",
+        16
+      ],
+      [
+        "src/opsmesh/server/base.py",
+        24
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        12
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        13
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        20
+      ],
+      [
+        "tests/test_server_base.py",
+        31
+      ]
+    ],
+    "gt_in_flag_uncertain": [],
+    "gt_missed_entirely": [],
+    "false_positives_propose": [],
+    "precision_strict_propose_only": 1.0,
+    "recall_strict_propose_only": 1.0,
+    "recall_surfaced_propose_or_flag": 1.0
+  },
+  {
+    "run": 3,
+    "n_candidates_final": 35,
+    "missing_from_output": [],
+    "extra_in_output": [],
+    "proposed_count": 7,
+    "flag_count": 0,
+    "reject_count": 28,
+    "true_positives_propose": [
+      [
+        "src/opsmesh/client/session_group.py",
+        38
+      ],
+      [
+        "src/opsmesh/server/base.py",
+        16
+      ],
+      [
+        "src/opsmesh/server/base.py",
+        24
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        12
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        13
+      ],
+      [
+        "src/opsmesh/server/context.py",
+        20
+      ],
+      [
+        "tests/test_server_base.py",
+        31
+      ]
+    ],
+    "gt_in_flag_uncertain": [],
+    "gt_missed_entirely": [],
+    "false_positives_propose": [],
+    "precision_strict_propose_only": 1.0,
+    "recall_strict_propose_only": 1.0,
+    "recall_surfaced_propose_or_flag": 1.0
+  }
+]

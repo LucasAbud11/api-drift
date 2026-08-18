@@ -1,0 +1,237 @@
+[
+  {
+    "file": "tests/test_server_base.py",
+    "line": 31,
+    "snippet": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:"
+  },
+  {
+    "file": "tests/test_client_session.py",
+    "line": 13,
+    "snippet": "    result = await client.call_tool(\"get_deployment_status\", {\"service\": \"billing-api\"})"
+  },
+  {
+    "file": "tests/test_client_session.py",
+    "line": 25,
+    "snippet": "        await client.call_tool(\"get_deployment_status\")"
+  },
+  {
+    "file": "tests/test_orchestrator_agent.py",
+    "line": 18,
+    "snippet": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)"
+  },
+  {
+    "file": "tests/test_client_session_group.py",
+    "line": 22,
+    "snippet": "    result = await fleet.call_tool(\"docs-mcp\", \"search_docs\", {\"query\": \"rollback\"})"
+  },
+  {
+    "file": "tests/test_client_session_group.py",
+    "line": 31,
+    "snippet": "        await fleet.call_tool(\"unknown-server\", \"search_docs\", {})"
+  },
+  {
+    "file": "src/opsmesh/config.py",
+    "line": 45,
+    "snippet": "            data = _load_yaml(Path(path))"
+  },
+  {
+    "file": "src/opsmesh/cli.py",
+    "line": 22,
+    "snippet": "def main(ctx: click.Context, config_path: str | None) -> None:"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 12,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 13,
+    "snippet": "from mcp.server.fastmcp import get_context as _mcp_get_context"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 18,
+    "snippet": "def current_context() -> Context:"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 20,
+    "snippet": "    ctx = _mcp_get_context()"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 26,
+    "snippet": "async def report_error(ctx: Context, message: str, *, exc: Exception | None = None) -> None:"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 31,
+    "snippet": "        logger.error(message)"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 32,
+    "snippet": "    await ctx.error(message)"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 35,
+    "snippet": "async def report_info(ctx: Context, message: str) -> None:"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 36,
+    "snippet": "    logger.info(message)"
+  },
+  {
+    "file": "src/opsmesh/server/context.py",
+    "line": 37,
+    "snippet": "    await ctx.info(message)"
+  },
+  {
+    "file": "src/opsmesh/server/app.py",
+    "line": 26,
+    "snippet": "    logger.info(\"Registered OpsMesh tools/resources/prompts for %s\", config.server_name)"
+  },
+  {
+    "file": "src/opsmesh/server/base.py",
+    "line": 16,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "src/opsmesh/server/base.py",
+    "line": 24,
+    "snippet": "class OpsMeshServer(FastMCP):"
+  },
+  {
+    "file": "src/opsmesh/server/base.py",
+    "line": 48,
+    "snippet": "        logger.info(\"OpsMesh server %r is ready to accept requests\", self._config.server_name)"
+  },
+  {
+    "file": "src/opsmesh/server/tools/deployments.py",
+    "line": 31,
+    "snippet": "        deployed_at=now - dt.timedelta(hours=3),"
+  },
+  {
+    "file": "src/opsmesh/server/tools/deployments.py",
+    "line": 38,
+    "snippet": "        deployed_at=now - dt.timedelta(days=1, hours=2),"
+  },
+  {
+    "file": "src/opsmesh/server/tools/incidents.py",
+    "line": 40,
+    "snippet": "                    opened_at=now - dt.timedelta(hours=2, minutes=45),"
+  },
+  {
+    "file": "src/opsmesh/server/tools/incidents.py",
+    "line": 48,
+    "snippet": "                    opened_at=now - dt.timedelta(days=2),"
+  },
+  {
+    "file": "src/opsmesh/integrations/github_client.py",
+    "line": 20,
+    "snippet": "        self._client = httpx.AsyncClient(base_url=base_url, headers=headers, timeout=timeout)"
+  },
+  {
+    "file": "src/opsmesh/client/session.py",
+    "line": 12,
+    "snippet": "from mcp.client.session import ClientSession"
+  },
+  {
+    "file": "src/opsmesh/client/session.py",
+    "line": 22,
+    "snippet": "    def __init__(self, session: ClientSession, *, server_label: str) -> None:"
+  },
+  {
+    "file": "src/opsmesh/client/session.py",
+    "line": 27,
+    "snippet": "    def raw_session(self) -> ClientSession:"
+  },
+  {
+    "file": "src/opsmesh/client/session.py",
+    "line": 33,
+    "snippet": "            result = await self._session.call_tool(name, arguments or {})"
+  },
+  {
+    "file": "src/opsmesh/client/session.py",
+    "line": 35,
+    "snippet": "            logger.warning(\"call_tool(%s) failed against %s\", name, self._server_label)"
+  },
+  {
+    "file": "src/opsmesh/client/session.py",
+    "line": 40,
+    "snippet": "        return await self._session.list_tools()"
+  },
+  {
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 15,
+    "snippet": "from mcp.client.session_group import ClientSessionGroup"
+  },
+  {
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 26,
+    "snippet": "    def __init__(self, group: ClientSessionGroup, servers: list[UpstreamServer]) -> None:"
+  },
+  {
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 38,
+    "snippet": "            return await self._group.call_tool(tool_name, arguments)"
+  },
+  {
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 40,
+    "snippet": "            logger.warning(\"fleet call_tool(%s.%s) failed\", server_name, tool_name)"
+  },
+  {
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 47,
+    "snippet": "            discovered[name] = await self._group.list_tools()"
+  },
+  {
+    "file": "src/opsmesh/client/errors.py",
+    "line": 19,
+    "snippet": "        message = f\"call to {tool_name!r} on upstream server {server_name!r} failed\""
+  },
+  {
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 13,
+    "snippet": "from mcp.client.session_group import ClientSessionGroup"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 24,
+    "snippet": "    def __init__(self, fleet: FleetClient, catalog: ToolCatalog, *, group: ClientSessionGroup) -> None:"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 39,
+    "snippet": "        group = ClientSessionGroup()"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 43,
+    "snippet": "        logger.info(\"Orchestrator connected to %d upstream server(s)\", len(servers))"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 64,
+    "snippet": "        args = self._extract_arguments(candidate, question)"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 65,
+    "snippet": "        result = await self._fleet.call_tool(candidate.server_name, candidate.tool_name, args)"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 46,
+    "snippet": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},"
+  },
+  {
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 49,
+    "snippet": "        logger.debug(\"Built tool catalog with %d tools\", len(catalog._tools))"
+  }
+]

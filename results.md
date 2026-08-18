@@ -518,3 +518,81 @@ is that the numbers are now backed by construction-level safety and a
 full audit trail (`droplog_<scale>.json`, 4 files) instead of
 empirically-tuned safety and none. Full detail: `rule_test/
 prefilter_experiment/report.md`, "Hardening pass" section.
+
+**2026-08-18 update (revision 11) — entanglement: a host built by an
+isolated agent (no access to the detector, vocabulary, prefilter, or any
+report) exposes a real prefilter blind spot; the agent itself is
+unaffected; grep has its own separate, unrecoverable gap.** Every prior
+host tested dilution (more unrelated code, no structural interaction).
+This tests entanglement: a host using the SDK entirely through its own
+subclassing/wrapping/re-export layers. Per the user's explicit
+methodological constraint, I did not build this host — a walled-off
+agent did, given only the MCP v1 API surface, no knowledge of what any
+downstream filter checks for. It built "OpsMesh" (33 files): an
+`OpsMeshServer(FastMCP)` subclass, an `OpsMeshClient`/`FleetClient` pair
+wrapping `ClientSession`/`ClientSessionGroup`, and a `ToolCatalog` that
+reads `tool.inputSchema` off data received through the wrapper layer
+without ever importing `mcp` directly in that file.
+
+**Ground truth: 10 sites**, independently derived by direct reading (not
+the host-construction agent, not the detector), applying the same
+9-fact spec used throughout this study's Target B work. One correction
+disclosed: my first pass missed a site (`context.py:20`, calling a
+`get_context()` alias) because I re-derived GT from a reduced 6-item
+guide instead of the authoritative spec, which states `get_context()`
+is removed entirely — all 3 agent runs correctly caught it; my initial
+GT was wrong, not their verdict.
+
+**Three-way loss attribution (identical across all 3 runs, since grep
+and the prefilter are deterministic): 10 total GT -> 1 lost to grep, 2
+lost to the hardened prefilter, 7 reachable by the agent.** (1) Grep
+miss: `mock_session_group.call_tool.assert_awaited_once_with(...)` — the
+vocabulary's `\.call_tool\(` pattern requires immediate adjacency, and
+the mock-assertion idiom inserts `.assert_awaited_once_with` between the
+name and the paren. This candidate never exists; nothing downstream can
+recover it. **This is the one failure mode this architecture cannot
+recover from by construction.** (2) Prefilter loss, both sites the same
+root cause: stage A drops a file with zero occurrences of the
+package-relevance pattern in its own text — correct for dilution, wrong
+for entanglement, where a file can use the SDK's data/behavior entirely
+through the host's own wrapper and never name the package
+(`tool_catalog.py`, `test_orchestrator_agent.py` — both real GT sites,
+zero direct `mcp` references). Same failure shape the hardening-pass
+audit already flagged in the abstract, now demonstrated on a host I
+could not have unconsciously protected against. Stages B/C caused zero
+additional loss (confirmed, not assumed).
+
+**Runs 1-3 (full pipeline, as shipped): identical results all 3 runs —
+7/7 true positives, 0 false positives, 0 FLAG-UNCERTAIN, all schema-valid.
+100% precision, 100% recall of what reached the agent; 70% (7/10) recall
+against true ground truth** — the number that matters for a real
+migration, since 3 sites never reached the agent. Every entanglement
+trap in the 35 candidates was correctly rejected: type annotations
+downstream of a fixed import, `click.Context` (unrelated library,
+name-only collision), the unaffected `ClientSession.call_tool` sitting
+next to the affected `ClientSessionGroup.call_tool` wrapper despite
+heavy textual overlap, and the app's own `FleetClient.call_tool` caller
+(fix correctly attributed to the wrapper's internals).
+
+**Diagnostic (1 run, stage A disabled): 9/9 reachable-by-grep GT
+correctly proposed, 0 false positives, 0 in FLAG-UNCERTAIN** — both
+prefilter-dropped sites recovered with reasoning indistinguishable from
+the other 7. **The prefilter, specifically stage A, is the sole cause of
+that 2-site loss — not agent judgment.** With stage A off, end-to-end
+recall against true GT rises to 9/10 (90%); only the grep miss remains.
+
+**Proposal (measured, not implemented): transitive stage A** — a file is
+relevant if it directly matches the pattern, or imports (transitively,
+via the repo's own `ast`-derived import graph) a file that does.
+Measured cost: entangled host, 14->21 of 33 files relevant, reduction
+49.3% -> 36.2% (recovers exactly the 2 files with the dropped GT sites).
+Diluted host (the same one scored as `targetB_diluted`), 13->13 of 685
+files relevant, reduction unchanged at 90.1%. **Explicit caveat: the
+diluted host is an assembly of independent small repos with no shared
+"core" module most files import — exactly the topology where transitive
+closure stays cheap. A real monorepo with a shared internal SDK layer is
+a structurally different, untested case; if stage A's relevant file is
+central to such a codebase, transitive closure could plausibly approach
+"almost nothing gets dropped," and reduction would have to come from
+stages B/C alone. Not measured here, not assumed.** Full detail:
+`rule_test/entanglement_experiment/report.md`.

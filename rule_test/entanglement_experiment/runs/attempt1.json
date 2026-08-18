@@ -1,0 +1,227 @@
+{
+  "target": "B",
+  "repo": "entanglement_host",
+  "run": 1,
+  "proposed_sites": [
+    {
+      "file": "tests/test_server_base.py",
+      "line": 31,
+      "snippet": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+      "pattern": "1",
+      "reason": "The patch target string hardcodes the old dotted path mcp.server.fastmcp.FastMCP.run. The whole module tree moved to mcp.server.mcpserver and FastMCP was renamed MCPServer, so this string itself must change (e.g. to \"mcp.server.mcpserver.MCPServer.run\") or the patch will fail to resolve the target at test time."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 12,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "mcp.server.fastmcp no longer exists; all submodules moved to mcp.server.mcpserver with no compatibility alias, so this import line's own text must change to `from mcp.server.mcpserver import Context`."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 13,
+      "snippet": "from mcp.server.fastmcp import get_context as _mcp_get_context",
+      "pattern": "1,3",
+      "reason": "Beyond the module path move, mcp.get_context() is removed entirely in v2 (callers must inject ctx: Context as a handler parameter instead). Since the symbol itself no longer exists anywhere, a path fix alone cannot repair this import; the line's own text/approach must change."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 20,
+      "snippet": "    ctx = _mcp_get_context()",
+      "pattern": "3",
+      "reason": "This calls the module-level get_context() accessor, which fact 3 states is removed entirely in v2 with no replacement other than handler-parameter injection. This call's own text/logic must change (the function needs to be redesigned to receive ctx as a parameter), not just the import."
+    },
+    {
+      "file": "src/opsmesh/server/base.py",
+      "line": 16,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from the moved module tree; mcp.server.fastmcp no longer exists so this line must change to `from mcp.server.mcpserver import MCPServer`."
+    },
+    {
+      "file": "src/opsmesh/server/base.py",
+      "line": 24,
+      "snippet": "class OpsMeshServer(FastMCP):",
+      "pattern": "1",
+      "reason": "Per the counting convention's own worked example, a symbol whose identity is renamed (FastMCP -> MCPServer) is not repaired merely by fixing the import; every site referencing the identifier FastMCP by name -- including this base-class reference -- must have its own text changed to MCPServer."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 38,
+      "snippet": "            return await self._group.call_tool(tool_name, arguments)",
+      "pattern": "5",
+      "reason": "self._group is a ClientSessionGroup (see __init__ on line 26 and the module docstring explicitly contrasting ClientSessionGroup.call_tool's signature from ClientSession.call_tool's). Fact 5 states ClientSessionGroup.call_tool() lost its args parameter. This call passes a second positional argument (arguments) directly into that exact method, so this line's own text must change to match the new signature."
+    }
+  ],
+  "flag_uncertain": [],
+  "considered_and_rejected": [
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 18,
+      "snippet": "def current_context() -> Context:",
+      "reason": "Per the stated counting convention's worked example, once the Context import (line 12) is fixed to the new path, this downstream `-> Context` annotation resolves correctly without its own text changing. (Only the function body's call to the removed get_context(), line 20, needs to change.)"
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 26,
+      "snippet": "async def report_error(ctx: Context, message: str, *, exc: Exception | None = None) -> None:",
+      "reason": "Type annotation `ctx: Context`; fixing the Context import alone makes this annotation resolve, per the counting convention's explicit example -- the annotation's own text need not change."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 31,
+      "snippet": "        logger.error(message)",
+      "reason": "This is Python's stdlib `logging.Logger.error`, not `Context.error`; unrelated to any mcp SDK API and not affected by the migration."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 32,
+      "snippet": "    await ctx.error(message)",
+      "reason": "Called with only a positional message argument; fact 3 states extra= removal from .error() only affects calls using that removed kwarg, and calls with just a positional message string are explicitly UNAFFECTED."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 35,
+      "snippet": "async def report_info(ctx: Context, message: str) -> None:",
+      "reason": "Type annotation `ctx: Context`; per the counting convention, fixing the Context import alone repairs this annotation without changing this line's own text."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 36,
+      "snippet": "    logger.info(message)",
+      "reason": "Stdlib logging call, not `Context.info`; unrelated to the mcp SDK and unaffected by the migration."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 37,
+      "snippet": "    await ctx.info(message)",
+      "reason": "Called with only a positional message argument; per fact 3 this is explicitly UNAFFECTED since no extra= kwarg is used."
+    },
+    {
+      "file": "src/opsmesh/server/base.py",
+      "line": 48,
+      "snippet": "        logger.info(\"OpsMesh server %r is ready to accept requests\", self._config.server_name)",
+      "reason": "Plain stdlib logging call with no relation to any mcp SDK symbol; not affected by the migration."
+    },
+    {
+      "file": "src/opsmesh/server/tools/deployments.py",
+      "line": 31,
+      "snippet": "        deployed_at=now - dt.timedelta(hours=3),",
+      "reason": "This is Python's stdlib `datetime.timedelta` used to compute a timestamp field, unrelated to the mcp client's timeout-parameter timedelta->float change described in fact 5, which applies to ClientSession timeout arguments, not application domain timestamps."
+    },
+    {
+      "file": "src/opsmesh/server/tools/deployments.py",
+      "line": 38,
+      "snippet": "        deployed_at=now - dt.timedelta(days=1, hours=2),",
+      "reason": "Same as above: stdlib datetime.timedelta for a domain timestamp, unrelated to the mcp SDK's client timeout representation change."
+    },
+    {
+      "file": "src/opsmesh/server/tools/incidents.py",
+      "line": 40,
+      "snippet": "                    opened_at=now - dt.timedelta(hours=2, minutes=45),",
+      "reason": "Stdlib datetime.timedelta used for a domain timestamp field, not an mcp SDK timeout parameter; unaffected by fact 5."
+    },
+    {
+      "file": "src/opsmesh/server/tools/incidents.py",
+      "line": 48,
+      "snippet": "                    opened_at=now - dt.timedelta(days=2),",
+      "reason": "Stdlib datetime.timedelta used for a domain timestamp field, not an mcp SDK timeout parameter; unaffected by fact 5."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 12,
+      "snippet": "from mcp.client.session import ClientSession",
+      "reason": "Fact 5 explicitly states import paths for ClientSession did NOT change."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 22,
+      "snippet": "    def __init__(self, session: ClientSession, *, server_label: str) -> None:",
+      "reason": "Type annotation referencing ClientSession, whose import path and identity are unchanged per fact 5; no text change needed."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 27,
+      "snippet": "    def raw_session(self) -> ClientSession:",
+      "reason": "Type annotation referencing ClientSession, unaffected per fact 5 (import path unchanged, class not renamed)."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 33,
+      "snippet": "            result = await self._session.call_tool(name, arguments or {})",
+      "reason": "self._session is a plain ClientSession (see __init__ on line 22); fact 5 explicitly states plain ClientSession.call_tool(name, arguments={...}) is unaffected by the args-parameter removal, which applies only to the separate ClientSessionGroup.call_tool()."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 35,
+      "snippet": "            logger.warning(\"call_tool(%s) failed against %s\", name, self._server_label)",
+      "reason": "Plain stdlib logging call, unrelated to any mcp SDK API."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 40,
+      "snippet": "        return await self._session.list_tools()",
+      "reason": "Called with no arguments, so the removal of the cursor parameter from ClientSession.list_tools() (fact 5) does not affect this call; nothing about this line's text needs to change."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 15,
+      "snippet": "from mcp.client.session_group import ClientSessionGroup",
+      "reason": "Fact 5 describes a behavior change to ClientSessionGroup.call_tool()'s parameters but does not state the import path of ClientSessionGroup moved; only ClientSession/StdioServerParameters/stdio_client import-path stability is called out, and nothing indicates ClientSessionGroup's import path changed."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 26,
+      "snippet": "    def __init__(self, group: ClientSessionGroup, servers: list[UpstreamServer]) -> None:",
+      "reason": "Type annotation referencing ClientSessionGroup by name; the class identity/import path is unaffected (only its call_tool method signature changed), so this line's own text does not need to change."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 40,
+      "snippet": "            logger.warning(\"fleet call_tool(%s.%s) failed\", server_name, tool_name)",
+      "reason": "Plain stdlib logging call, unrelated to any mcp SDK API."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 47,
+      "snippet": "            discovered[name] = await self._group.list_tools()",
+      "reason": "Called with no cursor argument, so the cursor-parameter removal (fact 5) does not require any change to this call's text."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 13,
+      "snippet": "from mcp.client.session_group import ClientSessionGroup",
+      "reason": "No fact states ClientSessionGroup's import path moved; only its call_tool method signature changed, so this import line is unaffected."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 24,
+      "snippet": "    def __init__(self, fleet: FleetClient, catalog: ToolCatalog, *, group: ClientSessionGroup) -> None:",
+      "reason": "Type annotation referencing ClientSessionGroup, whose identity/import is unaffected; only its call_tool method changed elsewhere."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 39,
+      "snippet": "        group = ClientSessionGroup()",
+      "reason": "Constructed with no arguments; the class name and constructor are unaffected by the migration (only the call_tool method's args parameter was removed), so this line's text does not need to change."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 43,
+      "snippet": "        logger.info(\"Orchestrator connected to %d upstream server(s)\", len(servers))",
+      "reason": "Plain stdlib logging call, unrelated to any mcp SDK API."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 64,
+      "snippet": "        args = self._extract_arguments(candidate, question)",
+      "reason": "This is a purely local application variable/method call (self._extract_arguments), not any mcp SDK symbol or call; unaffected by the migration."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 65,
+      "snippet": "        result = await self._fleet.call_tool(candidate.server_name, candidate.tool_name, args)",
+      "reason": "self._fleet is the app's own FleetClient wrapper (opsmesh.client.session_group.FleetClient), whose call_tool(server_name, tool_name, arguments) signature is app-defined, not the SDK's ClientSessionGroup.call_tool. Per the counting convention, the fix belongs inside the wrapper's own implementation (session_group.py line 38); this caller's text does not need to change since the wrapper's public interface is unchanged."
+    }
+  ]
+}

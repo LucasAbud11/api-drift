@@ -1,0 +1,388 @@
+[
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_client_session.py",
+    "line": 1,
+    "snippet": "\"\"\"Tests for OpsMeshClient, the wrapper around mcp's ClientSession.\"\"\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_client_session.py",
+    "line": 13,
+    "snippet": "    result = await client.call_tool(\"get_deployment_status\", {\"service\": \"billing-api\"})",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_client_session.py",
+    "line": 25,
+    "snippet": "        await client.call_tool(\"get_deployment_status\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_orchestrator_agent.py",
+    "line": 4,
+    "snippet": "ClientSessionGroup, just the FleetClient/ToolCatalog layers on top.",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_orchestrator_agent.py",
+    "line": 18,
+    "snippet": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_client_session_group.py",
+    "line": 1,
+    "snippet": "\"\"\"Tests for FleetClient, the wrapper around mcp's ClientSessionGroup.\"\"\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_client_session_group.py",
+    "line": 22,
+    "snippet": "    result = await fleet.call_tool(\"docs-mcp\", \"search_docs\", {\"query\": \"rollback\"})",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tests/test_client_session_group.py",
+    "line": 31,
+    "snippet": "        await fleet.call_tool(\"unknown-server\", \"search_docs\", {})",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/config.py",
+    "line": 45,
+    "snippet": "            data = _load_yaml(Path(path))",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/cli.py",
+    "line": 22,
+    "snippet": "def main(ctx: click.Context, config_path: str | None) -> None:",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/server/app.py",
+    "line": 26,
+    "snippet": "    logger.info(\"Registered OpsMesh tools/resources/prompts for %s\", config.server_name)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/server/tools/__init__.py",
+    "line": 4,
+    "snippet": "tools to a given OpsMeshServer instance via the FastMCP decorator API.",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/integrations/github_client.py",
+    "line": 20,
+    "snippet": "        self._client = httpx.AsyncClient(base_url=base_url, headers=headers, timeout=timeout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/client/errors.py",
+    "line": 19,
+    "snippet": "        message = f\"call to {tool_name!r} on upstream server {server_name!r} failed\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 5,
+    "snippet": "`inputSchema` as returned by the SDK's discovery calls.",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 39,
+    "snippet": "                # `tool.inputSchema` is camelCase because it comes straight",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 46,
+    "snippet": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 49,
+    "snippet": "        logger.debug(\"Built tool catalog with %d tools\", len(catalog._tools))",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "tests/test_server_base.py",
+    "line": 1,
+    "snippet": "\"\"\"Tests for OpsMeshServer (the FastMCP subclass).\"\"\"",
+    "matched_span": [
+      [
+        32,
+        39
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "tests/test_tools.py",
+    "line": 4,
+    "snippet": "the FastMCP decorator by capturing them via a fake `mcp` object),",
+    "matched_span": [
+      [
+        4,
+        11
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "tests/test_tools.py",
+    "line": 5,
+    "snippet": "rather than spinning up a real FastMCP server.",
+    "matched_span": [
+      [
+        31,
+        38
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/server/context.py",
+    "line": 1,
+    "snippet": "\"\"\"Thin helpers around mcp's per-request Context.",
+    "matched_span": [
+      [
+        41,
+        48
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/server/context.py",
+    "line": 4,
+    "snippet": "``mcp.server.fastmcp.get_context`` directly, so we have one place to add",
+    "matched_span": [
+      [
+        2,
+        20
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/server/context.py",
+    "line": 19,
+    "snippet": "    \"\"\"Return the active request Context, raising a clear error if unavailable.\"\"\"",
+    "matched_span": [
+      [
+        33,
+        40
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/server/base.py",
+    "line": 8,
+    "snippet": "``OpsMeshServer`` instead of ``FastMCP`` directly and inherit the same",
+    "matched_span": [
+      [
+        31,
+        38
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/server/base.py",
+    "line": 25,
+    "snippet": "    \"\"\"FastMCP subclass with OpsMesh-specific startup and lifecycle hooks.\"\"\"",
+    "matched_span": [
+      [
+        7,
+        14
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/client/session.py",
+    "line": 1,
+    "snippet": "\"\"\"Wrapper around a single mcp ClientSession.",
+    "matched_span": [
+      [
+        31,
+        44
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/client/session.py",
+    "line": 4,
+    "snippet": "constructing `mcp.client.session.ClientSession` directly, so we have a",
+    "matched_span": [
+      [
+        33,
+        46
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/client/session.py",
+    "line": 20,
+    "snippet": "    \"\"\"A thin, app-flavored wrapper around a single `ClientSession`.\"\"\"",
+    "matched_span": [
+      [
+        53,
+        66
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 1,
+    "snippet": "\"\"\"Wrapper around mcp's ClientSessionGroup.",
+    "matched_span": [
+      [
+        24,
+        37
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 6,
+    "snippet": "`ClientSessionGroup.call_tool` has a different signature/contract than",
+    "matched_span": [
+      [
+        1,
+        14
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 7,
+    "snippet": "`ClientSession.call_tool` (see `session.py`) - that asymmetry is",
+    "matched_span": [
+      [
+        1,
+        14
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 31,
+    "snippet": "        \"\"\"Establish the raw ClientSessionGroup connection and wrap it.",
+    "matched_span": [
+      [
+        29,
+        42
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "src/opsmesh/orchestrator/agent.py",
+    "line": 34,
+    "snippet": "        `mcp.client.session_group.ClientSessionGroup` directly; every",
+    "matched_span": [
+      [
+        34,
+        47
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  }
+]
