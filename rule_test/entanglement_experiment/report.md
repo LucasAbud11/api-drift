@@ -181,7 +181,7 @@ With stage A off, end-to-end recall against true GT rises to 9/10 (90%)
 — the only remaining loss is the grep miss, which no prefilter change
 touches.
 
-## Proposal: transitive stage A (NOT implemented — measured only)
+## Proposal: transitive stage A (shipped 2026-08-18 — see "Shipped" section below for the re-verified numbers; this section is the original measure-before-implementing analysis, preserved as the record of why it was accepted)
 
 **Design:** a file is relevant if it directly matches the relevance
 pattern (today's rule), **or** it imports — directly or transitively,
@@ -244,6 +244,42 @@ real but bounded cost on the one host tested here, and at zero cost on
 this study's existing diluted host. Test it against a single large
 shared-core monorepo before treating the "cheap at scale" result as
 general.
+
+## Shipped: transitive stage A, re-verified with 9 fresh runs (3 per host)
+
+Implemented in `prefilter.py`'s `stage_a_file_relevance` (an intra-repo
+import graph via `ast`, module resolution via the standard "walk up while
+`__init__.py` exists" rule) and re-run against all three tested host
+types, 3 runs each — not assumed unchanged, freshly adjudicated:
+
+| host | GT | precision | recall (propose) | recall (surfaced) | production misses | reduction |
+|---|---|---|---|---|---|---|
+| targetB_small | 20 | 100% x3 | 100%/100%/95% | 100% x3 | 0 | 81.1% (unchanged) |
+| targetB_diluted | 20 | 100% x3 | 85%/85%/100% | 100% x3 | 0 | 90.1% (unchanged) |
+| entangled (this host) | 10 | 100% x3 | 70%/70%/90% | 90% x3 | 0 | **36.2%** (was 49.3%) |
+
+**`tool_catalog.py:46` — the site this whole exercise was about — is
+PROPOSE, confidently, in all 3 fresh runs.** Zero regressions: every
+previously-correct site on this host (`base.py:16/24`, `context.py:
+12/13/20`, `test_server_base.py:31`) is still proposed in all 3 runs, and
+the targetB_small/diluted candidate sets are unchanged byte-for-byte from
+before the fix (verified directly). The only remaining miss on this host,
+in all 3 fresh runs, is the pre-existing grep gap
+(`test_client_session_group.py:23`) — a different mechanism, untouched by
+a prefilter change by construction, since a file the grep vocabulary
+never turns into a candidate never reaches stage A at all.
+
+**One honest new data point, not a regression:** in 2 of 3 fresh runs,
+`client/session_group.py:38` (a *different* production GT site — the
+`ClientSessionGroup.call_tool()` contract change) landed in
+FLAG-UNCERTAIN instead of PROPOSE, on a genuine reading of the migration
+facts ("lost its `args` parameter" doesn't specify whether the positional
+slot or a keyword-only `args=` was removed). Surfaced, not lost — recall-
+surfaced held at 90% both times, same as the run that proposed it
+confidently. Recorded transparently: this is the first time this study's
+hedge-undercount mechanism has touched production code, where every
+prior instance was the same test/mock site. Full cross-study accounting:
+`rule_test/recall_failure_audit.md`.
 
 ## What this does and doesn't establish
 

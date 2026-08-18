@@ -183,3 +183,25 @@ empirically-tuned safety and none:
 changed is *why* those numbers are trustworthy: not "this passed the
 known GT," but "every remaining drop is either structurally certain or
 logged with the exact reason it wasn't kept.")
+
+## Stage A hardened again, 2026-08-18: transitive relevance shipped
+
+File-local relevance ("no reference to the package found in this file's
+own text") turned out to still be a certainty violation for entangled
+codebases: a file can use the target package's data/behavior entirely
+through the host's own wrapper layer and never reference the package by
+name, and this stage dropped exactly that kind of real site — see
+`rule_test/entanglement_experiment/report.md` for the concrete
+production-code miss (`tool_catalog.py:46`) this cost before the fix.
+Stage A now follows the repo's own intra-repo import graph (`ast`-based,
+not a heuristic) transitively: a file is relevant if it directly matches
+the pattern, or imports a file that does. Re-verified with 9 fresh runs
+across small, diluted, and entangled hosts: zero regressions, the exact
+previously-dropped site now proposed confidently in 3/3 runs, reduction
+unchanged on small/diluted (30.8%/81.1%/90.1%) and reduced from 49.3% to
+36.2% on the entangled host — a real, accepted cost, since "no silent
+production misses" is what stage A exists to protect and reduction ratio
+is only ever a cost optimization on top of that. Full cross-host
+before/after numbers and the still-open shared-core-monorepo caveat:
+`rule_test/entanglement_experiment/report.md` and `rule_test/
+recall_failure_audit.md`.

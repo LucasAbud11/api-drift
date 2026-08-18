@@ -1,0 +1,284 @@
+{
+  "target": "B",
+  "repo": "entanglement_host",
+  "run": 3,
+  "proposed_sites": [
+    {
+      "file": "tests/test_server_base.py",
+      "line": 31,
+      "snippet": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+      "pattern": "1",
+      "reason": "The string patch target 'mcp.server.fastmcp.FastMCP.run' encodes both the moved module path and the renamed class; since FastMCP -> MCPServer has no compatibility alias, this literal must become 'mcp.server.mcpserver.MCPServer.run' for the patch to still target the right object."
+    },
+    {
+      "file": "tests/test_orchestrator_agent.py",
+      "line": 18,
+      "snippet": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+      "pattern": "2",
+      "reason": "This fixture fakes the SDK Tool object read by tool_catalog.py via getattr(tool, \"inputSchema\", ...). Since that production call must move to the snake_case 'input_schema' attribute (fact 2), this fake object's field must be renamed to 'input_schema' too, or the getattr default silently returns {} and the downstream assertion (required_arguments() == [\"service\"]) breaks."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 12,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "mcp.server.fastmcp moved to mcp.server.mcpserver with no compatibility alias; this import line's own text must change to `from mcp.server.mcpserver import Context`."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 13,
+      "snippet": "from mcp.server.fastmcp import get_context as _mcp_get_context",
+      "pattern": "1",
+      "reason": "Imports get_context from the moved fastmcp module path, but get_context is also removed entirely in v2 (fact 3) -- merely fixing the module path does not resolve it, so this import's own text must be removed/replaced as part of restructuring to inject ctx as a handler parameter."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 20,
+      "snippet": "    ctx = _mcp_get_context()",
+      "pattern": "3",
+      "reason": "mcp.get_context()-style module-level retrieval is removed entirely in v2; this call site's own text must change to instead receive ctx via an injected handler parameter."
+    },
+    {
+      "file": "src/opsmesh/server/base.py",
+      "line": 16,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "mcp.server.fastmcp module tree moved to mcp.server.mcpserver and FastMCP was renamed to MCPServer with no compatibility alias; this import line's own text must change."
+    },
+    {
+      "file": "src/opsmesh/server/base.py",
+      "line": 24,
+      "snippet": "class OpsMeshServer(FastMCP):",
+      "pattern": "1",
+      "reason": "Per the counting convention's own FastMCP example, fixing the import does not make the bare identifier FastMCP resolve -- it no longer exists under that name -- so this base-class reference's own text must change to MCPServer."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 38,
+      "snippet": "            return await self._group.call_tool(tool_name, arguments)",
+      "pattern": "5",
+      "reason": "self._group is a ClientSessionGroup (fact 5: ClientSessionGroup.call_tool lost its args parameter). This call passes the arguments dict positionally into that now-removed parameter, so the call itself must be rewritten to work under the new signature."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/tool_catalog.py",
+      "line": 46,
+      "snippet": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+      "pattern": "2",
+      "reason": "getattr(tool, \"inputSchema\", ...) is attribute-name-string access to the camelCase field on a discovery-result Tool object; fact 2 requires tool.inputSchema -> tool.input_schema for attribute access, so the string literal must become \"input_schema\"."
+    }
+  ],
+  "flag_uncertain": [
+    {
+      "file": "tests/test_client_session.py",
+      "line": 13,
+      "snippet": "    result = await client.call_tool(\"get_deployment_status\", {\"service\": \"billing-api\"})",
+      "reason": "RULE 2 (test path floor): this calls OpsMeshClient.call_tool, an app wrapper whose own signature is unaffected and which forwards to plain ClientSession.call_tool(name, arguments) which fact 5 says is unaffected -- I would otherwise REJECT this, but the test/mock path floor forbids REJECT, so it is flagged instead."
+    },
+    {
+      "file": "tests/test_client_session.py",
+      "line": 25,
+      "snippet": "        await client.call_tool(\"get_deployment_status\")",
+      "reason": "RULE 2 (test path floor): same OpsMeshClient.call_tool wrapper call as above, would otherwise be REJECT since the wrapper and the underlying plain ClientSession.call_tool signature are unaffected, but tests/ path forces FLAG-UNCERTAIN instead of REJECT."
+    },
+    {
+      "file": "tests/test_client_session_group.py",
+      "line": 22,
+      "snippet": "    result = await fleet.call_tool(\"docs-mcp\", \"search_docs\", {\"query\": \"rollback\"})",
+      "reason": "RULE 2 (test path floor): calls the FleetClient.call_tool wrapper, whose own 3-arg signature is unaffected (the break is internal, at session_group.py's forwarding call to the real SDK). Would otherwise be REJECT, but the test-path rule forbids that, so it is flagged."
+    },
+    {
+      "file": "tests/test_client_session_group.py",
+      "line": 31,
+      "snippet": "        await fleet.call_tool(\"unknown-server\", \"search_docs\", {})",
+      "reason": "RULE 2 (test path floor): same FleetClient.call_tool wrapper call as above; wrapper signature itself is unaffected, would otherwise be REJECT but the test-path rule forces FLAG-UNCERTAIN."
+    }
+  ],
+  "considered_and_rejected": [
+    {
+      "file": "src/opsmesh/cli.py",
+      "line": 22,
+      "snippet": "def main(ctx: click.Context, config_path: str | None) -> None:",
+      "reason": "This is click.Context from the click CLI library, not mcp's Context -- unrelated to the MCP SDK migration entirely."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 18,
+      "snippet": "def current_context() -> Context:",
+      "reason": "Per the counting convention's own worked example, once the Context import at line 12 is fixed, this downstream type annotation resolves correctly without its own text changing."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 26,
+      "snippet": "async def report_error(ctx: Context, message: str, *, exc: Exception | None = None) -> None:",
+      "reason": "Same as above -- Context type annotation resolves once the import is fixed; the annotation's own text need not change (counting convention)."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 31,
+      "snippet": "        logger.error(message)",
+      "reason": "Plain stdlib logging.Logger.error call, unrelated to any mcp SDK symbol or fact."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 32,
+      "snippet": "    await ctx.error(message)",
+      "reason": "Fact 3: extra= is removed from ctx.error() but calls using only a positional message string are explicitly unaffected; this call passes only a positional message."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 35,
+      "snippet": "async def report_info(ctx: Context, message: str) -> None:",
+      "reason": "Context type annotation resolves once the import is fixed; per counting convention the annotation's own text need not change."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 36,
+      "snippet": "    logger.info(message)",
+      "reason": "Plain stdlib logging.Logger.info call, unrelated to the mcp SDK."
+    },
+    {
+      "file": "src/opsmesh/server/context.py",
+      "line": 37,
+      "snippet": "    await ctx.info(message)",
+      "reason": "Fact 3: extra= removal from ctx.info() does not affect calls using only a positional message string, which this is."
+    },
+    {
+      "file": "src/opsmesh/server/app.py",
+      "line": 26,
+      "snippet": "    logger.info(\"Registered OpsMesh tools/resources/prompts for %s\", config.server_name)",
+      "reason": "Plain stdlib logging call, unrelated to any mcp SDK fact."
+    },
+    {
+      "file": "src/opsmesh/server/base.py",
+      "line": 48,
+      "snippet": "        logger.info(\"OpsMesh server %r is ready to accept requests\", self._config.server_name)",
+      "reason": "Plain stdlib logging call, unrelated to any mcp SDK fact."
+    },
+    {
+      "file": "src/opsmesh/server/tools/deployments.py",
+      "line": 31,
+      "snippet": "        deployed_at=now - dt.timedelta(hours=3),",
+      "reason": "This is application-level datetime.timedelta arithmetic for seeding demo data timestamps, not an SDK timeout parameter; fact 5's timedelta->float change only concerns ClientSession timeout parameters passed into SDK calls."
+    },
+    {
+      "file": "src/opsmesh/server/tools/deployments.py",
+      "line": 38,
+      "snippet": "        deployed_at=now - dt.timedelta(days=1, hours=2),",
+      "reason": "Same as above -- unrelated application datetime math, not an SDK timeout argument."
+    },
+    {
+      "file": "src/opsmesh/server/tools/incidents.py",
+      "line": 40,
+      "snippet": "                    opened_at=now - dt.timedelta(hours=2, minutes=45),",
+      "reason": "Application-level datetime.timedelta arithmetic for demo data, unrelated to fact 5's SDK client timeout change."
+    },
+    {
+      "file": "src/opsmesh/server/tools/incidents.py",
+      "line": 48,
+      "snippet": "                    opened_at=now - dt.timedelta(days=2),",
+      "reason": "Same as above -- unrelated application datetime math."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 12,
+      "snippet": "from mcp.client.session import ClientSession",
+      "reason": "Fact 5 explicitly states import paths for ClientSession/StdioServerParameters/stdio_client did NOT change."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 22,
+      "snippet": "    def __init__(self, session: ClientSession, *, server_label: str) -> None:",
+      "reason": "ClientSession import path is unaffected (fact 5), so this type annotation needs no change."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 27,
+      "snippet": "    def raw_session(self) -> ClientSession:",
+      "reason": "ClientSession import path is unaffected (fact 5), so this return-type annotation needs no change."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 33,
+      "snippet": "            result = await self._session.call_tool(name, arguments or {})",
+      "reason": "Fact 5 explicitly states plain ClientSession.call_tool(name, arguments={...}) is unaffected; this is exactly that call shape on the correct (non-group) class."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 35,
+      "snippet": "            logger.warning(\"call_tool(%s) failed against %s\", name, self._server_label)",
+      "reason": "Plain stdlib logging call, unrelated to the mcp SDK."
+    },
+    {
+      "file": "src/opsmesh/client/session.py",
+      "line": 40,
+      "snippet": "        return await self._session.list_tools()",
+      "reason": "Fact 5's cursor-parameter removal only matters if a cursor argument is passed; this call passes no cursor, so it is unaffected."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 15,
+      "snippet": "from mcp.client.session_group import ClientSessionGroup",
+      "reason": "Fact 5 describes only a signature change to ClientSessionGroup.call_tool, not a module/import path move; this import is unaffected."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 26,
+      "snippet": "    def __init__(self, group: ClientSessionGroup, servers: list[UpstreamServer]) -> None:",
+      "reason": "ClientSessionGroup import path is unaffected; this type annotation needs no change."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 40,
+      "snippet": "            logger.warning(\"fleet call_tool(%s.%s) failed\", server_name, tool_name)",
+      "reason": "Plain stdlib logging call, unrelated to the mcp SDK."
+    },
+    {
+      "file": "src/opsmesh/client/session_group.py",
+      "line": 47,
+      "snippet": "            discovered[name] = await self._group.list_tools()",
+      "reason": "No cursor argument is passed to this list_tools() call, so fact 5's cursor-parameter removal does not affect it."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 13,
+      "snippet": "from mcp.client.session_group import ClientSessionGroup",
+      "reason": "ClientSessionGroup's import path is unaffected by the migration; only its call_tool signature changed (fact 5)."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 24,
+      "snippet": "    def __init__(self, fleet: FleetClient, catalog: ToolCatalog, *, group: ClientSessionGroup) -> None:",
+      "reason": "ClientSessionGroup import path unaffected; this type annotation needs no change."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 39,
+      "snippet": "        group = ClientSessionGroup()",
+      "reason": "No-argument construction; unaffected by the call_tool signature change (fact 5) or any import path change."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 43,
+      "snippet": "        logger.info(\"Orchestrator connected to %d upstream server(s)\", len(servers))",
+      "reason": "Plain stdlib logging call, unrelated to the mcp SDK."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 64,
+      "snippet": "        args = self._extract_arguments(candidate, question)",
+      "reason": "Calls a local private helper method with no relation to any mcp SDK symbol; not affected by any fact."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/agent.py",
+      "line": 65,
+      "snippet": "        result = await self._fleet.call_tool(candidate.server_name, candidate.tool_name, args)",
+      "reason": "This calls the app's FleetClient.call_tool wrapper (server_name, tool_name, arguments), whose own external signature is unaffected by the migration; the actual break is internal to FleetClient.call_tool's forwarding call (flagged separately at session_group.py line 38), so this call site's own text does not need to change."
+    },
+    {
+      "file": "src/opsmesh/orchestrator/tool_catalog.py",
+      "line": 49,
+      "snippet": "        logger.debug(\"Built tool catalog with %d tools\", len(catalog._tools))",
+      "reason": "Plain stdlib logging call, unrelated to the mcp SDK."
+    }
+  ]
+}

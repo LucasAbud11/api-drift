@@ -617,3 +617,38 @@ Every test/mock miss in this study would surface as an immediate CI
 failure (`ImportError`/`AssertionError`) if shipped unmigrated; the one
 production miss would not — it silently returns a wrong default value.
 Full table and both count methods: `rule_test/recall_failure_audit.md`.
+
+**2026-08-18 update (revision 12) — shipped transitive stage A; the
+study's one production miss is fixed and reverified with 9 fresh runs,
+zero regressions, zero new production misses.** Per instruction, the
+reduction cost was accepted outright rather than re-litigated: "no
+silent production misses" is the pipeline's core claim, reduction ratio
+is only a cost optimization on top of it. Implemented in `prefilter.py`:
+stage A now follows the repo's own intra-repo import graph (`ast`-based)
+transitively — a file is relevant if it directly matches the pattern, or
+imports a file that does. Re-ran the full pipeline 3x each on
+targetB_small, targetB_diluted, and the entangled host (9 runs total).
+**`tool_catalog.py:46` — the exact site the prefilter used to drop — is
+PROPOSE, confidently, in all 3 entangled runs, with zero false positives
+across all 9 runs and zero regressions on any previously-passing site.**
+Reduction: unchanged on small/diluted (30.8%/81.1%/90.1%), down from
+49.3% to 36.2% on the entangled host — the accepted cost. One honest new
+data point, not a miss: a *different* production site
+(`session_group.py:38`) landed in FLAG-UNCERTAIN instead of PROPOSE in 2
+of 3 fresh runs, on a genuine reading ambiguity in the migration facts —
+surfaced, not lost, the first time this study's hedge-undercount
+mechanism has touched production code rather than the one recurring
+test/mock site. **Answer to "is the production-miss count across the
+whole study now zero": yes, as currently shipped** — exactly one
+distinct production site was ever missed anywhere in this study's
+history, and it is now fixed and independently reverified, not merely
+patched and hoped. Noted explicitly, per instruction: stage A's
+reduction value remains unproven on a real shared-core monorepo (neither
+tested host has one shared internal module most files import); the
+documented fallback if that topology collapses stage A's reduction
+toward zero is dropping stage A entirely and absorbing the higher
+adjudication cost — accepted in advance as a cost problem, not treated
+as blocking the correctness fix. Full numbers: `rule_test/
+entanglement_experiment/report.md` ("Shipped" section) and `rule_test/
+prefilter_experiment/report.md`; updated cross-study tallies: `rule_test/
+recall_failure_audit.md`.

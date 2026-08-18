@@ -1,0 +1,760 @@
+{
+  "targetB_small": [
+    {
+      "run": 1,
+      "repo": "targetB_small",
+      "n_verdicted": 111,
+      "proposed": 20,
+      "flagged": 1,
+      "rejected": 90,
+      "true_positives": [
+        [
+          "QAInsights_jmeter-mcp-server/jmeter_server.py",
+          4
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/jmeter_server.py",
+          23
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/main.py",
+          2
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/main.py",
+          9
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          11
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          21
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          22
+        ],
+        [
+          "danilop_MCP2Lambda/main.py",
+          6
+        ],
+        [
+          "danilop_MCP2Lambda/main.py",
+          30
+        ],
+        [
+          "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+          44
+        ],
+        [
+          "m0xai_trello-mcp-server/main.py",
+          6
+        ],
+        [
+          "m0xai_trello-mcp-server/main.py",
+          23
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/board.py",
+          8
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/card.py",
+          8
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/list.py",
+          8
+        ],
+        [
+          "securityfortech_secops-mcp/main.py",
+          7
+        ],
+        [
+          "securityfortech_secops-mcp/main.py",
+          26
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          10
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          25
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          27
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [],
+      "gt_missed_entirely": [],
+      "precision": 1.0,
+      "recall_propose_only": 1.0,
+      "recall_surfaced": 1.0
+    },
+    {
+      "run": 2,
+      "repo": "targetB_small",
+      "n_verdicted": 111,
+      "proposed": 20,
+      "flagged": 1,
+      "rejected": 90,
+      "true_positives": [
+        [
+          "QAInsights_jmeter-mcp-server/jmeter_server.py",
+          4
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/jmeter_server.py",
+          23
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/main.py",
+          2
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/main.py",
+          9
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          11
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          21
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          22
+        ],
+        [
+          "danilop_MCP2Lambda/main.py",
+          6
+        ],
+        [
+          "danilop_MCP2Lambda/main.py",
+          30
+        ],
+        [
+          "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+          44
+        ],
+        [
+          "m0xai_trello-mcp-server/main.py",
+          6
+        ],
+        [
+          "m0xai_trello-mcp-server/main.py",
+          23
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/board.py",
+          8
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/card.py",
+          8
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/list.py",
+          8
+        ],
+        [
+          "securityfortech_secops-mcp/main.py",
+          7
+        ],
+        [
+          "securityfortech_secops-mcp/main.py",
+          26
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          10
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          25
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          27
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [],
+      "gt_missed_entirely": [],
+      "precision": 1.0,
+      "recall_propose_only": 1.0,
+      "recall_surfaced": 1.0
+    },
+    {
+      "run": 3,
+      "repo": "targetB_small",
+      "n_verdicted": 111,
+      "proposed": 19,
+      "flagged": 2,
+      "rejected": 90,
+      "true_positives": [
+        [
+          "QAInsights_jmeter-mcp-server/jmeter_server.py",
+          4
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/jmeter_server.py",
+          23
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/main.py",
+          2
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/main.py",
+          9
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          21
+        ],
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          22
+        ],
+        [
+          "danilop_MCP2Lambda/main.py",
+          6
+        ],
+        [
+          "danilop_MCP2Lambda/main.py",
+          30
+        ],
+        [
+          "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+          44
+        ],
+        [
+          "m0xai_trello-mcp-server/main.py",
+          6
+        ],
+        [
+          "m0xai_trello-mcp-server/main.py",
+          23
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/board.py",
+          8
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/card.py",
+          8
+        ],
+        [
+          "m0xai_trello-mcp-server/server/tools/list.py",
+          8
+        ],
+        [
+          "securityfortech_secops-mcp/main.py",
+          7
+        ],
+        [
+          "securityfortech_secops-mcp/main.py",
+          26
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          10
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          25
+        ],
+        [
+          "tonyzorin_youtrack-mcp/main.py",
+          27
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [
+        [
+          "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          11
+        ]
+      ],
+      "gt_missed_entirely": [],
+      "precision": 1.0,
+      "recall_propose_only": 0.95,
+      "recall_surfaced": 1.0
+    }
+  ],
+  "targetB_diluted": [
+    {
+      "run": 1,
+      "repo": "targetB_diluted",
+      "n_verdicted": 111,
+      "proposed": 17,
+      "flagged": 4,
+      "rejected": 90,
+      "true_positives": [
+        [
+          "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+          4
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+          23
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/main.py",
+          2
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/main.py",
+          9
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/main.py",
+          6
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/main.py",
+          30
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+          44
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/main.py",
+          6
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/main.py",
+          23
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+          8
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+          8
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+          8
+        ],
+        [
+          "integrations/securityfortech_secops-mcp/main.py",
+          7
+        ],
+        [
+          "integrations/securityfortech_secops-mcp/main.py",
+          26
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          10
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          25
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          27
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          11
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          21
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          22
+        ]
+      ],
+      "gt_missed_entirely": [],
+      "precision": 1.0,
+      "recall_propose_only": 0.85,
+      "recall_surfaced": 1.0
+    },
+    {
+      "run": 2,
+      "repo": "targetB_diluted",
+      "n_verdicted": 111,
+      "proposed": 17,
+      "flagged": 4,
+      "rejected": 90,
+      "true_positives": [
+        [
+          "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+          4
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+          23
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/main.py",
+          2
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/main.py",
+          9
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/main.py",
+          6
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/main.py",
+          30
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+          44
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/main.py",
+          6
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/main.py",
+          23
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+          8
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+          8
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+          8
+        ],
+        [
+          "integrations/securityfortech_secops-mcp/main.py",
+          7
+        ],
+        [
+          "integrations/securityfortech_secops-mcp/main.py",
+          26
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          10
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          25
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          27
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          11
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          21
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          22
+        ]
+      ],
+      "gt_missed_entirely": [],
+      "precision": 1.0,
+      "recall_propose_only": 0.85,
+      "recall_surfaced": 1.0
+    },
+    {
+      "run": 3,
+      "repo": "targetB_diluted",
+      "n_verdicted": 111,
+      "proposed": 20,
+      "flagged": 1,
+      "rejected": 90,
+      "true_positives": [
+        [
+          "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+          4
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+          23
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/main.py",
+          2
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/main.py",
+          9
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          11
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          21
+        ],
+        [
+          "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+          22
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/main.py",
+          6
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/main.py",
+          30
+        ],
+        [
+          "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+          44
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/main.py",
+          6
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/main.py",
+          23
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+          8
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+          8
+        ],
+        [
+          "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+          8
+        ],
+        [
+          "integrations/securityfortech_secops-mcp/main.py",
+          7
+        ],
+        [
+          "integrations/securityfortech_secops-mcp/main.py",
+          26
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          10
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          25
+        ],
+        [
+          "integrations/tonyzorin_youtrack-mcp/main.py",
+          27
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [],
+      "gt_missed_entirely": [],
+      "precision": 1.0,
+      "recall_propose_only": 1.0,
+      "recall_surfaced": 1.0
+    }
+  ],
+  "entangled": [
+    {
+      "run": 1,
+      "repo": "entanglement_host",
+      "n_verdicted": 44,
+      "proposed": 7,
+      "flagged": 6,
+      "rejected": 31,
+      "true_positives": [
+        [
+          "src/opsmesh/orchestrator/tool_catalog.py",
+          46
+        ],
+        [
+          "src/opsmesh/server/base.py",
+          16
+        ],
+        [
+          "src/opsmesh/server/base.py",
+          24
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          12
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          13
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          20
+        ],
+        [
+          "tests/test_server_base.py",
+          31
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [
+        [
+          "src/opsmesh/client/session_group.py",
+          38
+        ],
+        [
+          "tests/test_orchestrator_agent.py",
+          18
+        ]
+      ],
+      "gt_missed_entirely": [
+        [
+          "tests/test_client_session_group.py",
+          23
+        ]
+      ],
+      "precision": 1.0,
+      "recall_propose_only": 0.7,
+      "recall_surfaced": 0.9
+    },
+    {
+      "run": 2,
+      "repo": "entanglement_host",
+      "n_verdicted": 44,
+      "proposed": 7,
+      "flagged": 6,
+      "rejected": 31,
+      "true_positives": [
+        [
+          "src/opsmesh/orchestrator/tool_catalog.py",
+          46
+        ],
+        [
+          "src/opsmesh/server/base.py",
+          16
+        ],
+        [
+          "src/opsmesh/server/base.py",
+          24
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          12
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          13
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          20
+        ],
+        [
+          "tests/test_server_base.py",
+          31
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [
+        [
+          "src/opsmesh/client/session_group.py",
+          38
+        ],
+        [
+          "tests/test_orchestrator_agent.py",
+          18
+        ]
+      ],
+      "gt_missed_entirely": [
+        [
+          "tests/test_client_session_group.py",
+          23
+        ]
+      ],
+      "precision": 1.0,
+      "recall_propose_only": 0.7,
+      "recall_surfaced": 0.9
+    },
+    {
+      "run": 3,
+      "repo": "entanglement_host",
+      "n_verdicted": 44,
+      "proposed": 9,
+      "flagged": 4,
+      "rejected": 31,
+      "true_positives": [
+        [
+          "src/opsmesh/client/session_group.py",
+          38
+        ],
+        [
+          "src/opsmesh/orchestrator/tool_catalog.py",
+          46
+        ],
+        [
+          "src/opsmesh/server/base.py",
+          16
+        ],
+        [
+          "src/opsmesh/server/base.py",
+          24
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          12
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          13
+        ],
+        [
+          "src/opsmesh/server/context.py",
+          20
+        ],
+        [
+          "tests/test_orchestrator_agent.py",
+          18
+        ],
+        [
+          "tests/test_server_base.py",
+          31
+        ]
+      ],
+      "false_positives": [],
+      "gt_in_flag_uncertain": [],
+      "gt_missed_entirely": [
+        [
+          "tests/test_client_session_group.py",
+          23
+        ]
+      ],
+      "precision": 1.0,
+      "recall_propose_only": 0.9,
+      "recall_surfaced": 0.9
+    }
+  ]
+}

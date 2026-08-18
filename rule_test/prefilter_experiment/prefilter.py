@@ -11,19 +11,25 @@ the candidate is kept. Every actual drop is logged with the stage, the
 specific rule that fired, the file/line, and the matched span/text, so
 any exclusion is auditable after the fact without re-running anything.
 
-  A. file_relevance -- drop a file's candidates only if an intentionally
-     BROAD module-qualified reference pattern finds nothing anywhere in
-     the file. This is the one stage that cannot reach true certainty:
-     a file could reference the target package through a form no static
-     regex enumerates (e.g. building a module name via string
-     concatenation at runtime, or an import gated behind a condition
-     never seen in source). That residual risk is real and is not
-     "fixed" here -- it is reduced (the pattern is broadened well past
-     the original narrow one to cover aliased imports, importlib,
-     __import__, and any string literal containing the package's
-     dotted-path prefix, not just sys.modules keys) and made fully
-     auditable via the drop log, so a missed file is discoverable, not
-     silently gone. See AUDIT NOTE below.
+  A. file_relevance -- drop a file's candidates only if the broadened
+     module-qualified reference pattern finds nothing DIRECTLY in the
+     file AND the file does not TRANSITIVELY import (through the repo's
+     own intra-repo import graph, resolved via `ast`, not string
+     heuristics) any other file that does. This closes the entanglement
+     gap the file-local-only version had: a file can use the target
+     package's data/behavior entirely through the host's own wrapper
+     layer and never itself contain any reference to the package -- see
+     `rule_test/entanglement_experiment/report.md` for the concrete
+     production-code site (`tool_catalog.py:46`) this exact gap silently
+     dropped before this change. This is still the one stage that cannot
+     reach true certainty: a file could receive SDK-shaped data through
+     a channel the import graph doesn't model at all (a value passed
+     into a plain function parameter with no import edge, pure runtime
+     duck-typing, a plugin/callback registry) -- transitive-via-imports
+     is a real, measured improvement over file-local-only, not a claim
+     of completeness. That residual risk is reduced further and made
+     fully auditable via the drop log, so a missed file is discoverable,
+     not silently gone. See AUDIT NOTE below.
 
   B. comment_and_docstring -- drop a match ONLY if it is entirely inside
      a `#` comment (never executable, always certain) or entirely inside
@@ -49,13 +55,36 @@ any exclusion is auditable after the fact without re-running anything.
 
 AUDIT NOTE (from the 2026-08-18 review): stage A cannot be made fully
 certain by construction -- "this file was not found to reference the
-package" is structurally an absence-based claim no matter how the
-pattern is written, because Python allows references the pattern doesn't
-enumerate. It remains in the pipeline because, broadened and logged, its
+package, directly or transitively" is structurally an absence-based
+claim no matter how the pattern is written or how far the import graph
+is walked, because Python allows references neither the pattern nor the
+import graph enumerate (dynamic module-name construction, runtime
+duck-typing across a channel with no import edge at all). It remains in
+the pipeline because, broadened, made transitive, and logged, its
 false-negative rate is low enough to be worth the reduction it buys, and
-because every drop it makes is recorded with the exact pattern-miss
-reason -- but it is the one stage where "kept because uncertain" does
-not fully apply, and that should not be papered over.
+because every drop it makes is recorded with the exact reason -- but it
+is the one stage where "kept because uncertain" does not fully apply,
+and that should not be papered over.
+
+AUDIT NOTE (2026-08-18, transitive relevance shipped): the file-local-
+only version of this stage silently dropped a real, production-code GT
+site in the entanglement experiment (`tool_catalog.py:46` -- see
+`rule_test/entanglement_experiment/report.md`) precisely because that
+file used the SDK's data shape only through a host-internal wrapper and
+never referenced the package by name itself. Transitive relevance is
+shipped specifically to close that gap: measured to cost real reduction
+power on a host that actually exercises entanglement (49.3% -> 36.2% on
+the entangled host) and to cost nothing on the one diluted host tested
+so far (90.1% unchanged) -- but that diluted host is an assembly of
+independent small repos with no shared "core" module most files import,
+which is exactly the topology where transitive closure stays cheap. On
+a real monorepo with a shared internal SDK/framework layer, transitive
+closure could plausibly approach "almost nothing gets dropped," making
+stage A's reduction value close to zero there. If that happens, the
+documented fallback is dropping stage A entirely (stages B/C only) and
+absorbing the higher adjudication volume -- a cost problem, not a
+correctness one, and correctness (no silent production misses) is the
+property this stage exists to protect, not reduction ratio.
 """
 import ast
 import io
@@ -85,33 +114,142 @@ def build_relevance_pattern(package_name):
     return re.compile("|".join(parts))
 
 
+def _find_py_files(repo_root):
+    out = []
+    for dirpath, dirnames, filenames in os.walk(repo_root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for fn in filenames:
+            if fn.endswith(".py"):
+                out.append(os.path.relpath(os.path.join(dirpath, fn), repo_root))
+    return out
+
+
+def _module_root_and_dotted_name(rel_path, repo_root):
+    """Walk up from rel_path while ancestor dirs have __init__.py; the
+    first ancestor WITHOUT __init__.py is this file's true sys.path root
+    (standard Python package-resolution rule, not a heuristic). Returns
+    (root_rel_dir, dotted_name), scoped naturally within one repo without
+    hand-coded per-repo paths -- unrelated repos have no __init__.py
+    chain connecting them, so this never crosses repo boundaries."""
+    parts = rel_path.split(os.sep)
+    if parts[-1] == "__init__.py":
+        pkg_parts = parts[:-1]
+    else:
+        pkg_parts = parts[:-1] + [parts[-1][:-3]]  # strip .py
+
+    dir_parts = parts[:-1]
+    depth = len(dir_parts)
+    while depth > 0:
+        candidate_dir = os.path.join(repo_root, *dir_parts[:depth])
+        if not os.path.isfile(os.path.join(candidate_dir, "__init__.py")):
+            break
+        depth -= 1
+    root_rel_dir = os.sep.join(dir_parts[:depth]) if depth else ""
+    dotted = ".".join(pkg_parts[depth:])
+    return root_rel_dir, dotted
+
+
+def _extract_imports(repo_root, rel_path):
+    """Dotted module names this file imports, via `ast` (not import-syntax
+    heuristics). Relative imports are resolved against this file's own
+    package. A file that fails to parse contributes no outgoing edges --
+    it doesn't lose its OWN direct-relevance eligibility, it just can't
+    propagate relevance to whatever it might have imported."""
+    full = os.path.join(repo_root, rel_path)
+    try:
+        with open(full, encoding="utf-8", errors="replace") as f:
+            src = f.read()
+        tree = ast.parse(src)
+    except (OSError, SyntaxError):
+        return []
+
+    _, self_dotted = _module_root_and_dotted_name(rel_path, repo_root)
+    self_pkg_parts = self_dotted.split(".")
+    if not rel_path.endswith("__init__.py"):
+        self_pkg_parts = self_pkg_parts[:-1]  # containing package, not the module itself
+
+    imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.append(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level and node.level > 0:
+                base = self_pkg_parts[: len(self_pkg_parts) - (node.level - 1)] if node.level > 1 else self_pkg_parts
+                base_dotted = ".".join(base)
+                mod = f"{base_dotted}.{node.module}" if node.module else base_dotted
+                imports.append(mod)
+                for alias in node.names:
+                    imports.append(f"{mod}.{alias.name}")
+            elif node.module:
+                imports.append(node.module)
+                for alias in node.names:
+                    imports.append(f"{node.module}.{alias.name}")
+    return imports
+
+
+def _build_import_graph(repo_root, py_files):
+    index = {}
+    for rel_path in py_files:
+        _, dotted = _module_root_and_dotted_name(rel_path, repo_root)
+        index[dotted] = rel_path
+    graph = {f: set() for f in py_files}
+    for rel_path in py_files:
+        for dotted in _extract_imports(repo_root, rel_path):
+            if dotted in index and index[dotted] != rel_path:
+                graph[rel_path].add(index[dotted])
+    return graph
+
+
+def _transitive_relevant_files(repo_root, py_files, pattern):
+    """Returns (direct, transitive): files matching the pattern directly,
+    and the closure of that set under "imports a relevant file" (fixpoint
+    over the intra-repo import graph). Unreadable files default to
+    directly relevant -- can't be certain, so keep (fail-safe)."""
+    direct = set()
+    for rel_path in py_files:
+        full = os.path.join(repo_root, rel_path)
+        try:
+            with open(full, encoding="utf-8", errors="replace") as fh:
+                if pattern.search(fh.read()):
+                    direct.add(rel_path)
+        except OSError:
+            direct.add(rel_path)
+
+    graph = _build_import_graph(repo_root, py_files)
+    relevant = set(direct)
+    changed = True
+    while changed:
+        changed = False
+        for f, imported in graph.items():
+            if f not in relevant and (imported & relevant):
+                relevant.add(f)
+                changed = True
+    return direct, relevant
+
+
 def stage_a_file_relevance(candidates, repo_root, target_pattern):
-    """Keep a candidate unless its file has ZERO matches anywhere for the
-    (broad) target_pattern. See module docstring's AUDIT NOTE: this is the
-    one stage that cannot reach true certainty, only a low false-negative
-    rate plus full audit logging of what it drops and why."""
-    pattern = target_pattern
-    file_cache = {}
+    """Keep a candidate unless its file has ZERO matches for target_pattern,
+    directly or transitively through the repo's own import graph. See
+    module docstring's AUDIT NOTEs: broadened, made transitive, and fully
+    logged, but still not a claim of true certainty (see AUDIT NOTE)."""
+    py_files = _find_py_files(repo_root)
+    direct, transitive = _transitive_relevant_files(repo_root, py_files, target_pattern)
+
     kept, dropped, log = [], [], []
     for c in candidates:
         f = c["file"]
-        if f not in file_cache:
-            full_path = os.path.join(repo_root, f)
-            try:
-                with open(full_path, encoding="utf-8", errors="replace") as fh:
-                    file_cache[f] = bool(pattern.search(fh.read()))
-            except OSError:
-                file_cache[f] = True  # can't read it -> can't be certain -> keep
-        if file_cache[f]:
+        if f in transitive:
             kept.append(c)
         else:
             dropped.append(c)
             log.append({
-                "stage": "A", "rule": "file_relevance_no_match",
+                "stage": "A", "rule": "file_relevance_no_match_transitive",
                 "file": c["file"], "line": c["line"], "snippet": c.get("snippet", ""),
                 "matched_span": None,
-                "reason": "no occurrence of the broadened package-relevance pattern "
-                          "found anywhere in this file",
+                "reason": "no occurrence of the broadened package-relevance pattern found "
+                          "in this file, directly or transitively through any intra-repo "
+                          "import chain reaching a file that does match",
             })
     return kept, dropped, log
 

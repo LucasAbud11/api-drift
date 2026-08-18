@@ -1,5 +1,95 @@
 # Recall failure audit: every recorded miss, across the whole study, classified by mechanism and file class
 
+## 2026-08-18 update: transitive stage A shipped — the one production miss is fixed, reverified, and stays fixed
+
+This audit originally found one production-code exception to an otherwise
+overwhelming test/mock concentration: `src/opsmesh/orchestrator/
+tool_catalog.py:46`, dropped by the prefilter's stage A because that file
+uses the SDK's data shape only through a host-internal wrapper and never
+references the package by name. That mechanism was fixed by implementing
+transitive relevance in stage A (a file is relevant if it directly matches
+the pattern, or imports — transitively, via the repo's own `ast`-derived
+import graph — a file that does) and re-verified with **9 fresh runs**
+across all three tested host types, 3 runs each:
+
+| host | GT | precision | recall (propose) | recall (surfaced) | production misses | reduction |
+|---|---|---|---|---|---|---|
+| targetB_small | 20 | 100%, all 3 runs | 100%/100%/95% | 100%, all 3 | **0** | 81.1% (unchanged) |
+| targetB_diluted | 20 | 100%, all 3 runs | 85%/85%/100% | 100%, all 3 | **0** | 90.1% (unchanged) |
+| entangled (OpsMesh) | 10 | 100%, all 3 runs | 70%/70%/90% | 90%, all 3 | **0** | 36.2% (was 49.3%) |
+
+**`tool_catalog.py:46` was confirmed PROPOSE — correctly, confidently,
+with no hedging — in all 3 fresh entangled runs.** Zero regressions: every
+site that previously passed still passes (`base.py:16/24`, `context.py:
+12/13/20`, `test_server_base.py:31` all proposed in all 3 runs; the
+targetB_small/diluted candidate sets are byte-identical to before the
+fix, confirmed directly, and their agent-adjudication results match this
+study's established variance pattern with zero false positives across all
+9 runs). The only remaining miss on the entangled host, in all 3 runs, is
+the pre-existing grep-vocabulary gap (`tests/test_client_session_group.py:
+23`) — a different mechanism entirely, untouched by this fix by design
+(see "Direct answer," below, for why stage A can't reach it).
+
+**One new, honest data point, not a miss:** in 2 of the 3 fresh entangled
+runs, a *different* production site — `src/opsmesh/client/session_group.py
+:38` (`ClientSessionGroup.call_tool()`'s changed contract) — landed in
+FLAG-UNCERTAIN instead of PROPOSE, on a genuine ambiguity in the migration
+facts (whether "lost its `args` parameter" means the positional slot was
+removed or just a keyword named `args`). This is the first time this
+study's hedge-undercount mechanism has touched production code — every
+prior instance of it (blind_vocab, prefilter reliability) was the same
+one test/mock site. It is not a miss: the site was surfaced, not lost,
+in every run it occurred in (recall-surfaced stayed 90%, never dropped
+further). Recorded here because the audit's job is to catch exactly this
+kind of shift before it's asked about, not after.
+
+**Answer to "is the production-miss count across the whole study now
+zero": yes, as currently shipped, with the historical exception closed
+out rather than papered over.** Exactly one distinct production site has
+ever been missed anywhere in this study's history (`tool_catalog.py:46`,
+entanglement experiment, prefilter stage A) — established in the original
+audit below and unchanged by this update. That miss is now fixed:
+confirmed 3/3 in fresh, independent runs, with the exact fix (transitive
+stage A) and the exact regression check (existing candidates unchanged,
+existing passes unchanged) both applied and verified, not assumed. No
+other production site, in any of the 12 experiments audited (including
+these 9 new runs), has ever been missed. The updated instance tallies and
+base-rate comparison below fold in this fix; the original analysis is
+preserved underneath for the historical record.
+
+## Updated count both ways (post-fix)
+
+**Miss instances, hard misses only (site never surfaced anywhere —
+excludes hedge-to-FLAG-UNCERTAIN, which is surfaced not lost):**
+
+| | test/mock | production | total |
+|---|---|---|---|
+| Historical (spec_reinstated, dilution, entanglement pre-fix) | 15 | 3 | 18 |
+| Post-fix verification (9 fresh runs: entangled + targetB small/diluted, transitive stage A) | 3 | **0** | 3 |
+| **Current/shipped state** | **3** | **0** | 3 |
+
+(The historical 15/3 breaks down as: spec_reinstated 3 + dilution 9 +
+entanglement's old grep-miss 3 = 15 test/mock; entanglement's old
+prefilter-dropped production site x3 runs = 3 production. The
+post-fix column replaces the old entanglement row entirely — same host,
+same GT, new prefilter, freshly re-run rather than assumed unchanged.)
+
+**Distinct sites ever missed, at least once, anywhere, historical
+record (unchanged by the fix — this is "did it ever happen," not
+"does it still happen"):**
+
+| | test/mock | production | total |
+|---|---|---|---|
+| Distinct sites ever missed | 5 | 1 | 6 |
+| (out of total GT sites in that class) | 5/6 = 83.3% | 1/37 = 2.7% | 6/43 |
+
+That one production site is now fixed and reverified; it remains in this
+row because the question this row answers is historical ("ever"), not
+current ("still"). The "current/shipped state" row above is the one that
+answers "does this still happen."
+
+---
+
 Every experiment in this study, in order, checked directly against its own
 raw run data and reports — not summarized from memory. Scope: `original
 session` (superseded, no reliable data), `spec_reinstated` (27 runs),
@@ -156,16 +246,40 @@ has never recurred across more than one experiment.
    it undercounts on the strict propose-only metric even when nothing is
    actually lost).
 
-2. **(Narrow, single occurrence, mechanistically understood, fix already
-   measured)** Production code that references the target SDK's data or
-   behavior *exclusively* through the host's own internal abstraction
-   layer, in a file with zero direct textual reference to the SDK
-   package. Caused by file-local relevance filtering in the prefilter's
-   stage A, which cannot distinguish "this file doesn't need the SDK"
-   from "this file gets the SDK's data through a wrapper and never says
-   so." A transitive-import-graph replacement for stage A is measured
-   (not shipped) and recovers this exact site in the one host it's been
-   tested against.
+2. **(Fixed and reverified, 2026-08-18 — no longer an open gap, kept here
+   as the record of what it was and why it's now closed)** Production
+   code that references the target SDK's data or behavior *exclusively*
+   through the host's own internal abstraction layer, in a file with
+   zero direct textual reference to the SDK package, used to be silently
+   dropped by file-local relevance filtering in the prefilter's stage A
+   — which could not distinguish "this file doesn't need the SDK" from
+   "this file gets the SDK's data through a wrapper and never says so."
+   Stage A now follows the repo's own intra-repo import graph
+   transitively (a file is relevant if it directly matches the pattern,
+   or imports a file that does), confirmed to recover the exact site
+   this cost the study (`tool_catalog.py:46`) in 3/3 fresh runs with zero
+   regressions elsewhere. **This is not a claim that entanglement in
+   general is now fully solved** — see the caveat below.
+
+**Open caveat on the fix itself: stage A's reduction value is unproven on
+shared-core monorepo topologies, and the documented fallback if it
+collapses there is to drop stage A entirely.** Transitive closure was
+measured on two hosts: the entangled OpsMesh host (real cost — reduction
+fell from 49.3% to 36.2%) and the existing diluted host, an assembly of
+independent small repos with no shared "core" module most files import
+(zero cost — 90.1% unchanged, because nothing in that topology chains
+into relevance). Neither host has a single internal SDK/framework layer
+that hundreds of files import, which is exactly the shape that could make
+transitive closure expensive: if the directly-relevant file is, or is
+imported by, something central to a real company monorepo, the closure
+could plausibly approach "almost nothing gets dropped," collapsing stage
+A's reduction value toward zero on that specific topology. If that
+happens in practice, **the documented fallback is dropping stage A
+entirely** (stages B/C only) and absorbing the resulting higher
+adjudication volume and cost — a money problem to manage, not a
+correctness one to accept, because "no silent production misses" is the
+property stage A exists to protect and reduction ratio is only ever a
+cost optimization on top of it.
 
 **Why test/mock is the cheaper place to miss, concretely, checked against
 every instance in this study, not asserted in the abstract:** every
@@ -186,10 +300,12 @@ now-renamed field silently returns the default `{}` instead of raising
 anything, and nothing about that is guaranteed to be covered by a test
 that would turn red — it's a quietly wrong runtime value in a running
 service, not a failed build. That asymmetry — loud-and-caught vs.
-silent-and-shipped — is the actual argument for why this concentration,
-even though it isn't perfectly clean, still describes a real and useful
-risk ordering: a team relying on this pipeline should worry far more
-about the one narrow, already-diagnosed production gap than about the
-much larger test/mock miss count, precisely because CI is a second net
-under the test/mock misses and there is no equivalent second net under
-the production one.
+silent-and-shipped — is why that one production gap was worth fixing
+immediately rather than accepting alongside the much larger test/mock
+count: CI is a second net under every test/mock miss recorded in this
+study, and there was no equivalent second net under the production one.
+Now that it's fixed and reverified, the shippable limitation is simply
+the well-established test/mock class above, plus the open, honestly-
+unresolved question of whether stage A's transitive-closure fix holds up
+on a real shared-core monorepo — the one topology this study hasn't
+been able to test yet.
