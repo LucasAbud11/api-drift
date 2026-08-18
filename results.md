@@ -481,3 +481,40 @@ run's (file, line, bucket) set. Full detail: `rule_test/
 prefilter_experiment/report.md` (reduction) and `rule_test/
 prefilter_experiment/report_reliability.md` (batch reliability +
 pipeline).
+
+**2026-08-18 update (revision 10) — prefilter hardened to fail-safe by
+construction; audit found the same certainty violation at two scopes;
+zero cost once a regression the fix introduced was caught and fixed.**
+The prefilter is the one pipeline component that can cause silent,
+unrecoverable recall loss (grep is exhaustive; the agent only judges
+what it's handed), so revision 9's stages were re-audited against a
+stricter standard than "passes this study's own GT": a candidate may
+only be dropped when the drop reason is provably certain, never merely
+because no positive evidence of relevance was found. **Audit found two
+rules violating this, both the same bug at different scopes** — file
+level (stage A: "no known reference form found" was treated as certain
+absence, when Python allows aliased imports/importlib/`__import__`/
+dynamic module names no static regex enumerates) and string-literal
+level (stage B: the revision-9 fix for "any string on the line" was a
+2-item whitelist of the specific forms this study's GT needed —
+"absence from a short whitelist" is the identical certainty violation,
+just scoped down). Stage C needed no change: it's provably lossless via
+expansion, not a drop. Fixes: stage A's pattern broadened further (kept
+on unreadable files, was dropped) and every drop now logged with
+`{stage, rule, file, line, snippet, matched_span, reason}`; stage B's
+whitelist mechanism removed entirely — it now drops only what's
+structurally certain (a `#` comment via `tokenize`, or a real docstring
+via `ast`) and keeps every other string-literal match unconditionally.
+**A regression caught before shipping the numbers:** the broadened
+stage-A pattern initially matched `mcp.something` as a substring inside
+unrelated identifiers like `youtrack_mcp.something` (missing word
+boundary) — safe-direction (over-keeps, doesn't drop) but silently cost
+reduction power, confirmed directly via `pat.search("youtrack_mcp.
+something")`. Fixed with a leading `\b`, re-measured. **Result: identical
+reduction numbers to revision 9** (Target A 13->9/30.8%, Target B small
+587->111/81.1%, Target B diluted 1121->111/90.1%), zero GT loss
+reconfirmed at every stage/target/scale — the only thing that changed
+is that the numbers are now backed by construction-level safety and a
+full audit trail (`droplog_<scale>.json`, 4 files) instead of
+empirically-tuned safety and none. Full detail: `rule_test/
+prefilter_experiment/report.md`, "Hardening pass" section.

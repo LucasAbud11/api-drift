@@ -1,0 +1,20 @@
+[
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 6,
+    "snippet": "openai.api_key = key",
+    "matched_span": null,
+    "reason": "3 byte-identical lines in this file collapsed to one adjudication: lines [6, 51, 64]"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 7,
+    "snippet": "response = openai.ChatCompletion.create(",
+    "matched_span": null,
+    "reason": "3 byte-identical lines in this file collapsed to one adjudication: lines [7, 52, 65]"
+  }
+]

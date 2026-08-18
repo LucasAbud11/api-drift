@@ -1,0 +1,4162 @@
+[
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/dirsearch.py",
+    "line": 37,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/wfuzz.py",
+    "line": 35,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/tlsx.py",
+    "line": 31,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/httpx.py",
+    "line": 36,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/subfinder.py",
+    "line": 33,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/gospider.py",
+    "line": 75,
+    "snippet": "                        data = json.loads(line)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/ffuf.py",
+    "line": 35,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/nuclei.py",
+    "line": 46,
+    "snippet": "            data = json.loads(result.stdout)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/arjun.py",
+    "line": 85,
+    "snippet": "                        data = json.loads(line)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "securityfortech_secops-mcp/tools/amass.py",
+    "line": 36,
+    "snippet": "                    data = json.loads(line)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/trello.py",
+    "line": 27,
+    "snippet": "    logger.info(\"Trello client and service initialized successfully\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/trello.py",
+    "line": 29,
+    "snippet": "    logger.error(f\"Failed to initialize Trello client: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 21,
+    "snippet": "        self.client = httpx.AsyncClient(base_url=self.base_url)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 35,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 42,
+    "snippet": "            logger.error(f\"Request error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 52,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 59,
+    "snippet": "            logger.error(f\"Request error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 69,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 76,
+    "snippet": "            logger.error(f\"Request error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 88,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 95,
+    "snippet": "            logger.error(f\"Request error: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 55,
+    "snippet": "        data = {\"name\": name}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 58,
+    "snippet": "        return await self.client.POST(f\"/checklists\", data={\"idCard\": card_id, **data})",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 74,
+    "snippet": "        data = {}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 79,
+    "snippet": "        return await self.client.PUT(f\"/checklists/{checklist_id}\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 112,
+    "snippet": "        data = {\"name\": name, \"checked\": checked}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 116,
+    "snippet": "            f\"/checklists/{checklist_id}/checkItems\", data=data",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 143,
+    "snippet": "        data = {}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 151,
+    "snippet": "            f\"/cards/{card_id}/checkItem/{checkitem_id}\", data=data",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/board.py",
+    "line": 64,
+    "snippet": "        response = await self.client.POST(f\"/boards/{board_id}/labels\", data=kwargs)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 53,
+    "snippet": "        data = {\"name\": name, \"idBoard\": board_id, \"pos\": pos}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 54,
+    "snippet": "        response = await self.client.POST(\"/lists\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 67,
+    "snippet": "        response = await self.client.PUT(f\"/lists/{list_id}\", data={\"name\": name})",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 80,
+    "snippet": "            f\"/lists/{list_id}/closed\", data={\"value\": \"true\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/card.py",
+    "line": 54,
+    "snippet": "        response = await self.client.POST(\"/cards\", data=kwargs)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "m0xai_trello-mcp-server/server/services/card.py",
+    "line": 67,
+    "snippet": "        response = await self.client.PUT(f\"/cards/{card_id}\", data=kwargs)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 343,
+    "snippet": "        data = {\"summary\": \"New issue\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 344,
+    "snippet": "        result = client.post(\"issues\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 365,
+    "snippet": "            data=None,",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 378,
+    "snippet": "        data = {\"summary\": \"Updated issue\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 379,
+    "snippet": "        result = client.put(\"issues/ISSUE-1\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 384,
+    "snippet": "            data=data,",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 90,
+    "snippet": "        result = wrapped(args='{\"project\": \"TEST\", \"issue_id\": \"123\"}')",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 100,
+    "snippet": "        args = (\"test1\", \"test2\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 113,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 128,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 141,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 154,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 175,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 190,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 205,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 220,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 235,
+    "snippet": "        args = ()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 421,
+    "snippet": "        result = bound_tool(args='{\"project\": \"TEST\", \"issue_id\": \"123\"}')",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 525,
+    "snippet": "            args='{\"project_id\": \"TEST\", \"summary\": \"New issue\"}'",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 64,
+    "snippet": "        data = {\"created\": 1672531200000, \"name\": \"test\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 73,
+    "snippet": "        data = {\"updated\": 1672531200000, \"id\": \"123\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 82,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 95,
+    "snippet": "        data = {\"created\": \"not-a-number\", \"updated\": None}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 106,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 123,
+    "snippet": "        data = [",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 134,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 153,
+    "snippet": "        data = \"simple string\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 157,
+    "snippet": "        data = 42",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 161,
+    "snippet": "        data = None",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 167,
+    "snippet": "        data = {}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 173,
+    "snippet": "        data = []",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 193,
+    "snippet": "        data = {\"created\": 1672531200000, \"name\": \"test\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 203,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 219,
+    "snippet": "        data = {\"name\": \"test\", \"id\": 123, \"active\": True}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 247,
+    "snippet": "        data = [1, 2, {\"created\": 1672531200000}]",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 258,
+    "snippet": "        data = {\"key\": \"value\", \"nested\": {\"created\": 1672531200000}}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_projects.py",
+    "line": 526,
+    "snippet": "            data={\"name\": \"Updated Project\"}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_issues.py",
+    "line": 490,
+    "snippet": "                    \"mimeType\": \"text/plain\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_issues.py",
+    "line": 529,
+    "snippet": "                    \"mimeType\": \"text/plain\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_issues.py",
+    "line": 895,
+    "snippet": "        mock_client.post.assert_called_once_with(\"commands\", data=expected_command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 44,
+    "snippet": "            data={",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 88,
+    "snippet": "            data={",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 125,
+    "snippet": "            \"admin/projects\", data=expected_data",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 159,
+    "snippet": "            \"admin/projects\", data=expected_data",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 335,
+    "snippet": "            data = call_args[1][\"data\"]",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 111,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 133,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 161,
+    "snippet": "        data = [",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 179,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 208,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 226,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 294,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 321,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_linking.py",
+    "line": 263,
+    "snippet": "        self.mock_client.post.assert_called_once_with(\"commands\", data=expected_command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_dedicated_updates.py",
+    "line": 76,
+    "snippet": "        self.mock_issues_api.client.post.assert_called_once_with(\"commands\", data=expected_command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 150,
+    "snippet": "                    \"mimeType\": \"image/png\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 174,
+    "snippet": "        self.mock_client.get.assert_called_once_with(f\"issues/{issue_id}?fields=attachments(id,name,mimeType,size)\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 238,
+    "snippet": "                    \"mimeType\": \"text/plain\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 308,
+    "snippet": "                    \"mimeType\": \"text/plain\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 343,
+    "snippet": "                    \"mimeType\": \"text/plain\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 401,
+    "snippet": "                    \"mimeType\": \"text/plain\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 48,
+    "snippet": "                \"protocolVersion\": \"2024-11-05\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 50,
+    "snippet": "                    \"roots\": {\"listChanged\": True},",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 126,
+    "snippet": "                        if \"inputSchema\" in attachment_tool:",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 127,
+    "snippet": "                            props = attachment_tool[\"inputSchema\"].get(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 37,
+    "snippet": "        logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 38,
+    "snippet": "            f\"Original parameters for {func.__name__}: args={args}, kwargs={kwargs}\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 50,
+    "snippet": "        logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 102,
+    "snippet": "        logger.debug(f\"Processing 'args' parameter: {args_value}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 115,
+    "snippet": "                        logger.info(f\"Fixing JSON with extra closing braces: {cleaned_json}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 129,
+    "snippet": "                    logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 143,
+    "snippet": "        logger.debug(f\"Processing 'kwargs' parameter: {kwargs_value}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 156,
+    "snippet": "                        logger.info(f\"Fixing JSON with extra closing braces: {cleaned_json}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 167,
+    "snippet": "                    logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 171,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 280,
+    "snippet": "        logger.info(f\"{func_name} normalized parameters: {normalized}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 70,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 86,
+    "snippet": "            logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 103,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 123,
+    "snippet": "            logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 185,
+    "snippet": "            logger.warning(f\"KB tools not loaded (import error): {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 219,
+    "snippet": "                        logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 257,
+    "snippet": "            logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 262,
+    "snippet": "            logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 290,
+    "snippet": "                    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 317,
+    "snippet": "            logger.debug(f\"Registered tool '{name}' from {class_name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 320,
+    "snippet": "    logger.info(f\"Loader registered {len(tools)} tools from all tool classes\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/search.py",
+    "line": 216,
+    "snippet": "                    logger.warning(f\"Invalid date format: {created_after}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/search.py",
+    "line": 223,
+    "snippet": "                    logger.warning(f\"Invalid date format: {updated_after}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 156,
+    "snippet": "                extra=extra,",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 189,
+    "snippet": "                extra=extra,",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 284,
+    "snippet": "        fields: str = \"id,name,mimeType,size\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 307,
+    "snippet": "        fields: str = \"id,name,mimeType,size\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 350,
+    "snippet": "            data = self.articles_api.download_article_attachment(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 65,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 71,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 77,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 83,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 89,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 96,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"project\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 99,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 102,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"project_issues\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 105,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 108,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"issue\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 111,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 114,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"issue_comments\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 117,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 120,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"user\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 123,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 126,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"search\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 129,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 132,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"article\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 135,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 138,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"space\"],",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 141,
+    "snippet": "                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 166,
+    "snippet": "                                \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 170,
+    "snippet": "                logger.warning(f\"Could not fetch projects for resources: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 218,
+    "snippet": "            logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 248,
+    "snippet": "                                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 263,
+    "snippet": "                                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 273,
+    "snippet": "                    logger.debug(f\"Fetching project with ID: {project_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 277,
+    "snippet": "                    logger.debug(f\"Fetching issue with ID: {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 281,
+    "snippet": "                    logger.debug(f\"Fetching user with ID: {user_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 285,
+    "snippet": "                    logger.debug(f\"Fetching article with ID: {article_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 296,
+    "snippet": "                                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 304,
+    "snippet": "                    logger.debug(f\"Fetching space with ID: {space_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 313,
+    "snippet": "                                    \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 323,
+    "snippet": "                    logger.debug(f\"Fetching issues for project: {project_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 327,
+    "snippet": "                    logger.debug(f\"Fetching comments for issue: {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 331,
+    "snippet": "                        logger.error(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 344,
+    "snippet": "                                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 351,
+    "snippet": "                            logger.error(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 356,
+    "snippet": "            logger.warning(f\"Unknown resource URI pattern: {uri}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 426,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 454,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 476,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 497,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 520,
+    "snippet": "                logger.warning(f\"Error retrieving issue with issues_api: {api_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 536,
+    "snippet": "                    logger.error(f\"Error with direct API call: {direct_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 544,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 567,
+    "snippet": "                logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 578,
+    "snippet": "                                \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 585,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 599,
+    "snippet": "                                \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 619,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 639,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 659,
+    "snippet": "                            \"mimeType\": \"application/json\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 219,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 522,
+    "snippet": "                logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 527,
+    "snippet": "                data = {}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 543,
+    "snippet": "                    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 554,
+    "snippet": "                logger.info(f\"Updating project with data: {data}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 559,
+    "snippet": "                    self.client.post(f\"admin/projects/{project_id}\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 560,
+    "snippet": "                    logger.info(\"Update API call successful\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 562,
+    "snippet": "                    logger.warning(f\"Update API call error: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 568,
+    "snippet": "                    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 580,
+    "snippet": "                    logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 618,
+    "snippet": "            data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 623,
+    "snippet": "            result = self.client.post(f\"admin/projects/{project_id}/subsystems\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 656,
+    "snippet": "            data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 662,
+    "snippet": "            result = self.client.post(f\"admin/projects/{project_id}/versions\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 694,
+    "snippet": "            data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 699,
+    "snippet": "            result = self.client.post(f\"admin/projects/{project_id}/builds\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/create_project_tool.py",
+    "line": 34,
+    "snippet": "        data = {",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/create_project_tool.py",
+    "line": 43,
+    "snippet": "        logger.info(f\"Creating project with direct tool: {data}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/create_project_tool.py",
+    "line": 45,
+    "snippet": "        response = client.post(\"admin/projects\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 116,
+    "snippet": "            logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 135,
+    "snippet": "                    logger.info(f\"Looking up project ID for: {project}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 138,
+    "snippet": "                        logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 143,
+    "snippet": "                        logger.warning(f\"Project not found: {project}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 151,
+    "snippet": "                    logger.warning(f\"Error finding project: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 159,
+    "snippet": "            logger.info(f\"Creating issue in project {project_id}: {summary}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 175,
+    "snippet": "                        logger.info(f\"Setting custom fields on new issue {issue.id}: {custom_fields}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 178,
+    "snippet": "                        logger.warning(f\"Issue created but failed to set custom fields: {cf_err}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 194,
+    "snippet": "                        logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 212,
+    "snippet": "                logger.error(f\"API error creating issue: {error_msg}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 70,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} state to '{new_state}' using proven Direct Field Update API\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 89,
+    "snippet": "                logger.info(f\"Direct API failed, trying command-based approach for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 97,
+    "snippet": "                    self.issues_api.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 249,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} priority to '{new_priority}' using proven simple string format\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 335,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} assignee to '{assignee}' using proven simple string format\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 420,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} type to '{issue_type}' using proven simple string format\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 505,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} estimation to '{estimation}' using proven simple string format\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/__init__.py",
+    "line": 57,
+    "snippet": "        logger.info(\"IssueTools initialized with modular components\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/attachments.py",
+    "line": 74,
+    "snippet": "                f\"issues/{issue_id}?fields=attachments(id,name,mimeType,size)\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/attachments.py",
+    "line": 95,
+    "snippet": "                        attachment_metadata.get(\"mimeType\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/attachments.py",
+    "line": 130,
+    "snippet": "            logger.warning(f\"Attachment not found: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/linking.py",
+    "line": 162,
+    "snippet": "            response = self.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 120,
+    "snippet": "            logger.info(f\"Batch update called with: updates={updates}, issues={issues}, custom_fields={custom_fields}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 126,
+    "snippet": "                logger.info(f\"Using list format with {len(updates)} updates\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 133,
+    "snippet": "                logger.info(f\"Using bulk format: {len(issues)} issues with fields {list(custom_fields.keys())}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 135,
+    "snippet": "                logger.warning(f\"Invalid parameters: updates={updates}, issues={issues}, custom_fields={custom_fields}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 162,
+    "snippet": "            logger.info(f\"Normalized {len(final_updates)} updates for batch processing\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 32,
+    "snippet": "                logger.info(\"API client closed successfully\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 34,
+    "snippet": "            logger.warning(f\"Error closing API client: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 57,
+    "snippet": "            logger.error(f\"Failed to import issue modules: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 78,
+    "snippet": "                logger.warning(f\"Failed to get tool definitions from {module.__class__.__name__}: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 80,
+    "snippet": "        logger.info(f\"Consolidated {len(consolidated_definitions)} tool definitions from {len(modules)} modules\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 110,
+    "snippet": "                fields = \"id,idReadable,summary,description,created,updated,project(id,shortName),reporter,assignee,customFields,attachments(id,name,url,mimeType,size)\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 116,
+    "snippet": "                    logger.warning(f\"Failed to get detailed issue data: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 134,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 200,
+    "snippet": "        data = {\"project\": {\"id\": project_id}, \"summary\": summary}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 210,
+    "snippet": "            logger.info(f\"Creating issue with data: {json.dumps(data)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 232,
+    "snippet": "                logger.error(error_msg)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 242,
+    "snippet": "                logger.error(f\"Error parsing response: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 252,
+    "snippet": "            logging.getLogger(__name__).error(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 276,
+    "snippet": "        data = {}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 291,
+    "snippet": "        response = self.client.post(f\"issues/{issue_id}\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 339,
+    "snippet": "                    logger.info(f\"Direct state update failed, trying command-based approach for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 352,
+    "snippet": "                        logger.info(f\"Direct API update failed with 405, trying command-based approach for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 383,
+    "snippet": "            logger.info(f\"Attempting direct field update for issue {issue_id} to state '{target_state}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 387,
+    "snippet": "                logger.info(f\"Direct field update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 392,
+    "snippet": "                logger.info(f\"Direct update failed, trying command-based approach for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 399,
+    "snippet": "                    logger.info(f\"Applying state transition command 'State \\\"{target_state}\\\"' to issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 400,
+    "snippet": "                    self.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 401,
+    "snippet": "                    logger.info(f\"Command-based transition succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 405,
+    "snippet": "                    logger.warning(f\"Command-based approach failed: {cmd_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 408,
+    "snippet": "            logger.info(f\"Trying state machine event-based approach for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 426,
+    "snippet": "                        logger.info(f\"Detected state machine workflow for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 430,
+    "snippet": "                logger.warning(f\"State machine detection failed: {sm_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 433,
+    "snippet": "            logger.error(f\"All state transition methods failed for issue {issue_id} to state '{target_state}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 437,
+    "snippet": "            logger.error(f\"State transition failed for issue {issue_id} to state '{target_state}': {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 476,
+    "snippet": "                self.client.post(f\"issues/{issue_id}\", data=update_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 477,
+    "snippet": "                logger.info(f\"Applied state machine event '{target_event.get('id')}' to issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 480,
+    "snippet": "                logger.warning(f\"No suitable event found for state transition to '{target_state}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 484,
+    "snippet": "            logger.error(f\"State machine transition failed: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 505,
+    "snippet": "            logger.info(f\"Applying direct state update to issue {issue_id}: State -> '{target_state}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 506,
+    "snippet": "            self.client.post(f\"issues/{issue_id}\", data=update_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 508,
+    "snippet": "            logger.info(f\"Direct state update successful for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 512,
+    "snippet": "            logger.warning(f\"Direct state update failed for issue {issue_id}: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 549,
+    "snippet": "                    logger.warning(\"Could not get project ID for validation, skipping validation\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 563,
+    "snippet": "                logger.warning(\"Could not determine project ID for enhanced object creation, using simple $type approach\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 619,
+    "snippet": "            logger.info(f\"Updating custom fields for issue {issue_id} using proper YouTrack objects\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 620,
+    "snippet": "            logger.info(f\"Update payload: {json.dumps(update_data, indent=2)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 621,
+    "snippet": "            self.client.post(f\"issues/{issue_id}\", data=update_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 622,
+    "snippet": "            logger.info(f\"Direct field update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 625,
+    "snippet": "            logger.warning(f\"Direct field update failed: {direct_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 629,
+    "snippet": "                logger.info(f\"Trying command-based approach as fallback for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 632,
+    "snippet": "                    logger.info(f\"Command-based update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 635,
+    "snippet": "                    logger.warning(f\"Command-based approach also failed: {cmd_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 684,
+    "snippet": "                logger.warning(f\"Could not find ID for enum value '{field_value}' in field '{field_name}', trying simple enum object\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 695,
+    "snippet": "            logger.warning(f\"Error creating enum field object for '{field_name}': {e}, trying simple enum object\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 735,
+    "snippet": "                logger.warning(f\"Could not find ID for state value '{field_value}' in field '{field_name}', using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 742,
+    "snippet": "            logger.warning(f\"Error creating state field object for '{field_name}': {e}, using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 771,
+    "snippet": "                logger.warning(f\"Could not find user ID for login '{field_value}', using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 778,
+    "snippet": "            logger.warning(f\"Error creating user field object for '{field_name}': {e}, using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 807,
+    "snippet": "                logger.warning(f\"Could not parse period value '{field_value}' for field '{field_name}', using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 814,
+    "snippet": "            logger.warning(f\"Error creating period field object for '{field_name}': {e}, using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 850,
+    "snippet": "            logger.debug(f\"Failed to parse time string '{time_str}': {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 865,
+    "snippet": "            logger.info(f\"Applying command-based update for issue {issue_id} with query: {command_data['query']}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 866,
+    "snippet": "            self.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 867,
+    "snippet": "            logger.info(f\"Command-based update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 869,
+    "snippet": "            logger.warning(f\"Command-based update failed: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1024,
+    "snippet": "                    logger.warning(f\"Error validating issue: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1051,
+    "snippet": "        data = {\"text\": text}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1052,
+    "snippet": "        return self.client.post(f\"issues/{issue_id}/comments\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1073,
+    "snippet": "            f\"issues/{issue_id}?fields=attachments(id,url,size,name,mimeType)\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1098,
+    "snippet": "        mime_type = attachment_info.get(\"mimeType\", \"unknown\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1262,
+    "snippet": "        response = self.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1495,
+    "snippet": "            logger.warning(f\"Error getting field ID for '{field_name}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1514,
+    "snippet": "            logger.warning(f\"Error getting field type info for field ID '{field_id}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1730,
+    "snippet": "                    logger.warning(\"Could not get project ID for validation, skipping validation\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1744,
+    "snippet": "                logger.warning(\"Could not determine project ID for enhanced object creation, using simple $type approach\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1800,
+    "snippet": "            logger.info(f\"Updating custom fields for issue {issue_id} using proper YouTrack objects\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1801,
+    "snippet": "            logger.info(f\"Update payload: {json.dumps(update_data, indent=2)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1802,
+    "snippet": "            self.client.post(f\"issues/{issue_id}\", data=update_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1803,
+    "snippet": "            logger.info(f\"Direct field update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1806,
+    "snippet": "            logger.warning(f\"Direct field update failed: {direct_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1810,
+    "snippet": "                logger.info(f\"Trying command-based approach as fallback for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1813,
+    "snippet": "                    logger.info(f\"Command-based update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1816,
+    "snippet": "                    logger.warning(f\"Command-based approach also failed: {cmd_error}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1851,
+    "snippet": "            logger.warning(\"Could not determine project ID for enhanced object creation, using simple $type approach\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1926,
+    "snippet": "            logger.warning(f\"Enhanced field creation failed for '{field_name}': {e}, falling back to simple approach\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1955,
+    "snippet": "                logger.warning(f\"Could not find ID for enum value '{field_value}' in field '{field_name}', trying simple enum object\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1966,
+    "snippet": "            logger.warning(f\"Error creating enum field object for '{field_name}': {e}, trying simple enum object\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2003,
+    "snippet": "                logger.warning(f\"Could not find ID for state value '{field_value}' in field '{field_name}', using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2010,
+    "snippet": "            logger.warning(f\"Error creating state field object for '{field_name}': {e}, using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2036,
+    "snippet": "                logger.warning(f\"Could not find user ID for login '{field_value}', using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2043,
+    "snippet": "            logger.warning(f\"Error creating user field object for '{field_name}': {e}, using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2069,
+    "snippet": "                logger.warning(f\"Could not parse period value '{field_value}' for field '{field_name}', using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2076,
+    "snippet": "            logger.warning(f\"Error creating period field object for '{field_name}': {e}, using simple value\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2112,
+    "snippet": "            logger.debug(f\"Failed to parse time string '{time_str}': {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2127,
+    "snippet": "            logger.info(f\"Applying command-based update for issue {issue_id} with query: {command_data['query']}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2128,
+    "snippet": "            self.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2129,
+    "snippet": "            logger.info(f\"Command-based update succeeded for issue {issue_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2131,
+    "snippet": "            logger.warning(f\"Command-based update failed: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2145,
+    "snippet": "            logger.warning(f\"Error getting field value type for '{field_name}': {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2180,
+    "snippet": "            logger.warning(f\"Error creating version field object for '{field_name}': {e}, using minimal format\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2343,
+    "snippet": "                    logger.warning(f\"Error validating issue: {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2370,
+    "snippet": "        data = {\"text\": text}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2371,
+    "snippet": "        return self.client.post(f\"issues/{issue_id}/comments\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2392,
+    "snippet": "            f\"issues/{issue_id}?fields=attachments(id,url,size,name,mimeType)\"",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2417,
+    "snippet": "        mime_type = attachment_info.get(\"mimeType\", \"unknown\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2549,
+    "snippet": "        response = self.client.post(\"commands\", data=command_data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2782,
+    "snippet": "            logger.warning(f\"Error getting field ID for '{field_name}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2801,
+    "snippet": "            logger.warning(f\"Error getting field type info for field ID '{field_id}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2982,
+    "snippet": "        logger.debug(f\"Field '{field_name}' (type: {value_type}, bundle: {bundle_type}) mapped to $type: {field_type}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/users.py",
+    "line": 91,
+    "snippet": "                logging.getLogger(__name__).warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 73,
+    "snippet": "        extra=\"allow\",  # Allow extra fields in the model",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 135,
+    "snippet": "        logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 182,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 243,
+    "snippet": "            logger.debug(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 247,
+    "snippet": "            logger.debug(f\"{method} {url} with data: {kwargs['data']}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 249,
+    "snippet": "            logger.debug(f\"{method} {url}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 261,
+    "snippet": "                    logger.error(f\"Maximum retries reached for {method} {url}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 266,
+    "snippet": "                logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 272,
+    "snippet": "                logger.error(f\"API error for {method} {url}: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 278,
+    "snippet": "                        logger.error(f\"Response content: {error_content}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 334,
+    "snippet": "            logger.debug(f\"POST {endpoint} with data: {json.dumps(data)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 341,
+    "snippet": "            \"POST\", endpoint, data=data, json=json_data, **kwargs",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 364,
+    "snippet": "            \"PUT\", endpoint, data=data, json=json_data, **kwargs",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 392,
+    "snippet": "            files: Mapping for requests 'files' parameter, e.g. {'file': (filename, bytes, mimeType)}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 411,
+    "snippet": "            data=data,",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/articles.py",
+    "line": 43,
+    "snippet": "    mimeType: Optional[str] = None",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/articles.py",
+    "line": 291,
+    "snippet": "            \"fields\": fields or \"id,name,mimeType,size\",",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 72,
+    "snippet": "            logger.debug(f\"Fetching projects page: skip={skip}, top={page_size}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 82,
+    "snippet": "            logger.debug(f\"Fetched {len(projects)} projects (total: {len(all_projects)})\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 90,
+    "snippet": "        logger.info(f\"Retrieved {len(all_projects)} total projects\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 128,
+    "snippet": "            logger.debug(f\"Attempting direct project lookup: {project_name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 137,
+    "snippet": "                logger.info(f\"Found project by direct lookup: {project.name} ({project.shortName})\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 141,
+    "snippet": "            logger.debug(f\"Direct project lookup failed for '{project_name}': {e}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 144,
+    "snippet": "        logger.debug(f\"Falling back to full project search for: {project_name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 150,
+    "snippet": "                logger.info(f\"Found project by shortName match: {project.name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 156,
+    "snippet": "                logger.info(f\"Found project by name match: {project.name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 162,
+    "snippet": "                logger.info(f\"Found project by partial name match: {project.name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 165,
+    "snippet": "        logger.warning(f\"Project not found: {project_name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 181,
+    "snippet": "        logger.info(f\"Getting issues for project {project_id}, limit {limit}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 194,
+    "snippet": "            logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 199,
+    "snippet": "            logger.error(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 229,
+    "snippet": "        data = {\"name\": name, \"shortName\": short_name}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 239,
+    "snippet": "        logger.info(f\"Creating project with data: {json.dumps(data)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 240,
+    "snippet": "        logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 245,
+    "snippet": "            response = self.client.post(\"admin/projects\", data=data)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 246,
+    "snippet": "            logger.info(f\"Create project response: {json.dumps(response)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 254,
+    "snippet": "                    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 259,
+    "snippet": "                    logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 273,
+    "snippet": "                logger.warning(f\"Could not validate project model: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 283,
+    "snippet": "            logger.error(f\"Error creating project: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 308,
+    "snippet": "        logger.info(f\"Getting existing project data for {project_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 312,
+    "snippet": "            data = {}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 326,
+    "snippet": "                logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 331,
+    "snippet": "            logger.info(f\"Updating project with data: {data}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 333,
+    "snippet": "                f\"admin/projects/{project_id}\", data=data",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 335,
+    "snippet": "            logger.info(f\"Update project response: {response}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 342,
+    "snippet": "                logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 347,
+    "snippet": "                logger.error(f\"Error getting updated project: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 350,
+    "snippet": "                    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 365,
+    "snippet": "                        logger.warning(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 373,
+    "snippet": "            logger.error(f\"Error updating project {project_id}: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 414,
+    "snippet": "        data = {\"field\": {\"id\": field_id}}",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 420,
+    "snippet": "            f\"admin/projects/{project_id}/customFields\", data=data",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 457,
+    "snippet": "                    logger.info(f\"Found schema for field '{field_name}': {enhanced_schema}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 464,
+    "snippet": "                            logger.warning(f\"Could not get allowed values for {field_name}: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 469,
+    "snippet": "            logger.warning(f\"Field '{field_name}' not found in project {project_id} custom fields\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 472,
+    "snippet": "            logger.error(f\"Error getting custom field schema for '{field_name}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 498,
+    "snippet": "                logger.warning(f\"Field '{field_name}' not found in project {project_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 507,
+    "snippet": "                logger.warning(f\"Field type for '{field_name}' is not a dictionary: {type(field_type)} - {field_type}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 513,
+    "snippet": "            logger.info(f\"Field '{field_name}' - valueType: {value_type}, bundleId: {bundle_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 516,
+    "snippet": "                logger.warning(f\"No bundle ID found for field '{field_name}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 535,
+    "snippet": "                                logger.info(f\"Resolved bundle index {index} to bundle ID {actual_bundle_id} ({target_bundle.get('name')})\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 539,
+    "snippet": "                                logger.info(f\"Found {len(values)} values for field '{field_name}' in bundle '{target_bundle.get('name')}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 550,
+    "snippet": "                        logger.error(f\"Error resolving enum bundle index: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 559,
+    "snippet": "                    logger.info(f\"Found {len(values)} values for enum field '{field_name}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 570,
+    "snippet": "                    logger.error(f\"Error getting enum bundle {actual_bundle_id}: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 598,
+    "snippet": "                            logger.info(f\"Found {len(values)} state values for field '{field_name}' from bundle '{target_bundle.get('name')}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 610,
+    "snippet": "                            logger.error(f\"Bundle index {bundle_index} out of range for {len(all_bundles)} state bundles\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 617,
+    "snippet": "                    logger.info(f\"Found {len(values)} state values for field '{field_name}' from bundle '{bundle_data.get('name', 'unknown')}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 629,
+    "snippet": "                    logger.error(f\"Error getting state bundle {bundle_id}: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 636,
+    "snippet": "                    logger.info(f\"Found {len(users_data)} users for field '{field_name}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 647,
+    "snippet": "                    logger.error(f\"Error getting users: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 654,
+    "snippet": "                    logger.info(f\"Found {len(subsystems_data)} subsystems for field '{field_name}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 664,
+    "snippet": "                    logger.error(f\"Error getting subsystems: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 688,
+    "snippet": "                    logger.info(f\"Found {len(versions_data)} versions for field '{field_name}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 700,
+    "snippet": "                    logger.error(f\"Error getting versions: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 733,
+    "snippet": "                    logger.info(f\"Found {len(builds_data)} builds for field '{field_name}'\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 743,
+    "snippet": "                    logger.error(f\"Error getting builds: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 766,
+    "snippet": "                logger.info(f\"Field '{field_name}' type '{value_type}' doesn't support allowed values\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 770,
+    "snippet": "            logger.error(f\"Error getting custom field allowed values for '{field_name}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 806,
+    "snippet": "            logger.info(f\"Got {len(fields)} custom fields for project {project_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 814,
+    "snippet": "                    logger.info(f\"Processing field: {field_name}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 834,
+    "snippet": "                            logger.warning(f\"Could not get allowed values for {field_name}: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 838,
+    "snippet": "                    logger.info(f\"Added schema for field '{field_name}': {enhanced_schema}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 840,
+    "snippet": "                    logger.warning(f\"Field missing name: {field}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 842,
+    "snippet": "            logger.info(f\"Returning {len(schemas)} schemas for project {project_id}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 845,
+    "snippet": "            logger.error(f\"Error getting all custom field schemas: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 1004,
+    "snippet": "            logger.error(f\"Error validating field '{field_name}': {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 24,
+    "snippet": "    logger.error(f\"Error initializing YouTrack API clients: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 49,
+    "snippet": "    logger.info(f\"MCP wrapper: get_issue({issue_id})\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 80,
+    "snippet": "    logger.info(f\"MCP wrapper: add_comment({issue_id}, {text[:20]}...)\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 114,
+    "snippet": "    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 132,
+    "snippet": "                    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 137,
+    "snippet": "                    logger.warning(f\"Project not found: {project}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 139,
+    "snippet": "                logger.warning(f\"Error finding project: {str(e)}\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 169,
+    "snippet": "    logger.info(f\"MCP wrapper: search_issues({query}, limit={limit})\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 212,
+    "snippet": "    logger.info(",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 256,
+    "snippet": "    logger.info(f\"MCP wrapper: get_project({project_id})\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 290,
+    "snippet": "    logger.info(\"MCP wrapper: get_current_user()\")",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/converse_tools.py",
+    "line": 35,
+    "snippet": "                    'inputSchema': tool['input_schema']",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/converse_agent.py",
+    "line": 73,
+    "snippet": "                message = response.get('output', {}).get('message', {})",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/windsurf_db_reader_alternative.py",
+    "line": 44,
+    "snippet": "            data = self._extract_strings_from_ldb(ldb_file)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/windsurf_db_reader_alternative.py",
+    "line": 196,
+    "snippet": "                data = reader.read_ldb_files()",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_bottleneck_analyzer.py",
+    "line": 6,
+    "snippet": "from datetime import datetime, timedelta",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_bottleneck_analyzer.py",
+    "line": 87,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i * 5),",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_bottleneck_analyzer.py",
+    "line": 158,
+    "snippet": "                timestamp=datetime(2023, 1, 1, 12, 0, 0) + timedelta(seconds=i * 5),",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_metrics_calculator.py",
+    "line": 6,
+    "snippet": "from datetime import datetime, timedelta",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_metrics_calculator.py",
+    "line": 26,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i),",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_metrics_calculator.py",
+    "line": 37,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i + 10),",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_visualization_engine.py",
+    "line": 8,
+    "snippet": "from datetime import datetime, timedelta",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/tests/test_visualization_engine.py",
+    "line": 27,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i * 5),",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/analyzer/analyzer.py",
+    "line": 9,
+    "snippet": "from datetime import timedelta",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/analyzer/analyzer.py",
+    "line": 278,
+    "snippet": "                    spike_time = test_results.start_time + timedelta(seconds=i * interval_seconds)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/analyzer/metrics/calculator.py",
+    "line": 12,
+    "snippet": "from datetime import datetime, timedelta",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/analyzer/metrics/calculator.py",
+    "line": 153,
+    "snippet": "            end_time = start_time + timedelta(seconds=interval_seconds)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "A",
+    "rule": "file_relevance_no_match",
+    "file": "QAInsights_jmeter-mcp-server/analyzer/metrics/calculator.py",
+    "line": 158,
+    "snippet": "            next_time = current_time + timedelta(seconds=interval_seconds)",
+    "matched_span": null,
+    "reason": "no occurrence of the broadened package-relevance pattern found anywhere in this file"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 3,
+    "snippet": "YouTrack MCP Server - A Model Context Protocol server for JetBrains YouTrack.",
+    "matched_span": [
+      [
+        30,
+        37
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 4,
+    "snippet": "Uses FastMCP directly for clean stdio/SSE transport support.",
+    "matched_span": [
+      [
+        5,
+        12
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "docstring",
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 26,
+    "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\"",
+    "matched_span": [
+      [
+        32,
+        39
+      ]
+    ],
+    "reason": "line is part of a real docstring (first statement of a module/class/function body, confirmed via AST)"
+  },
+  {
+    "stage": "B",
+    "rule": "comment",
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 27,
+    "snippet": "#       args=[\"--directory\", \"..\", \"run\", \"main.py\", \"--no-pre-discovery\"],",
+    "matched_span": [
+      [
+        8,
+        13
+      ]
+    ],
+    "reason": "every vocabulary match on this line falls inside a `#` comment token (confirmed via tokenize)"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 36,
+    "snippet": "logger.error(error_msg)",
+    "matched_span": null,
+    "reason": "4 byte-identical lines in this file collapsed to one adjudication: lines [36, 54, 75, 98]"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 37,
+    "snippet": "await ctx.error(error_msg)",
+    "matched_span": null,
+    "reason": "4 byte-identical lines in this file collapsed to one adjudication: lines [37, 55, 76, 99]"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 36,
+    "snippet": "logger.error(error_msg)",
+    "matched_span": null,
+    "reason": "5 byte-identical lines in this file collapsed to one adjudication: lines [36, 57, 82, 104, 125]"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 37,
+    "snippet": "await ctx.error(error_msg)",
+    "matched_span": null,
+    "reason": "5 byte-identical lines in this file collapsed to one adjudication: lines [37, 58, 83, 105, 126]"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 37,
+    "snippet": "logger.error(error_msg)",
+    "matched_span": null,
+    "reason": "5 byte-identical lines in this file collapsed to one adjudication: lines [37, 58, 81, 107, 128]"
+  },
+  {
+    "stage": "C",
+    "rule": "collapse_duplicate",
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 38,
+    "snippet": "await ctx.error(error_msg)",
+    "matched_span": null,
+    "reason": "5 byte-identical lines in this file collapsed to one adjudication: lines [38, 59, 82, 108, 129]"
+  }
+]
