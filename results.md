@@ -254,3 +254,74 @@ self-flagged uncertainty is a usable signal; this analysis only
 establishes that it's rare and, in its one occurrence, was right.
 Convention wording and the scale experiment remain on hold pending both
 of these landing.
+
+**2026-08-18 update (revision 6) — primary scale experiment: precision
+holds at 100% under dilution, recall drops from ~97-100% to a flat 85.0%,
+and the prospective FLAG-UNCERTAIN bucket was never used. This tests
+search-space dilution only, NOT entanglement — see the framing caveat
+below before reading the numbers as "works at scale."** Two
+prerequisites landed first, both structural rather than promised: (1)
+`rule_test/scale_experiment/validate_run.py` hard-fails scoring if any
+run file is missing the `proposed_sites`/`flag_uncertain`/
+`considered_and_rejected` keys or has a blank required field — this
+exists because reconstruction-from-memory silently corrupted persisted
+run data three separate times earlier in this study (see revision 5 and
+commit `b643db3`); (2) `detector_prompt_v2.md` gives the detector the
+PROPOSE/FLAG-UNCERTAIN/REJECT contract prospectively, before it searches,
+with FLAG-UNCERTAIN defined as the correct bucket when the spec is silent
+or ambiguous, replacing the earlier retrospective hedge-language scan
+that had almost nothing to score.
+
+The experiment: the same 5 ground-truthed Target B repos (20 corrected
+sites) embedded under `integrations/` inside a 675-file, 109,231-LOC host
+built from a real, unmodified, unrelated subset of Django's own source —
+not fabricated, not adversarially constructed, and containing one
+genuine incidental decoy the detector didn't need to be warned about:
+`django/template/context.py` defines its own real `class Context`, no
+relationship to the MCP SDK. 3 independent walled-off runs against the
+full host.
+
+**Precision: 100%, unanimous, zero false positives across all 3 runs**
+(51/51) — the decoy `Context` collision never produced one. Diluting the
+search space 20-30x over the standalone-repo experiment did not induce
+any false positives. **Recall: a flat 85.0% (17/20) in all 3 runs** — down
+from ~97-100% in the small-repo `spec_reinstated` experiment. Every miss,
+every run, is the identical 3-line cluster:
+`QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py:11,21,22`, the
+`sys.modules` stub — the same site cluster responsible for all prior
+recall variance in this study. What changed under dilution: the miss went
+from "usually right, sometimes badly wrong" (1/1/4 misses across 3 runs
+on the standalone repo) to "reliably wrong" (3/3/3 misses, all 3 runs,
+under dilution) — a detector that fails the same way every time is
+arguably worse for trust than a noisy one, since re-running doesn't catch
+it. **FLAG-UNCERTAIN was used zero times across all 60 run-site
+combinations**, despite being explicitly instructed as the correct bucket
+for exactly this kind of ambiguity. Where the detector was wrong, it was
+wrong confidently (run1 gave a full stated reason: "the test... never
+touches the real installed SDK, so the v1->v2 change... cannot affect
+this line's behavior" — the same over-applied "self-contained, therefore
+unaffected" reasoning diagnosed as run3's failure mode in revision 4) or
+wrong silently (run2/run3 never mentioned 2 of the 3 missed lines in
+either bucket at all — an "invisible" miss, 5 of 9 total misses across
+the 3 runs). A prospective three-bucket contract offered in the prompt
+was not, on its own, sufficient to make the detector hedge on the case
+that most needed it; task density appears to push this exact cluster
+toward confident dismissal rather than toward self-flagged uncertainty.
+
+**What this does and doesn't show, explicitly:** this is a
+**dilution** test — more unrelated haystack, same needles, haystack and
+needles causally disconnected; the host doesn't import, subclass, wrap,
+or otherwise interact with `mcp` anywhere. It is NOT an **entanglement**
+test — a real large monorepo of this size would typically weave the
+target library's abstractions through the host's own code (a subclassed
+`Context`, SDK objects passed through host DI layers, a re-exported
+`FastMCP` alias), which is a structural kind of ambiguity this experiment
+never applies pressure to. The one decoy here is a name collision, the
+easy kind (one grep on the import path resolves it), not a structural
+collision. **The clean 100% precision above must not be read as "this
+detector works at scale"** — it shows precision survives volume alone;
+whether it survives entanglement is a different, harder, and still-open
+question. Full writeup, per-run breakdown, and the exact host
+reproduction script (the 16MB host itself isn't committed, only
+`build_host.sh`, pinned to Django commit `84d09a5`):
+`rule_test/scale_experiment/report.md`.

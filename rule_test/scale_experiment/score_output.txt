@@ -1,0 +1,29 @@
+Validating 3 run file(s) before scoring...
+  OK  run1.json
+  OK  run2.json
+  OK  run3.json
+
+=== run1 (run1.json) ===
+  proposed=17 TP=17 FP=0 GT=20  recall=85.0%  precision=100.0%
+  flag_uncertain bucket size: 0
+  GT sites silently missed via confident REJECT: [('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 11), ('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 21), ('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 22)]
+
+=== run2 (run2.json) ===
+  proposed=17 TP=17 FP=0 GT=20  recall=85.0%  precision=100.0%
+  flag_uncertain bucket size: 0
+  GT sites silently missed via confident REJECT: [('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 22)]
+  GT sites missed, never mentioned in any bucket: [('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 11), ('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 21)]
+
+=== run3 (run3.json) ===
+  proposed=17 TP=17 FP=0 GT=20  recall=85.0%  precision=100.0%
+  flag_uncertain bucket size: 0
+  GT sites missed, never mentioned in any bucket: [('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 11), ('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 21), ('integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py', 22)]
+
+=== AGGREGATE ===
+Precision on proposed-only: 51/51 = 100.0%
+Recall on proposed-only:    51/60 = 85.0%
+
+Total recall misses across 3 run(s): 9
+  -> landed in FLAG-UNCERTAIN: 0
+  -> silently missed via confident REJECT: 4
+  -> silently missed, invisible (no mention at all): 5
