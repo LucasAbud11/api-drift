@@ -1,0 +1,14 @@
+Reduced candidate set: 111 representatives, 133 total lines covered
+
+attempt1.json: reps_adjudicated=111/111 out_of_contract=0 unadjudicated=0 CLEAN
+  recall=95.0% precision=100.0% surfaced=100.0%
+attempt2.json: reps_adjudicated=111/111 out_of_contract=0 unadjudicated=0 CLEAN
+  recall=100.0% precision=100.0% surfaced=100.0%
+attempt3.json: reps_adjudicated=111/111 out_of_contract=0 unadjudicated=0 CLEAN
+  recall=100.0% precision=100.0% surfaced=100.0%
+attempt4.json: reps_adjudicated=111/111 out_of_contract=0 unadjudicated=0 CLEAN
+  recall=100.0% precision=100.0% surfaced=100.0%
+attempt5.json: reps_adjudicated=111/111 out_of_contract=0 unadjudicated=0 CLEAN
+  recall=100.0% precision=100.0% surfaced=100.0%
+
+5/5 runs completed cleanly (schema-valid, full closed-world coverage) on first attempt.

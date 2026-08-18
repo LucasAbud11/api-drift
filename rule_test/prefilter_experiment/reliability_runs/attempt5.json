@@ -1,0 +1,697 @@
+{
+  "target": "B",
+  "repo": "reliability_test",
+  "run": 5,
+  "proposed_sites": [
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 7,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "mcp.server.fastmcp module tree is renamed to mcp.server.mcpserver; this import raises ModuleNotFoundError in v2 and must become `from mcp.server.mcpserver import MCPServer`."
+    },
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 26,
+      "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
+      "pattern": "1",
+      "reason": "Constructs FastMCP(...); FastMCP no longer exists under that name, must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 6,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from the moved module path; breaks with ModuleNotFoundError, must target mcp.server.mcpserver.MCPServer."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 23,
+      "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
+      "pattern": "1",
+      "reason": "Constructs FastMCP(...); identifier no longer exists, must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context also moves with the rest of the fastmcp module tree; this import breaks and must target mcp.server.mcpserver.Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context import from the moved module path; must be updated to mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 8,
+      "snippet": "from mcp.server.fastmcp import Context",
+      "pattern": "1",
+      "reason": "Context import from the moved module path; must be updated to mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 10,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from the moved module path; breaks with ModuleNotFoundError."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 25,
+      "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
+      "pattern": "1",
+      "reason": "Return-type annotation referencing bare name FastMCP -- this is exactly the counting-convention's contrast case: fixing the import alone does not make this identifier resolve, so the annotation text itself must change to MCPServer."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 27,
+      "snippet": "    mcp = FastMCP(",
+      "pattern": "1",
+      "reason": "Constructs FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 6,
+      "snippet": "from mcp.server.fastmcp import FastMCP, Context",
+      "pattern": "1",
+      "reason": "Both FastMCP and Context are imported from the moved module path; import breaks and must target mcp.server.mcpserver."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 30,
+      "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
+      "pattern": "1",
+      "reason": "Constructs FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 44,
+      "snippet": "                input_schema={'json': tool.inputSchema}",
+      "pattern": "2",
+      "reason": "tool.inputSchema is camelCase attribute access on a protocol object; per fact 2 this must become tool.input_schema."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 4,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from the moved module path; breaks with ModuleNotFoundError."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 23,
+      "snippet": "mcp = FastMCP(\"jmeter\")",
+      "pattern": "1",
+      "reason": "Constructs FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+      "line": 2,
+      "snippet": "from mcp.server.fastmcp import FastMCP",
+      "pattern": "1",
+      "reason": "Import of FastMCP from the moved module path; breaks with ModuleNotFoundError."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+      "line": 9,
+      "snippet": "mcp = FastMCP(\"jmeter\")",
+      "pattern": "1",
+      "reason": "Constructs FastMCP(...); must become MCPServer(...)."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 11,
+      "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
+      "pattern": "1",
+      "reason": "Rule 1 name-impersonation machinery building a stand-in for the mcp.server.fastmcp path. Since jmeter_server.py's real import must move to mcp.server.mcpserver (see line 4), this stub module-path string must change to 'mcp.server.mcpserver' or the sys.modules interception no longer matches the corrected import and the mock silently stops applying."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 21,
+      "snippet": "fastmcp_mod.FastMCP = FastMCP",
+      "pattern": "1",
+      "reason": "Rule 1's explicit example: an attribute assignment exposing a class under an SDK name on a constructed stand-in module. Once jmeter_server.py imports MCPServer from the new path, this attribute must be exposed as .MCPServer for the mock to satisfy that import."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 22,
+      "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
+      "pattern": "1",
+      "reason": "Rule 1's explicit example: a sys.modules[...] assignment. The key string must change to 'mcp.server.mcpserver' to match the corrected import path used by the code under test."
+    }
+  ],
+  "flag_uncertain": [
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 12,
+      "snippet": "class FastMCP:",
+      "reason": "Rule 1 applies (this class definition is part of the machinery constructing a locally-built stand-in exposed under an SDK name), so it cannot be REJECTed. However, per the counting convention only the attribute it's exposed under (line 21) and the module path/sys.modules key (lines 11, 22) strictly need their text changed to fix resolution -- the local class identifier itself could remain named FastMCP internally while still being assigned to fastmcp_mod.MCPServer. Genuinely uncertain whether this line's own text must change."
+    }
+  ],
+  "considered_and_rejected": [
+    {
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 226,
+      "snippet": "        data=data,",
+      "reason": "This data= kwarg forwards a value into the local arjun_wrapper(...) helper call (an unrelated project function), not any MCP SDK/Context API -- unrelated to fact 3's Context.log()/.debug() etc. message->data rename."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 38,
+      "snippet": "        logger.info(\"Starting Trello MCP Server in Claude app mode...\")",
+      "reason": "Uses Python's standard logging module (logger = logging.getLogger(__name__), line 16), not the MCP Context object -- fact 3 only concerns mcp.server.mcpserver.Context's logging methods."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 40,
+      "snippet": "        logger.info(\"Trello MCP Server started successfully\")",
+      "reason": "Standard logging module call, unrelated to MCP Context (see line 16)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 42,
+      "snippet": "        logger.error(f\"Error starting Claude server: {str(e)}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context (see line 16)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 65,
+      "snippet": "        logger.info(",
+      "reason": "Standard logging module call, unrelated to MCP Context (see line 16)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 70,
+      "snippet": "        logger.error(f\"Error starting SSE server: {str(e)}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context (see line 16)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 86,
+      "snippet": "        logger.info(\"Shutting down server...\")",
+      "reason": "Standard logging module call, unrelated to MCP Context (see line 16)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 88,
+      "snippet": "        logger.error(f\"Server error: {str(e)}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context (see line 16)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 20,
+      "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:",
+      "reason": "Per the COUNTING CONVENTION, this downstream ctx: Context annotation resolves once the import at board.py:8 is fixed; its own text need not change."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 30,
+      "snippet": "        logger.info(f\"Getting board with ID: {board_id}\")",
+      "reason": "Standard logging module call (logger = logging.getLogger(__name__), line 15), unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 32,
+      "snippet": "        logger.info(f\"Successfully retrieved board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 36,
+      "snippet": "        logger.error(error_msg)",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 37,
+      "snippet": "        await ctx.error(error_msg)",
+      "reason": "Context.error() called with only a positional message string; fact 3 explicitly states the extra= removal does not affect calls using only a positional message."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 41,
+      "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:",
+      "reason": "Downstream ctx: Context annotation; resolves once board.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 48,
+      "snippet": "        logger.info(\"Getting all boards\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 50,
+      "snippet": "        logger.info(f\"Successfully retrieved {len(result)} boards\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 59,
+      "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:",
+      "reason": "Downstream ctx: Context annotation; resolves once board.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 69,
+      "snippet": "        logger.info(f\"Getting labels for board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 71,
+      "snippet": "        logger.info(f\"Successfully retrieved {len(result)} labels for board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 80,
+      "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:",
+      "reason": "Downstream ctx: Context annotation; resolves once board.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 92,
+      "snippet": "        logger.info(f\"Creating label {payload.name} label for board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 94,
+      "snippet": "        logger.info(f\"Successfully created label {payload.name} labels for board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 20,
+      "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:",
+      "reason": "Downstream ctx: Context annotation; resolves once list.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 30,
+      "snippet": "        logger.info(f\"Getting list with ID: {list_id}\")",
+      "reason": "Standard logging module call (logger = logging.getLogger(__name__), line 14), unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 32,
+      "snippet": "        logger.info(f\"Successfully retrieved list: {list_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 36,
+      "snippet": "        logger.error(error_msg)",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 37,
+      "snippet": "        await ctx.error(error_msg)",
+      "reason": "Context.error() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 41,
+      "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:",
+      "reason": "Downstream ctx: Context annotation; resolves once list.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 51,
+      "snippet": "        logger.info(f\"Getting lists for board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 53,
+      "snippet": "        logger.info(f\"Successfully retrieved {len(result)} lists for board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 63,
+      "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\"",
+      "reason": "Continuation of create_list's signature; downstream ctx: Context annotation resolves once list.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 76,
+      "snippet": "        logger.info(f\"Creating list '{name}' in board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 78,
+      "snippet": "        logger.info(f\"Successfully created list '{name}' in board: {board_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 87,
+      "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:",
+      "reason": "Downstream ctx: Context annotation; resolves once list.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 98,
+      "snippet": "        logger.info(f\"Updating list {list_id} with new name: {name}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 100,
+      "snippet": "        logger.info(f\"Successfully updated list: {list_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 109,
+      "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:",
+      "reason": "Downstream ctx: Context annotation; resolves once list.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 119,
+      "snippet": "        logger.info(f\"Archiving list: {list_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 121,
+      "snippet": "        logger.info(f\"Successfully archived list: {list_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 21,
+      "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:",
+      "reason": "Downstream ctx: Context annotation; resolves once card.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 31,
+      "snippet": "        logger.info(f\"Getting card with ID: {card_id}\")",
+      "reason": "Standard logging module call (logger = logging.getLogger(__name__), line 16), unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 33,
+      "snippet": "        logger.info(f\"Successfully retrieved card: {card_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 37,
+      "snippet": "        logger.error(error_msg)",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 38,
+      "snippet": "        await ctx.error(error_msg)",
+      "reason": "Context.error() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 42,
+      "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:",
+      "reason": "Downstream ctx: Context annotation; resolves once card.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 52,
+      "snippet": "        logger.info(f\"Getting cards for list: {list_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 54,
+      "snippet": "        logger.info(f\"Successfully retrieved {len(result)} cards for list: {list_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 63,
+      "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:",
+      "reason": "Downstream ctx: Context annotation; resolves once card.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 75,
+      "snippet": "        logger.info(f\"Creating card in list {payload.idList} with name: {payload.name}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 77,
+      "snippet": "        logger.info(f\"Successfully created card in list: {payload.idList}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 87,
+      "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload",
+      "reason": "Continuation of update_card's signature; downstream ctx: Context annotation resolves once card.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 99,
+      "snippet": "        logger.info(f\"Updating card: {card_id} with payload: {payload}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 103,
+      "snippet": "        logger.info(f\"Successfully updated card: {card_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 112,
+      "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:",
+      "reason": "Downstream ctx: Context annotation; resolves once card.py:8 import is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 122,
+      "snippet": "        logger.info(f\"Deleting card: {card_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 124,
+      "snippet": "        logger.info(f\"Successfully deleted card: {card_id}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 39,
+      "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
+      "reason": "Plain log-message string mentioning \"FastMCP\" as text, not a code reference to the symbol or an API call; nothing here needs to change for the migration to function."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 55,
+      "snippet": "    args = parser.parse_args()",
+      "reason": "Standard-library argparse call, unrelated to the MCP SDK."
+    },
+    {
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 67,
+      "snippet": "    logger.info(f\"Starting YouTrack MCP Server v{APP_VERSION} [{transport}]\")",
+      "reason": "Plain log-message string; no SDK symbol reference."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 17,
+      "snippet": "args = parser.parse_args()",
+      "reason": "Standard-library argparse call, unrelated to the MCP SDK."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 68,
+      "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:",
+      "reason": "Downstream ctx: Context annotation; resolves once the import at main.py:6 is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 73,
+      "snippet": "    ctx.info(\"Calling AWS Lambda ListFunctions...\")",
+      "reason": "Context.info() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 77,
+      "snippet": "    ctx.info(f\"Found {len(functions['Functions'])} functions\")",
+      "reason": "Context.info() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 83,
+      "snippet": "    ctx.info(f\"Found {len(functions_with_prefix)} functions with prefix {FUNCTION_PREFIX}\")",
+      "reason": "Context.info() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 94,
+      "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:",
+      "reason": "Downstream ctx: Context annotation; resolves once the import at main.py:6 is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 101,
+      "snippet": "    ctx.info(f\"Invoking {function_name} with parameters: {parameters}\")",
+      "reason": "Context.info() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 109,
+      "snippet": "    ctx.info(f\"Function {function_name} returned with status code: {response['StatusCode']}\")",
+      "reason": "Context.info() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 113,
+      "snippet": "        ctx.error(error_message)",
+      "reason": "Context.error() called with only a positional message string; unaffected per fact 3."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 136,
+      "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:",
+      "reason": "Downstream ctx: Context annotation; resolves once the import at main.py:6 is fixed (counting convention)."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 1,
+      "snippet": "from mcp import ClientSession, StdioServerParameters",
+      "reason": "Fact 5 explicitly states import paths for ClientSession/StdioServerParameters did NOT change."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 2,
+      "snippet": "from mcp.client.stdio import stdio_client",
+      "reason": "Fact 5 explicitly states the stdio_client import path did NOT change."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 6,
+      "snippet": "    def __init__(self, server_params: StdioServerParameters):",
+      "reason": "StdioServerParameters name/import is unaffected per fact 5, so this annotation needs no change at all."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 25,
+      "snippet": "        self._client = stdio_client(self.server_params)",
+      "reason": "stdio_client() called with only the server_params positional arg; none of fact 5's changed parameters are used here."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 27,
+      "snippet": "        session = ClientSession(self.read, self.write)",
+      "reason": "ClientSession constructed with only positional read/write streams; none of fact 5's removed/changed parameters (cursor, args, timeout, get_server_capabilities) appear here."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 36,
+      "snippet": "        tools = await self.session.list_tools()",
+      "reason": "list_tools() called with no arguments; fact 5's cursor-parameter removal only matters if cursor is passed, which it isn't here."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+      "line": 44,
+      "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)",
+      "reason": "Fact 5 explicitly calls out plain ClientSession.call_tool(name, arguments={...}) as unaffected -- the args removal applies only to the different ClientSessionGroup.call_tool()."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 2,
+      "snippet": "from mcp import StdioServerParameters",
+      "reason": "Fact 5 explicitly states the StdioServerParameters import path did NOT change."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 25,
+      "snippet": "    server_params = StdioServerParameters(",
+      "reason": "StdioServerParameters constructor is unaffected -- no fact describes changes to this class's constructor, and its import path is explicitly unchanged."
+    },
+    {
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 28,
+      "snippet": "        args=[\"--directory\", \"..\", \"run\", \"main.py\"],",
+      "reason": "This args= is StdioServerParameters' subprocess command-line-arguments field, not ClientSessionGroup.call_tool()'s removed args parameter (fact 5) -- a different class entirely."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 54,
+      "snippet": "        logger.info(f\"JMeter binary path: {jmeter_bin}\")",
+      "reason": "Standard logging module call (logger = logging.getLogger(__name__), line 17), unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 55,
+      "snippet": "        logger.debug(f\"Java options: {java_opts}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 68,
+      "snippet": "                logger.debug(f\"Adding property: -J{prop_name}={prop_value}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 76,
+      "snippet": "                logger.debug(f\"Using generated unique log file: {log_file}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 88,
+      "snippet": "                logger.debug(f\"Making user-provided report directory unique: {original_dir} -> {report_output_dir}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 92,
+      "snippet": "                logger.debug(f\"Using generated unique report output directory: {report_output_dir}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 97,
+      "snippet": "        logger.debug(f\"Executing command: {' '.join(cmd)}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 104,
+      "snippet": "            logger.debug(\"Command output:\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 105,
+      "snippet": "            logger.debug(f\"Return code: {result.returncode}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 106,
+      "snippet": "            logger.debug(f\"Stdout: {result.stdout}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    },
+    {
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 107,
+      "snippet": "            logger.debug(f\"Stderr: {result.stderr}\")",
+      "reason": "Standard logging module call, unrelated to MCP Context."
+    }
+  ]
+}

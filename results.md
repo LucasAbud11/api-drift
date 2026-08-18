@@ -425,3 +425,59 @@ anything about entanglement, or that this study's known-in-advance grep
 vocabulary generalizes to a real migration where nobody has already
 enumerated the exact breaking terms. Full report: `rule_test/
 composition_experiment/report.md`.
+
+**2026-08-18 update (revision 9) — deterministic pre-filter cuts the
+1121-candidate host to 111 with zero GT loss, and that reduction alone
+fixed the reliability problem: 5/5 clean runs vs. 2/3 failures at full
+volume. Idempotent chunked resume built and verified regardless.** This
+follows on revision 8 (blind vocabulary), which is the block above
+headed "revision 8" earlier in this file — it landed out of
+chronological order in the text due to an edit-anchor mistake; the
+content is correct, only its position in this log is off.
+
+*Candidate-set reduction.* Three mechanical, LLM-free filter stages
+between grep and the agent: (A) drop candidates in files that never
+actually reference the target package (module-qualified check — a
+real `import mcp`/`mcp.server.`/`mcp.client.` reference or the
+sys.modules-registration form the QAInsights test stub uses — not a
+bare substring, which the first version wrongly used and which passes
+trivially for any file merely living in a repo named `youtrack_mcp`);
+(B) drop matches entirely inside a comment/docstring/unrelated string
+literal, keeping a narrow whitelist for the two load-bearing string
+forms this study's own spec cares about (`types.ModuleType(...)`
+arguments, `sys.modules[...]` keys); (C) collapse byte-identical
+repeated lines within one file into one adjudication, expanded back to
+every original line before scoring. **Constraint: zero GT loss,
+absolute** — verified after every single stage, both targets, both
+scales. The first version of stage B failed this constraint outright
+(dropped 7 real GT sites by treating "any string exists on this line"
+as grounds to drop the whole line, e.g. `mcp = FastMCP("jmeter")` has a
+real code match *and* an unrelated string argument) and was fixed, not
+shipped anyway, before being trusted. Result: Target A 13->9 (30.8%),
+Target B small 587->111 (81.1%), **Target B diluted 1121->111
+(90.1%)** — the exact host that was unreliable at full volume.
+
+*Batch reliability.* Ran the diluted Target B pipeline 5 independent
+times on the reduced 111-candidate set: **5/5 completed cleanly on
+first attempt**, zero retries, 100% surfaced rate in every run (one
+run's single recall dip was a site correctly flagged uncertain, not
+lost). Direct comparison, same host, same spec, same rules, same
+model, only candidate count changed: 1121 candidates -> 2/3 failures;
+111 candidates -> 5/5 clean. Reduction, not chunking, is what fixed
+reliability here. Built the idempotent chunked pipeline anyway, since
+5/5 at 111 doesn't guarantee 111 is what a different target's
+vocabulary will always reduce to: `pipeline.py` treats each ~40-
+candidate chunk as an independent, atomically-persisted unit; a chunk
+only counts done if its output validates through the same hardened
+validator AND its adjudicated (file, line) set exactly matches what it
+was given; resuming a run calls `pending_chunks()`, which returns only
+what's not done, so a partial failure costs one chunk, not the run.
+Verified against real data, not a synthetic example: replayed one of
+the 5 actual completed runs as 3 chunks, simulated the middle chunk
+failing to persist (the same failure shape seen twice earlier in this
+study), confirmed only that chunk was reported pending, resumed, and
+confirmed the merged result exactly reproduces the original single-shot
+run's (file, line, bucket) set. Full detail: `rule_test/
+prefilter_experiment/report.md` (reduction) and `rule_test/
+prefilter_experiment/report_reliability.md` (batch reliability +
+pipeline).
