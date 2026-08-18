@@ -1,0 +1,3008 @@
+TASK: You are adjudicating a fixed, pre-generated candidate list of lines from a codebase, checking each one against the Model Context Protocol (MCP) Python SDK's v1 -> v2 migration (a real, recently-shipped breaking change, released July 2026). Do NOT fix anything.
+
+IMPORTANT — READ BEFORE STARTING: The candidate list below was produced by an exhaustive vocabulary search (grep) tuned for coverage, not precision. It is a closed, finite, complete set — every line in this codebase that could plausibly be relevant is already in the list below. **Your job is adjudication only, not search.** Do not use Grep or Glob to look for additional candidates beyond this list; the list is final. You MAY use Read on files that already appear in the list below, to see surrounding context needed to apply the counting convention (e.g. to check whether an earlier import in the same file was already accounted for) -- but every verdict you produce must be about one of the 587 candidates given below, and every one of those 587 candidates must receive exactly one verdict. Do not skip any. Do not merge multiple candidates into one summarized verdict -- if two lines are identical for the same reason, still give each its own entry in your output.
+
+THE BREAKING CHANGE (from the official migration guide, verbatim facts):
+
+1. FastMCP -> MCPServer rename. `from mcp.server.fastmcp import FastMCP` no longer works (ModuleNotFoundError) -- the whole module tree moves: `from mcp.server.mcpserver import MCPServer`. ALL submodules under mcp.server.fastmcp.* move to mcp.server.mcpserver.*, including `Context` if imported from that path. No compatibility alias exists. Any import of `FastMCP` or any symbol from `mcp.server.fastmcp`, any construction of `FastMCP(...)`, and any type annotation referencing `FastMCP` is broken.
+
+2. camelCase -> snake_case field renames on protocol objects (Python ATTRIBUTE ACCESS only -- constructor kwargs still accept both spellings):
+   result.isError -> result.is_error
+   tools.nextCursor -> tools.next_cursor
+   tool.inputSchema -> tool.input_schema
+   tool.outputSchema -> tool.output_schema
+   content.mimeType -> content.mime_type
+   params.structuredContent -> params.structured_content
+   info.serverInfo -> info.server_info
+   info.protocolVersion -> info.protocol_version
+   template.uriTemplate -> template.uri_template
+   notification.listChanged -> notification.list_changed
+   params.progressToken -> params.progress_token
+
+3. High-level Context (mcp.server.mcpserver.Context) changes: `.log()` parameter renamed message -> data; `extra=` parameter REMOVED from `.debug()/.info()/.warning()/.error()` (calls using only a positional message string are UNAFFECTED); `client_id` removed; `mcp.get_context()` removed entirely (inject `ctx: Context` as a handler parameter instead -- if a repo already does this, it is NOT affected).
+
+4. Decorators `@mcp.tool()`, `@mcp.resource()`, `@mcp.prompt()`, `@mcp.completion()` on the HIGH-LEVEL MCPServer/FastMCP API are UNCHANGED in v2 -- same arguments, same handler signatures. Do not flag these as broken. `MCPServer.add_tool()` is also UNCHANGED. The decorator -> constructor-kwargs change described below applies ONLY to the separate LOW-LEVEL `Server` class (`from mcp.server import Server`, NOT FastMCP/MCPServer):
+   v1: `@server.list_tools()` decorator on the lowlevel Server
+   v2: `Server(name="x", on_list_tools=handler)` -- decorators replaced by constructor keyword arguments, but ONLY for this lowlevel class.
+
+5. Client SDK (`ClientSession`, `StdioServerParameters`, `mcp.client.stdio.stdio_client`): `cursor` parameter removed from `ClientSession.list_tools()`/`list_resources()` etc; a DIFFERENT class, `ClientSessionGroup.call_tool()`, lost its `args` parameter (plain `ClientSession.call_tool(name, arguments={...})` is unaffected); timeouts are now `float` seconds instead of `timedelta`; `get_server_capabilities()` replaced by `sampling_capabilities`/`roots_list_supported` properties. Import paths for ClientSession/StdioServerParameters/stdio_client did NOT change.
+
+6. HTTP transport: the MCP SDK's OWN internal transport moved from `httpx` to `httpx2`, affecting code that constructs a custom `httpx.AsyncClient` or `httpx.Auth` subclass and passes it INTO SDK functions. This does NOT affect application code that independently uses the `httpx` library for its own unrelated HTTP calls (e.g. calling a third-party REST API) -- that usage has nothing to do with the MCP SDK and is not broken.
+
+7. `McpError` renamed to `MCPError` (case change), constructor now takes `code, message, data` directly instead of a wrapped `ErrorData` object.
+
+8. `mcp.types` remains fully backward compatible -- `from mcp.types import X` and `from mcp import types` both still work unchanged in v2. This is NOT a breaking change for existing code and should not be flagged.
+
+9. `ctx.elicit()`, `ctx.sample()`, `ctx.list_roots()` raise `NoBackChannelError` when called against a modern (2026-07-28) protocol connection -- only relevant if code actually calls these methods.
+
+COUNTING CONVENTION (applies to every pattern above): A site is a line that must itself be edited to fix the migration. If fixing one line (e.g. an import statement) automatically repairs another line's behavior without that other line's own text needing to change, the other line is NOT a separate site — do not report it. Only report a line if its own text has to change. Example: if `Context` is imported from a path that moved, fixing the import statement alone makes every downstream `ctx: Context` type annotation resolve correctly again — the annotation's own text does not need to change. Those annotation lines are not separate sites, even though they reference a name whose import was broken, because nothing about their own text is wrong once the import is fixed. Contrast this with `FastMCP`: if a repo constructs `FastMCP(...)` or annotates a return type as `-> FastMCP:`, fixing the import to `from mcp.server.mcpserver import MCPServer` does NOT make `FastMCP(...)` resolve — that identifier no longer exists under that name anywhere, so the construction/annotation site's own text must change to `MCPServer`. That IS a separate site.
+
+OUTPUT CONTRACT — three buckets. For every one of the 587 candidates below, sort it into exactly one of PROPOSE / FLAG-UNCERTAIN / REJECT:
+
+- **PROPOSE**: confident this line's own text must change. Report with pattern number and reason.
+- **REJECT**: confident this line does NOT need to change, and you can cite the specific fact above that settles it.
+- **FLAG-UNCERTAIN**: the default when the two MANDATORY rules below apply, or when the facts above genuinely don't settle the question. Give a reason either way.
+
+TWO MANDATORY, MECHANICAL ROUTING RULES — these override your own confidence. If a candidate matches either rule, you may NOT put it in REJECT (PROPOSE is still allowed if you are confident it IS a required site; otherwise it must go to FLAG-UNCERTAIN):
+
+**RULE 1 (name-impersonation):** the candidate line is part of machinery that makes some OTHER piece of code's import of an SDK symbol resolve to a locally-built stand-in, rather than the real installed package. Concrete, observable anchors -- the line assigns into `sys.modules[...]`, or constructs a module object via `types.ModuleType(...)` representing an `mcp.*` path, or sets an attribute on such a constructed module object to expose a class under an SDK name (e.g. `fake_mod.FastMCP = SomeClass`). This rule does NOT apply merely because a local class or function happens to share a name with an SDK symbol (e.g. an app's own unrelated `class MCPServer:` with no `sys.modules` involvement and no relationship to satisfying anyone's import) -- only when the line is actively part of building or registering a stand-in for the real package.
+
+**RULE 2 (test/mock path floor):** the candidate's file path contains `/tests/`, starts with `tests/`, matches `test_*.py` or `*_test.py`, or contains "mock" or "fixture" in the path/filename. Any such candidate you would otherwise REJECT must go to FLAG-UNCERTAIN instead. (You may still PROPOSE a test-file candidate you're confident is a genuine required site.)
+
+These two rules exist because REJECT verdicts on candidates matching them have been wrong, with confident stated reasoning, in prior runs of this study -- the rule replaces self-assessed "am I sure" with a mechanical check you apply the same way every time, regardless of how confident your own reasoning feels.
+
+CANDIDATE LIST (587 items, root: /Users/lucasabud/Projects/api-drift/repos):
+
+```json
+[
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 7,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 26,
+    "snippet": "mcp = FastMCP(name=\"secops-mcp\","
+  },
+  {
+    "file": "securityfortech_secops-mcp/main.py",
+    "line": 226,
+    "snippet": "        data=data,"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/dirsearch.py",
+    "line": 37,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/wfuzz.py",
+    "line": 35,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/tlsx.py",
+    "line": 31,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/httpx.py",
+    "line": 36,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/subfinder.py",
+    "line": 33,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/gospider.py",
+    "line": 75,
+    "snippet": "                        data = json.loads(line)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/ffuf.py",
+    "line": 35,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/nuclei.py",
+    "line": 46,
+    "snippet": "            data = json.loads(result.stdout)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/arjun.py",
+    "line": 85,
+    "snippet": "                        data = json.loads(line)"
+  },
+  {
+    "file": "securityfortech_secops-mcp/tools/amass.py",
+    "line": 36,
+    "snippet": "                    data = json.loads(line)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 6,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 23,
+    "snippet": "mcp = FastMCP(\"Trello MCP Server\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 38,
+    "snippet": "        logger.info(\"Starting Trello MCP Server in Claude app mode...\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 40,
+    "snippet": "        logger.info(\"Trello MCP Server started successfully\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 42,
+    "snippet": "        logger.error(f\"Error starting Claude server: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 65,
+    "snippet": "        logger.info("
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 70,
+    "snippet": "        logger.error(f\"Error starting SSE server: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 86,
+    "snippet": "        logger.info(\"Shutting down server...\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/main.py",
+    "line": 88,
+    "snippet": "        logger.error(f\"Server error: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/trello.py",
+    "line": 27,
+    "snippet": "    logger.info(\"Trello client and service initialized successfully\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/trello.py",
+    "line": 29,
+    "snippet": "    logger.error(f\"Failed to initialize Trello client: {str(e)}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 20,
+    "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 30,
+    "snippet": "        logger.info(f\"Getting board with ID: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 32,
+    "snippet": "        logger.info(f\"Successfully retrieved board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 36,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 37,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 41,
+    "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 48,
+    "snippet": "        logger.info(\"Getting all boards\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 50,
+    "snippet": "        logger.info(f\"Successfully retrieved {len(result)} boards\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 54,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 55,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 59,
+    "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 69,
+    "snippet": "        logger.info(f\"Getting labels for board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 71,
+    "snippet": "        logger.info(f\"Successfully retrieved {len(result)} labels for board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 75,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 76,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 80,
+    "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 92,
+    "snippet": "        logger.info(f\"Creating label {payload.name} label for board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 94,
+    "snippet": "        logger.info(f\"Successfully created label {payload.name} labels for board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 98,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/board.py",
+    "line": 99,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 20,
+    "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 30,
+    "snippet": "        logger.info(f\"Getting list with ID: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 32,
+    "snippet": "        logger.info(f\"Successfully retrieved list: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 36,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 37,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 41,
+    "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 51,
+    "snippet": "        logger.info(f\"Getting lists for board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 53,
+    "snippet": "        logger.info(f\"Successfully retrieved {len(result)} lists for board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 57,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 58,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 63,
+    "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\""
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 76,
+    "snippet": "        logger.info(f\"Creating list '{name}' in board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 78,
+    "snippet": "        logger.info(f\"Successfully created list '{name}' in board: {board_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 82,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 83,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 87,
+    "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 98,
+    "snippet": "        logger.info(f\"Updating list {list_id} with new name: {name}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 100,
+    "snippet": "        logger.info(f\"Successfully updated list: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 104,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 105,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 109,
+    "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 119,
+    "snippet": "        logger.info(f\"Archiving list: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 121,
+    "snippet": "        logger.info(f\"Successfully archived list: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 125,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/list.py",
+    "line": 126,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 8,
+    "snippet": "from mcp.server.fastmcp import Context"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 21,
+    "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 31,
+    "snippet": "        logger.info(f\"Getting card with ID: {card_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 33,
+    "snippet": "        logger.info(f\"Successfully retrieved card: {card_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 37,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 38,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 42,
+    "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 52,
+    "snippet": "        logger.info(f\"Getting cards for list: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 54,
+    "snippet": "        logger.info(f\"Successfully retrieved {len(result)} cards for list: {list_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 58,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 59,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 63,
+    "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 75,
+    "snippet": "        logger.info(f\"Creating card in list {payload.idList} with name: {payload.name}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 77,
+    "snippet": "        logger.info(f\"Successfully created card in list: {payload.idList}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 81,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 82,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 87,
+    "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 99,
+    "snippet": "        logger.info(f\"Updating card: {card_id} with payload: {payload}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 103,
+    "snippet": "        logger.info(f\"Successfully updated card: {card_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 107,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 108,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 112,
+    "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 122,
+    "snippet": "        logger.info(f\"Deleting card: {card_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 124,
+    "snippet": "        logger.info(f\"Successfully deleted card: {card_id}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 128,
+    "snippet": "        logger.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/tools/card.py",
+    "line": 129,
+    "snippet": "        await ctx.error(error_msg)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 21,
+    "snippet": "        self.client = httpx.AsyncClient(base_url=self.base_url)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 35,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 42,
+    "snippet": "            logger.error(f\"Request error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 52,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 59,
+    "snippet": "            logger.error(f\"Request error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 69,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 76,
+    "snippet": "            logger.error(f\"Request error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 88,
+    "snippet": "            logger.error(f\"HTTP error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/utils/trello_api.py",
+    "line": 95,
+    "snippet": "            logger.error(f\"Request error: {e}\")"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 55,
+    "snippet": "        data = {\"name\": name}"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 58,
+    "snippet": "        return await self.client.POST(f\"/checklists\", data={\"idCard\": card_id, **data})"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 74,
+    "snippet": "        data = {}"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 79,
+    "snippet": "        return await self.client.PUT(f\"/checklists/{checklist_id}\", data=data)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 112,
+    "snippet": "        data = {\"name\": name, \"checked\": checked}"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 116,
+    "snippet": "            f\"/checklists/{checklist_id}/checkItems\", data=data"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 143,
+    "snippet": "        data = {}"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/checklist.py",
+    "line": 151,
+    "snippet": "            f\"/cards/{card_id}/checkItem/{checkitem_id}\", data=data"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/board.py",
+    "line": 64,
+    "snippet": "        response = await self.client.POST(f\"/boards/{board_id}/labels\", data=kwargs)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 53,
+    "snippet": "        data = {\"name\": name, \"idBoard\": board_id, \"pos\": pos}"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 54,
+    "snippet": "        response = await self.client.POST(\"/lists\", data=data)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 67,
+    "snippet": "        response = await self.client.PUT(f\"/lists/{list_id}\", data={\"name\": name})"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/list.py",
+    "line": 80,
+    "snippet": "            f\"/lists/{list_id}/closed\", data={\"value\": \"true\"}"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/card.py",
+    "line": 54,
+    "snippet": "        response = await self.client.POST(\"/cards\", data=kwargs)"
+  },
+  {
+    "file": "m0xai_trello-mcp-server/server/services/card.py",
+    "line": 67,
+    "snippet": "        response = await self.client.PUT(f\"/cards/{card_id}\", data=kwargs)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 3,
+    "snippet": "YouTrack MCP Server - A Model Context Protocol server for JetBrains YouTrack."
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 4,
+    "snippet": "Uses FastMCP directly for clean stdio/SSE transport support."
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 10,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 25,
+    "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 26,
+    "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 27,
+    "snippet": "    mcp = FastMCP("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 39,
+    "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 55,
+    "snippet": "    args = parser.parse_args()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/main.py",
+    "line": 67,
+    "snippet": "    logger.info(f\"Starting YouTrack MCP Server v{APP_VERSION} [{transport}]\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 343,
+    "snippet": "        data = {\"summary\": \"New issue\"}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 344,
+    "snippet": "        result = client.post(\"issues\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 365,
+    "snippet": "            data=None,"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 378,
+    "snippet": "        data = {\"summary\": \"Updated issue\"}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 379,
+    "snippet": "        result = client.put(\"issues/ISSUE-1\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_api_client.py",
+    "line": 384,
+    "snippet": "            data=data,"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 90,
+    "snippet": "        result = wrapped(args='{\"project\": \"TEST\", \"issue_id\": \"123\"}')"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 100,
+    "snippet": "        args = (\"test1\", \"test2\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 113,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 128,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 141,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 154,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 175,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 190,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 205,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 220,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 235,
+    "snippet": "        args = ()"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 421,
+    "snippet": "        result = bound_tool(args='{\"project\": \"TEST\", \"issue_id\": \"123\"}')"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_mcp_wrappers.py",
+    "line": 525,
+    "snippet": "            args='{\"project_id\": \"TEST\", \"summary\": \"New issue\"}'"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 64,
+    "snippet": "        data = {\"created\": 1672531200000, \"name\": \"test\"}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 73,
+    "snippet": "        data = {\"updated\": 1672531200000, \"id\": \"123\"}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 82,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 95,
+    "snippet": "        data = {\"created\": \"not-a-number\", \"updated\": None}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 106,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 123,
+    "snippet": "        data = ["
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 134,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 153,
+    "snippet": "        data = \"simple string\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 157,
+    "snippet": "        data = 42"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 161,
+    "snippet": "        data = None"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 167,
+    "snippet": "        data = {}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 173,
+    "snippet": "        data = []"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 193,
+    "snippet": "        data = {\"created\": 1672531200000, \"name\": \"test\"}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 203,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 219,
+    "snippet": "        data = {\"name\": \"test\", \"id\": 123, \"active\": True}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 247,
+    "snippet": "        data = [1, 2, {\"created\": 1672531200000}]"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils.py",
+    "line": 258,
+    "snippet": "        data = {\"key\": \"value\", \"nested\": {\"created\": 1672531200000}}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_projects.py",
+    "line": 526,
+    "snippet": "            data={\"name\": \"Updated Project\"}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_issues.py",
+    "line": 490,
+    "snippet": "                    \"mimeType\": \"text/plain\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_issues.py",
+    "line": 529,
+    "snippet": "                    \"mimeType\": \"text/plain\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_tools_issues.py",
+    "line": 895,
+    "snippet": "        mock_client.post.assert_called_once_with(\"commands\", data=expected_command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 44,
+    "snippet": "            data={"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 88,
+    "snippet": "            data={"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 125,
+    "snippet": "            \"admin/projects\", data=expected_data"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 159,
+    "snippet": "            \"admin/projects\", data=expected_data"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_create_project_tool.py",
+    "line": 335,
+    "snippet": "            data = call_args[1][\"data\"]"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 111,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 133,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 161,
+    "snippet": "        data = ["
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 179,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 208,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 226,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 294,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/test_utils_comprehensive.py",
+    "line": 321,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_linking.py",
+    "line": 263,
+    "snippet": "        self.mock_client.post.assert_called_once_with(\"commands\", data=expected_command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_dedicated_updates.py",
+    "line": 76,
+    "snippet": "        self.mock_issues_api.client.post.assert_called_once_with(\"commands\", data=expected_command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 150,
+    "snippet": "                    \"mimeType\": \"image/png\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 174,
+    "snippet": "        self.mock_client.get.assert_called_once_with(f\"issues/{issue_id}?fields=attachments(id,name,mimeType,size)\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 238,
+    "snippet": "                    \"mimeType\": \"text/plain\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 308,
+    "snippet": "                    \"mimeType\": \"text/plain\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 343,
+    "snippet": "                    \"mimeType\": \"text/plain\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/unit/tools/issues/test_attachments.py",
+    "line": 401,
+    "snippet": "                    \"mimeType\": \"text/plain\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 48,
+    "snippet": "                \"protocolVersion\": \"2024-11-05\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 50,
+    "snippet": "                    \"roots\": {\"listChanged\": True},"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 126,
+    "snippet": "                        if \"inputSchema\" in attachment_tool:"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/tests/docker/test_mcp_docker.py",
+    "line": 127,
+    "snippet": "                            props = attachment_tool[\"inputSchema\"].get("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 37,
+    "snippet": "        logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 38,
+    "snippet": "            f\"Original parameters for {func.__name__}: args={args}, kwargs={kwargs}\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 50,
+    "snippet": "        logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 102,
+    "snippet": "        logger.debug(f\"Processing 'args' parameter: {args_value}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 115,
+    "snippet": "                        logger.info(f\"Fixing JSON with extra closing braces: {cleaned_json}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 129,
+    "snippet": "                    logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 143,
+    "snippet": "        logger.debug(f\"Processing 'kwargs' parameter: {kwargs_value}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 156,
+    "snippet": "                        logger.info(f\"Fixing JSON with extra closing braces: {cleaned_json}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 167,
+    "snippet": "                    logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 171,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/mcp_wrappers.py",
+    "line": 280,
+    "snippet": "        logger.info(f\"{func_name} normalized parameters: {normalized}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 70,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 86,
+    "snippet": "            logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 103,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 123,
+    "snippet": "            logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 185,
+    "snippet": "            logger.warning(f\"KB tools not loaded (import error): {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 219,
+    "snippet": "                        logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 257,
+    "snippet": "            logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 262,
+    "snippet": "            logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 290,
+    "snippet": "                    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 317,
+    "snippet": "            logger.debug(f\"Registered tool '{name}' from {class_name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/loader.py",
+    "line": 320,
+    "snippet": "    logger.info(f\"Loader registered {len(tools)} tools from all tool classes\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/search.py",
+    "line": 216,
+    "snippet": "                    logger.warning(f\"Invalid date format: {created_after}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/search.py",
+    "line": 223,
+    "snippet": "                    logger.warning(f\"Invalid date format: {updated_after}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 156,
+    "snippet": "                extra=extra,"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 189,
+    "snippet": "                extra=extra,"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 284,
+    "snippet": "        fields: str = \"id,name,mimeType,size\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 307,
+    "snippet": "        fields: str = \"id,name,mimeType,size\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/articles.py",
+    "line": 350,
+    "snippet": "            data = self.articles_api.download_article_attachment("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 65,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 71,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 77,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 83,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 89,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 96,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"project\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 99,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 102,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"project_issues\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 105,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 108,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"issue\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 111,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 114,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"issue_comments\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 117,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 120,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"user\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 123,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 126,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"search\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 129,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 132,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"article\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 135,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 138,
+    "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"space\"],"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 141,
+    "snippet": "                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 166,
+    "snippet": "                                \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 170,
+    "snippet": "                logger.warning(f\"Could not fetch projects for resources: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 218,
+    "snippet": "            logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 248,
+    "snippet": "                                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 263,
+    "snippet": "                                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 273,
+    "snippet": "                    logger.debug(f\"Fetching project with ID: {project_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 277,
+    "snippet": "                    logger.debug(f\"Fetching issue with ID: {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 281,
+    "snippet": "                    logger.debug(f\"Fetching user with ID: {user_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 285,
+    "snippet": "                    logger.debug(f\"Fetching article with ID: {article_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 296,
+    "snippet": "                                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 304,
+    "snippet": "                    logger.debug(f\"Fetching space with ID: {space_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 313,
+    "snippet": "                                    \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 323,
+    "snippet": "                    logger.debug(f\"Fetching issues for project: {project_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 327,
+    "snippet": "                    logger.debug(f\"Fetching comments for issue: {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 331,
+    "snippet": "                        logger.error("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 344,
+    "snippet": "                                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 351,
+    "snippet": "                            logger.error("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 356,
+    "snippet": "            logger.warning(f\"Unknown resource URI pattern: {uri}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 426,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 454,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 476,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 497,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 520,
+    "snippet": "                logger.warning(f\"Error retrieving issue with issues_api: {api_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 536,
+    "snippet": "                    logger.error(f\"Error with direct API call: {direct_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 544,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 567,
+    "snippet": "                logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 578,
+    "snippet": "                                \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 585,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 599,
+    "snippet": "                                \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 619,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 639,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/resources.py",
+    "line": 659,
+    "snippet": "                            \"mimeType\": \"application/json\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 219,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 522,
+    "snippet": "                logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 527,
+    "snippet": "                data = {}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 543,
+    "snippet": "                    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 554,
+    "snippet": "                logger.info(f\"Updating project with data: {data}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 559,
+    "snippet": "                    self.client.post(f\"admin/projects/{project_id}\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 560,
+    "snippet": "                    logger.info(\"Update API call successful\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 562,
+    "snippet": "                    logger.warning(f\"Update API call error: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 568,
+    "snippet": "                    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 580,
+    "snippet": "                    logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 618,
+    "snippet": "            data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 623,
+    "snippet": "            result = self.client.post(f\"admin/projects/{project_id}/subsystems\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 656,
+    "snippet": "            data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 662,
+    "snippet": "            result = self.client.post(f\"admin/projects/{project_id}/versions\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 694,
+    "snippet": "            data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/projects.py",
+    "line": 699,
+    "snippet": "            result = self.client.post(f\"admin/projects/{project_id}/builds\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/create_project_tool.py",
+    "line": 34,
+    "snippet": "        data = {"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/create_project_tool.py",
+    "line": 43,
+    "snippet": "        logger.info(f\"Creating project with direct tool: {data}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/create_project_tool.py",
+    "line": 45,
+    "snippet": "        response = client.post(\"admin/projects\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 116,
+    "snippet": "            logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 135,
+    "snippet": "                    logger.info(f\"Looking up project ID for: {project}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 138,
+    "snippet": "                        logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 143,
+    "snippet": "                        logger.warning(f\"Project not found: {project}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 151,
+    "snippet": "                    logger.warning(f\"Error finding project: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 159,
+    "snippet": "            logger.info(f\"Creating issue in project {project_id}: {summary}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 175,
+    "snippet": "                        logger.info(f\"Setting custom fields on new issue {issue.id}: {custom_fields}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 178,
+    "snippet": "                        logger.warning(f\"Issue created but failed to set custom fields: {cf_err}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 194,
+    "snippet": "                        logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/basic_operations.py",
+    "line": 212,
+    "snippet": "                logger.error(f\"API error creating issue: {error_msg}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 70,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} state to '{new_state}' using proven Direct Field Update API\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 89,
+    "snippet": "                logger.info(f\"Direct API failed, trying command-based approach for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 97,
+    "snippet": "                    self.issues_api.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 249,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} priority to '{new_priority}' using proven simple string format\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 335,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} assignee to '{assignee}' using proven simple string format\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 420,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} type to '{issue_type}' using proven simple string format\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/dedicated_updates.py",
+    "line": 505,
+    "snippet": "            logger.info(f\"Updating issue {issue_id} estimation to '{estimation}' using proven simple string format\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/__init__.py",
+    "line": 57,
+    "snippet": "        logger.info(\"IssueTools initialized with modular components\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/attachments.py",
+    "line": 74,
+    "snippet": "                f\"issues/{issue_id}?fields=attachments(id,name,mimeType,size)\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/attachments.py",
+    "line": 95,
+    "snippet": "                        attachment_metadata.get(\"mimeType\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/attachments.py",
+    "line": 130,
+    "snippet": "            logger.warning(f\"Attachment not found: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/linking.py",
+    "line": 162,
+    "snippet": "            response = self.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 120,
+    "snippet": "            logger.info(f\"Batch update called with: updates={updates}, issues={issues}, custom_fields={custom_fields}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 126,
+    "snippet": "                logger.info(f\"Using list format with {len(updates)} updates\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 133,
+    "snippet": "                logger.info(f\"Using bulk format: {len(issues)} issues with fields {list(custom_fields.keys())}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 135,
+    "snippet": "                logger.warning(f\"Invalid parameters: updates={updates}, issues={issues}, custom_fields={custom_fields}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/custom_fields.py",
+    "line": 162,
+    "snippet": "            logger.info(f\"Normalized {len(final_updates)} updates for batch processing\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 32,
+    "snippet": "                logger.info(\"API client closed successfully\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 34,
+    "snippet": "            logger.warning(f\"Error closing API client: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 57,
+    "snippet": "            logger.error(f\"Failed to import issue modules: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 78,
+    "snippet": "                logger.warning(f\"Failed to get tool definitions from {module.__class__.__name__}: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/tools/issues/utilities.py",
+    "line": 80,
+    "snippet": "        logger.info(f\"Consolidated {len(consolidated_definitions)} tool definitions from {len(modules)} modules\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 110,
+    "snippet": "                fields = \"id,idReadable,summary,description,created,updated,project(id,shortName),reporter,assignee,customFields,attachments(id,name,url,mimeType,size)\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 116,
+    "snippet": "                    logger.warning(f\"Failed to get detailed issue data: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 134,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 200,
+    "snippet": "        data = {\"project\": {\"id\": project_id}, \"summary\": summary}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 210,
+    "snippet": "            logger.info(f\"Creating issue with data: {json.dumps(data)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 232,
+    "snippet": "                logger.error(error_msg)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 242,
+    "snippet": "                logger.error(f\"Error parsing response: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 252,
+    "snippet": "            logging.getLogger(__name__).error("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 276,
+    "snippet": "        data = {}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 291,
+    "snippet": "        response = self.client.post(f\"issues/{issue_id}\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 339,
+    "snippet": "                    logger.info(f\"Direct state update failed, trying command-based approach for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 352,
+    "snippet": "                        logger.info(f\"Direct API update failed with 405, trying command-based approach for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 383,
+    "snippet": "            logger.info(f\"Attempting direct field update for issue {issue_id} to state '{target_state}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 387,
+    "snippet": "                logger.info(f\"Direct field update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 392,
+    "snippet": "                logger.info(f\"Direct update failed, trying command-based approach for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 399,
+    "snippet": "                    logger.info(f\"Applying state transition command 'State \\\"{target_state}\\\"' to issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 400,
+    "snippet": "                    self.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 401,
+    "snippet": "                    logger.info(f\"Command-based transition succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 405,
+    "snippet": "                    logger.warning(f\"Command-based approach failed: {cmd_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 408,
+    "snippet": "            logger.info(f\"Trying state machine event-based approach for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 426,
+    "snippet": "                        logger.info(f\"Detected state machine workflow for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 430,
+    "snippet": "                logger.warning(f\"State machine detection failed: {sm_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 433,
+    "snippet": "            logger.error(f\"All state transition methods failed for issue {issue_id} to state '{target_state}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 437,
+    "snippet": "            logger.error(f\"State transition failed for issue {issue_id} to state '{target_state}': {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 476,
+    "snippet": "                self.client.post(f\"issues/{issue_id}\", data=update_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 477,
+    "snippet": "                logger.info(f\"Applied state machine event '{target_event.get('id')}' to issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 480,
+    "snippet": "                logger.warning(f\"No suitable event found for state transition to '{target_state}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 484,
+    "snippet": "            logger.error(f\"State machine transition failed: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 505,
+    "snippet": "            logger.info(f\"Applying direct state update to issue {issue_id}: State -> '{target_state}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 506,
+    "snippet": "            self.client.post(f\"issues/{issue_id}\", data=update_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 508,
+    "snippet": "            logger.info(f\"Direct state update successful for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 512,
+    "snippet": "            logger.warning(f\"Direct state update failed for issue {issue_id}: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 549,
+    "snippet": "                    logger.warning(\"Could not get project ID for validation, skipping validation\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 563,
+    "snippet": "                logger.warning(\"Could not determine project ID for enhanced object creation, using simple $type approach\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 619,
+    "snippet": "            logger.info(f\"Updating custom fields for issue {issue_id} using proper YouTrack objects\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 620,
+    "snippet": "            logger.info(f\"Update payload: {json.dumps(update_data, indent=2)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 621,
+    "snippet": "            self.client.post(f\"issues/{issue_id}\", data=update_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 622,
+    "snippet": "            logger.info(f\"Direct field update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 625,
+    "snippet": "            logger.warning(f\"Direct field update failed: {direct_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 629,
+    "snippet": "                logger.info(f\"Trying command-based approach as fallback for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 632,
+    "snippet": "                    logger.info(f\"Command-based update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 635,
+    "snippet": "                    logger.warning(f\"Command-based approach also failed: {cmd_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 684,
+    "snippet": "                logger.warning(f\"Could not find ID for enum value '{field_value}' in field '{field_name}', trying simple enum object\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 695,
+    "snippet": "            logger.warning(f\"Error creating enum field object for '{field_name}': {e}, trying simple enum object\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 735,
+    "snippet": "                logger.warning(f\"Could not find ID for state value '{field_value}' in field '{field_name}', using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 742,
+    "snippet": "            logger.warning(f\"Error creating state field object for '{field_name}': {e}, using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 771,
+    "snippet": "                logger.warning(f\"Could not find user ID for login '{field_value}', using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 778,
+    "snippet": "            logger.warning(f\"Error creating user field object for '{field_name}': {e}, using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 807,
+    "snippet": "                logger.warning(f\"Could not parse period value '{field_value}' for field '{field_name}', using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 814,
+    "snippet": "            logger.warning(f\"Error creating period field object for '{field_name}': {e}, using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 850,
+    "snippet": "            logger.debug(f\"Failed to parse time string '{time_str}': {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 865,
+    "snippet": "            logger.info(f\"Applying command-based update for issue {issue_id} with query: {command_data['query']}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 866,
+    "snippet": "            self.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 867,
+    "snippet": "            logger.info(f\"Command-based update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 869,
+    "snippet": "            logger.warning(f\"Command-based update failed: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1024,
+    "snippet": "                    logger.warning(f\"Error validating issue: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1051,
+    "snippet": "        data = {\"text\": text}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1052,
+    "snippet": "        return self.client.post(f\"issues/{issue_id}/comments\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1073,
+    "snippet": "            f\"issues/{issue_id}?fields=attachments(id,url,size,name,mimeType)\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1098,
+    "snippet": "        mime_type = attachment_info.get(\"mimeType\", \"unknown\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1262,
+    "snippet": "        response = self.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1495,
+    "snippet": "            logger.warning(f\"Error getting field ID for '{field_name}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1514,
+    "snippet": "            logger.warning(f\"Error getting field type info for field ID '{field_id}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1730,
+    "snippet": "                    logger.warning(\"Could not get project ID for validation, skipping validation\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1744,
+    "snippet": "                logger.warning(\"Could not determine project ID for enhanced object creation, using simple $type approach\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1800,
+    "snippet": "            logger.info(f\"Updating custom fields for issue {issue_id} using proper YouTrack objects\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1801,
+    "snippet": "            logger.info(f\"Update payload: {json.dumps(update_data, indent=2)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1802,
+    "snippet": "            self.client.post(f\"issues/{issue_id}\", data=update_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1803,
+    "snippet": "            logger.info(f\"Direct field update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1806,
+    "snippet": "            logger.warning(f\"Direct field update failed: {direct_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1810,
+    "snippet": "                logger.info(f\"Trying command-based approach as fallback for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1813,
+    "snippet": "                    logger.info(f\"Command-based update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1816,
+    "snippet": "                    logger.warning(f\"Command-based approach also failed: {cmd_error}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1851,
+    "snippet": "            logger.warning(\"Could not determine project ID for enhanced object creation, using simple $type approach\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1926,
+    "snippet": "            logger.warning(f\"Enhanced field creation failed for '{field_name}': {e}, falling back to simple approach\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1955,
+    "snippet": "                logger.warning(f\"Could not find ID for enum value '{field_value}' in field '{field_name}', trying simple enum object\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 1966,
+    "snippet": "            logger.warning(f\"Error creating enum field object for '{field_name}': {e}, trying simple enum object\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2003,
+    "snippet": "                logger.warning(f\"Could not find ID for state value '{field_value}' in field '{field_name}', using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2010,
+    "snippet": "            logger.warning(f\"Error creating state field object for '{field_name}': {e}, using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2036,
+    "snippet": "                logger.warning(f\"Could not find user ID for login '{field_value}', using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2043,
+    "snippet": "            logger.warning(f\"Error creating user field object for '{field_name}': {e}, using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2069,
+    "snippet": "                logger.warning(f\"Could not parse period value '{field_value}' for field '{field_name}', using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2076,
+    "snippet": "            logger.warning(f\"Error creating period field object for '{field_name}': {e}, using simple value\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2112,
+    "snippet": "            logger.debug(f\"Failed to parse time string '{time_str}': {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2127,
+    "snippet": "            logger.info(f\"Applying command-based update for issue {issue_id} with query: {command_data['query']}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2128,
+    "snippet": "            self.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2129,
+    "snippet": "            logger.info(f\"Command-based update succeeded for issue {issue_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2131,
+    "snippet": "            logger.warning(f\"Command-based update failed: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2145,
+    "snippet": "            logger.warning(f\"Error getting field value type for '{field_name}': {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2180,
+    "snippet": "            logger.warning(f\"Error creating version field object for '{field_name}': {e}, using minimal format\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2343,
+    "snippet": "                    logger.warning(f\"Error validating issue: {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2370,
+    "snippet": "        data = {\"text\": text}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2371,
+    "snippet": "        return self.client.post(f\"issues/{issue_id}/comments\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2392,
+    "snippet": "            f\"issues/{issue_id}?fields=attachments(id,url,size,name,mimeType)\""
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2417,
+    "snippet": "        mime_type = attachment_info.get(\"mimeType\", \"unknown\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2549,
+    "snippet": "        response = self.client.post(\"commands\", data=command_data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2782,
+    "snippet": "            logger.warning(f\"Error getting field ID for '{field_name}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2801,
+    "snippet": "            logger.warning(f\"Error getting field type info for field ID '{field_id}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/issues.py",
+    "line": 2982,
+    "snippet": "        logger.debug(f\"Field '{field_name}' (type: {value_type}, bundle: {bundle_type}) mapped to $type: {field_type}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/users.py",
+    "line": 91,
+    "snippet": "                logging.getLogger(__name__).warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 73,
+    "snippet": "        extra=\"allow\",  # Allow extra fields in the model"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 135,
+    "snippet": "        logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 182,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 243,
+    "snippet": "            logger.debug("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 247,
+    "snippet": "            logger.debug(f\"{method} {url} with data: {kwargs['data']}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 249,
+    "snippet": "            logger.debug(f\"{method} {url}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 261,
+    "snippet": "                    logger.error(f\"Maximum retries reached for {method} {url}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 266,
+    "snippet": "                logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 272,
+    "snippet": "                logger.error(f\"API error for {method} {url}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 278,
+    "snippet": "                        logger.error(f\"Response content: {error_content}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 334,
+    "snippet": "            logger.debug(f\"POST {endpoint} with data: {json.dumps(data)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 341,
+    "snippet": "            \"POST\", endpoint, data=data, json=json_data, **kwargs"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 364,
+    "snippet": "            \"PUT\", endpoint, data=data, json=json_data, **kwargs"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 392,
+    "snippet": "            files: Mapping for requests 'files' parameter, e.g. {'file': (filename, bytes, mimeType)}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/client.py",
+    "line": 411,
+    "snippet": "            data=data,"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/articles.py",
+    "line": 43,
+    "snippet": "    mimeType: Optional[str] = None"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/articles.py",
+    "line": 291,
+    "snippet": "            \"fields\": fields or \"id,name,mimeType,size\","
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 72,
+    "snippet": "            logger.debug(f\"Fetching projects page: skip={skip}, top={page_size}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 82,
+    "snippet": "            logger.debug(f\"Fetched {len(projects)} projects (total: {len(all_projects)})\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 90,
+    "snippet": "        logger.info(f\"Retrieved {len(all_projects)} total projects\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 128,
+    "snippet": "            logger.debug(f\"Attempting direct project lookup: {project_name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 137,
+    "snippet": "                logger.info(f\"Found project by direct lookup: {project.name} ({project.shortName})\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 141,
+    "snippet": "            logger.debug(f\"Direct project lookup failed for '{project_name}': {e}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 144,
+    "snippet": "        logger.debug(f\"Falling back to full project search for: {project_name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 150,
+    "snippet": "                logger.info(f\"Found project by shortName match: {project.name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 156,
+    "snippet": "                logger.info(f\"Found project by name match: {project.name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 162,
+    "snippet": "                logger.info(f\"Found project by partial name match: {project.name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 165,
+    "snippet": "        logger.warning(f\"Project not found: {project_name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 181,
+    "snippet": "        logger.info(f\"Getting issues for project {project_id}, limit {limit}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 194,
+    "snippet": "            logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 199,
+    "snippet": "            logger.error("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 229,
+    "snippet": "        data = {\"name\": name, \"shortName\": short_name}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 239,
+    "snippet": "        logger.info(f\"Creating project with data: {json.dumps(data)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 240,
+    "snippet": "        logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 245,
+    "snippet": "            response = self.client.post(\"admin/projects\", data=data)"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 246,
+    "snippet": "            logger.info(f\"Create project response: {json.dumps(response)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 254,
+    "snippet": "                    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 259,
+    "snippet": "                    logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 273,
+    "snippet": "                logger.warning(f\"Could not validate project model: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 283,
+    "snippet": "            logger.error(f\"Error creating project: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 308,
+    "snippet": "        logger.info(f\"Getting existing project data for {project_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 312,
+    "snippet": "            data = {}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 326,
+    "snippet": "                logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 331,
+    "snippet": "            logger.info(f\"Updating project with data: {data}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 333,
+    "snippet": "                f\"admin/projects/{project_id}\", data=data"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 335,
+    "snippet": "            logger.info(f\"Update project response: {response}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 342,
+    "snippet": "                logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 347,
+    "snippet": "                logger.error(f\"Error getting updated project: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 350,
+    "snippet": "                    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 365,
+    "snippet": "                        logger.warning("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 373,
+    "snippet": "            logger.error(f\"Error updating project {project_id}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 414,
+    "snippet": "        data = {\"field\": {\"id\": field_id}}"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 420,
+    "snippet": "            f\"admin/projects/{project_id}/customFields\", data=data"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 457,
+    "snippet": "                    logger.info(f\"Found schema for field '{field_name}': {enhanced_schema}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 464,
+    "snippet": "                            logger.warning(f\"Could not get allowed values for {field_name}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 469,
+    "snippet": "            logger.warning(f\"Field '{field_name}' not found in project {project_id} custom fields\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 472,
+    "snippet": "            logger.error(f\"Error getting custom field schema for '{field_name}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 498,
+    "snippet": "                logger.warning(f\"Field '{field_name}' not found in project {project_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 507,
+    "snippet": "                logger.warning(f\"Field type for '{field_name}' is not a dictionary: {type(field_type)} - {field_type}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 513,
+    "snippet": "            logger.info(f\"Field '{field_name}' - valueType: {value_type}, bundleId: {bundle_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 516,
+    "snippet": "                logger.warning(f\"No bundle ID found for field '{field_name}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 535,
+    "snippet": "                                logger.info(f\"Resolved bundle index {index} to bundle ID {actual_bundle_id} ({target_bundle.get('name')})\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 539,
+    "snippet": "                                logger.info(f\"Found {len(values)} values for field '{field_name}' in bundle '{target_bundle.get('name')}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 550,
+    "snippet": "                        logger.error(f\"Error resolving enum bundle index: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 559,
+    "snippet": "                    logger.info(f\"Found {len(values)} values for enum field '{field_name}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 570,
+    "snippet": "                    logger.error(f\"Error getting enum bundle {actual_bundle_id}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 598,
+    "snippet": "                            logger.info(f\"Found {len(values)} state values for field '{field_name}' from bundle '{target_bundle.get('name')}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 610,
+    "snippet": "                            logger.error(f\"Bundle index {bundle_index} out of range for {len(all_bundles)} state bundles\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 617,
+    "snippet": "                    logger.info(f\"Found {len(values)} state values for field '{field_name}' from bundle '{bundle_data.get('name', 'unknown')}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 629,
+    "snippet": "                    logger.error(f\"Error getting state bundle {bundle_id}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 636,
+    "snippet": "                    logger.info(f\"Found {len(users_data)} users for field '{field_name}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 647,
+    "snippet": "                    logger.error(f\"Error getting users: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 654,
+    "snippet": "                    logger.info(f\"Found {len(subsystems_data)} subsystems for field '{field_name}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 664,
+    "snippet": "                    logger.error(f\"Error getting subsystems: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 688,
+    "snippet": "                    logger.info(f\"Found {len(versions_data)} versions for field '{field_name}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 700,
+    "snippet": "                    logger.error(f\"Error getting versions: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 733,
+    "snippet": "                    logger.info(f\"Found {len(builds_data)} builds for field '{field_name}'\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 743,
+    "snippet": "                    logger.error(f\"Error getting builds: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 766,
+    "snippet": "                logger.info(f\"Field '{field_name}' type '{value_type}' doesn't support allowed values\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 770,
+    "snippet": "            logger.error(f\"Error getting custom field allowed values for '{field_name}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 806,
+    "snippet": "            logger.info(f\"Got {len(fields)} custom fields for project {project_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 814,
+    "snippet": "                    logger.info(f\"Processing field: {field_name}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 834,
+    "snippet": "                            logger.warning(f\"Could not get allowed values for {field_name}: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 838,
+    "snippet": "                    logger.info(f\"Added schema for field '{field_name}': {enhanced_schema}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 840,
+    "snippet": "                    logger.warning(f\"Field missing name: {field}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 842,
+    "snippet": "            logger.info(f\"Returning {len(schemas)} schemas for project {project_id}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 845,
+    "snippet": "            logger.error(f\"Error getting all custom field schemas: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/projects.py",
+    "line": 1004,
+    "snippet": "            logger.error(f\"Error validating field '{field_name}': {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 24,
+    "snippet": "    logger.error(f\"Error initializing YouTrack API clients: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 49,
+    "snippet": "    logger.info(f\"MCP wrapper: get_issue({issue_id})\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 80,
+    "snippet": "    logger.info(f\"MCP wrapper: add_comment({issue_id}, {text[:20]}...)\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 114,
+    "snippet": "    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 132,
+    "snippet": "                    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 137,
+    "snippet": "                    logger.warning(f\"Project not found: {project}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 139,
+    "snippet": "                logger.warning(f\"Error finding project: {str(e)}\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 169,
+    "snippet": "    logger.info(f\"MCP wrapper: search_issues({query}, limit={limit})\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 212,
+    "snippet": "    logger.info("
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 256,
+    "snippet": "    logger.info(f\"MCP wrapper: get_project({project_id})\")"
+  },
+  {
+    "file": "tonyzorin_youtrack-mcp/youtrack_mcp/api/mcp_wrappers.py",
+    "line": 290,
+    "snippet": "    logger.info(\"MCP wrapper: get_current_user()\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 6,
+    "snippet": "from mcp.server.fastmcp import FastMCP, Context"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 17,
+    "snippet": "args = parser.parse_args()"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 30,
+    "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 68,
+    "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 73,
+    "snippet": "    ctx.info(\"Calling AWS Lambda ListFunctions...\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 77,
+    "snippet": "    ctx.info(f\"Found {len(functions['Functions'])} functions\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 83,
+    "snippet": "    ctx.info(f\"Found {len(functions_with_prefix)} functions with prefix {FUNCTION_PREFIX}\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 94,
+    "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 101,
+    "snippet": "    ctx.info(f\"Invoking {function_name} with parameters: {parameters}\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 109,
+    "snippet": "    ctx.info(f\"Function {function_name} returned with status code: {response['StatusCode']}\")"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 113,
+    "snippet": "        ctx.error(error_message)"
+  },
+  {
+    "file": "danilop_MCP2Lambda/main.py",
+    "line": 136,
+    "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/converse_tools.py",
+    "line": 35,
+    "snippet": "                    'inputSchema': tool['input_schema']"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 1,
+    "snippet": "from mcp import ClientSession, StdioServerParameters"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 2,
+    "snippet": "from mcp.client.stdio import stdio_client"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 6,
+    "snippet": "    def __init__(self, server_params: StdioServerParameters):"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 25,
+    "snippet": "        self._client = stdio_client(self.server_params)"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 27,
+    "snippet": "        session = ClientSession(self.read, self.write)"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 36,
+    "snippet": "        tools = await self.session.list_tools()"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
+    "line": 44,
+    "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/converse_agent.py",
+    "line": 73,
+    "snippet": "                message = response.get('output', {}).get('message', {})"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 2,
+    "snippet": "from mcp import StdioServerParameters"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 25,
+    "snippet": "    server_params = StdioServerParameters("
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 27,
+    "snippet": "#       args=[\"--directory\", \"..\", \"run\", \"main.py\", \"--no-pre-discovery\"],"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 28,
+    "snippet": "        args=[\"--directory\", \"..\", \"run\", \"main.py\"],"
+  },
+  {
+    "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+    "line": 44,
+    "snippet": "                input_schema={'json': tool.inputSchema}"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/windsurf_db_reader_alternative.py",
+    "line": 44,
+    "snippet": "            data = self._extract_strings_from_ldb(ldb_file)"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/windsurf_db_reader_alternative.py",
+    "line": 196,
+    "snippet": "                data = reader.read_ldb_files()"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 4,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 23,
+    "snippet": "mcp = FastMCP(\"jmeter\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 54,
+    "snippet": "        logger.info(f\"JMeter binary path: {jmeter_bin}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 55,
+    "snippet": "        logger.debug(f\"Java options: {java_opts}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 68,
+    "snippet": "                logger.debug(f\"Adding property: -J{prop_name}={prop_value}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 76,
+    "snippet": "                logger.debug(f\"Using generated unique log file: {log_file}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 88,
+    "snippet": "                logger.debug(f\"Making user-provided report directory unique: {original_dir} -> {report_output_dir}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 92,
+    "snippet": "                logger.debug(f\"Using generated unique report output directory: {report_output_dir}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 97,
+    "snippet": "        logger.debug(f\"Executing command: {' '.join(cmd)}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 104,
+    "snippet": "            logger.debug(\"Command output:\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 105,
+    "snippet": "            logger.debug(f\"Return code: {result.returncode}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 106,
+    "snippet": "            logger.debug(f\"Stdout: {result.stdout}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
+    "line": 107,
+    "snippet": "            logger.debug(f\"Stderr: {result.stderr}\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/main.py",
+    "line": 2,
+    "snippet": "from mcp.server.fastmcp import FastMCP"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/main.py",
+    "line": 9,
+    "snippet": "mcp = FastMCP(\"jmeter\")"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 11,
+    "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 12,
+    "snippet": "class FastMCP:"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 21,
+    "snippet": "fastmcp_mod.FastMCP = FastMCP"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+    "line": 22,
+    "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_bottleneck_analyzer.py",
+    "line": 6,
+    "snippet": "from datetime import datetime, timedelta"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_bottleneck_analyzer.py",
+    "line": 87,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i * 5),"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_bottleneck_analyzer.py",
+    "line": 158,
+    "snippet": "                timestamp=datetime(2023, 1, 1, 12, 0, 0) + timedelta(seconds=i * 5),"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_metrics_calculator.py",
+    "line": 6,
+    "snippet": "from datetime import datetime, timedelta"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_metrics_calculator.py",
+    "line": 26,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i),"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_metrics_calculator.py",
+    "line": 37,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i + 10),"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_visualization_engine.py",
+    "line": 8,
+    "snippet": "from datetime import datetime, timedelta"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/tests/test_visualization_engine.py",
+    "line": 27,
+    "snippet": "                timestamp=base_time + timedelta(seconds=i * 5),"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/analyzer/analyzer.py",
+    "line": 9,
+    "snippet": "from datetime import timedelta"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/analyzer/analyzer.py",
+    "line": 278,
+    "snippet": "                    spike_time = test_results.start_time + timedelta(seconds=i * interval_seconds)"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/analyzer/metrics/calculator.py",
+    "line": 12,
+    "snippet": "from datetime import datetime, timedelta"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/analyzer/metrics/calculator.py",
+    "line": 153,
+    "snippet": "            end_time = start_time + timedelta(seconds=interval_seconds)"
+  },
+  {
+    "file": "QAInsights_jmeter-mcp-server/analyzer/metrics/calculator.py",
+    "line": 158,
+    "snippet": "            next_time = current_time + timedelta(seconds=interval_seconds)"
+  }
+]
+```
+
+OUTPUT FORMAT — your final response must end with a fenced ```json code block, and every one of the 587 candidates above must appear in exactly one of the three arrays below (matched by file+line):
+
+{
+  "proposed_sites": [
+    {"file": "relative/path.py", "line": 12, "snippet": "exact line text", "pattern": "1-9", "reason": "why this needs to change"}
+  ],
+  "flag_uncertain": [
+    {"file": "relative/path.py", "line": 20, "snippet": "exact line text", "reason": "which mandatory rule applies, or the specific ambiguity"}
+  ],
+  "considered_and_rejected": [
+    {"file": "relative/path.py", "line": 34, "snippet": "exact line text", "reason": "why this does NOT need to change, citing the specific fact that settles it"}
+  ]
+}

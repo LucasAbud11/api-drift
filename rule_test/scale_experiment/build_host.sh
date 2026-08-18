@@ -41,5 +41,13 @@ for r in tonyzorin_youtrack-mcp QAInsights_jmeter-mcp-server securityfortech_sec
   rm -rf "host/integrations/$r/.git"
 done
 
+# Target A repos, added for the blind_vocab_experiment's diluted Target A run
+# (rule_test/blind_vocab_experiment/report.md) -- reuses this same host.
+mkdir -p host/integrations_openai
+for r in TomaszRewak_MAGI franalgaba_chatgpt-telegram-bot-serverless batuhantoker_Flask-OpenAI-Chatbot g0ldencybersec_sus_params; do
+  cp -R "../../repos/$r" "host/integrations_openai/$r"
+  rm -rf "host/integrations_openai/$r/.git"
+done
+
 echo "Host rebuilt: $(find host -name '*.py' | wc -l) files, $(find host -name '*.py' -exec cat {} + | wc -l) LOC"
 echo "Decoy check (should print a line): $(grep -n '^class Context' host/django/template/context.py)"

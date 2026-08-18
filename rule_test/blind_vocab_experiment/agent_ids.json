@@ -1,0 +1,6 @@
+{
+  "targetA_small": {"run1": "a829a9c37ecf51f35", "run2": "a8ef13fa683259a31", "run3": "aaa98b47fc8edfd4d"},
+  "targetA_diluted": {"run1": "aa942ab663c14d156", "run2": "a0ef336ec99be73c3", "run3": "a2dc03d57cbe7e065"},
+  "targetB_small": {"run1": "aa0139da5d707c21c", "run2": "afb05cbba7e78a2f9", "run3": "adfda1b3ee38b78f0"},
+  "targetB_diluted": {"run1": "ab3f7bfe616f1cdb0", "run2": "a4eb8352ad87c9f66", "run3": "aa5ca3cbac74f7091"}
+}

@@ -255,6 +255,62 @@ establishes that it's rare and, in its one occurrence, was right.
 Convention wording and the scale experiment remain on hold pending both
 of these landing.
 
+**2026-08-18 update (revision 8) — blind vocabulary experiment: the
+composition result was not an artifact of insider knowledge. Zero
+ground-truth sites are structurally invisible to a vocabulary derived
+blind from the public guide text, at either target or either scale — but
+the blind vocabulary is 5x larger for Target B, and that volume is what
+finally exposed a real operational failure mode this study hadn't seen
+before.** The prior composition experiment's grep vocabulary was hand-
+built with full knowledge of ground truth (including a bare `Context`
+term added *because* the decoy was already known) — not the production
+condition. Fix: spawned two fresh agents, each given only the same
+verbatim "official migration guide" facts block this study has used
+throughout (no counting convention, no task framing, no repo access, no
+tool use — pure text reasoning), asked to derive a coverage-tuned grep
+vocabulary from that document alone. Ran the full composition pipeline
+(grep candidates -> agent adjudication with the two approved mandatory
+rules) using each blind vocabulary, both targets, both scales (small =
+the repos alone; diluted = embedded in the same 675+-file host, plus a
+newly-built equivalent diluted host for Target A), 3 runs each — 12 runs
+total, all persisted and validated through the same hardened validator.
+
+Result: **candidate-set recall (grep alone, before any adjudication) is
+100% for both targets at both scales** — every one of the 33 total GT
+sites (13 Target A + 20 Target B) is in the blind candidate list. End-to-
+end recall matched (100%) in 3 of 4 scale/target combinations; Target B
+small hit 98.3% (59/60) only because one run flagged a true site as
+uncertain instead of proposing it outright — still surfaced, not lost
+(100% surfaced rate everywhere, every run). **The honest ceiling this
+study set out to measure is zero sites, in this study** — not a
+foregone conclusion; it held because Target A's guide is fully
+namespace-qualified (`openai.ChatCompletion`, etc. — nothing to derive
+that isn't already scoped) and Target B's guide, while it does contain
+several bare, unqualified terms (`extra=`, `data=`, `cursor=`, `.error()`)
+that any faithful reading turns into broad, over-matching patterns, still
+never *loses* a real site to that broadness, only inflates the candidate
+list around it (587 vs. 118 candidates small-scale, 1121 vs. 214
+diluted — a 5x cost, not a coverage loss).
+
+**That 1121-candidate volume — the first time this study actually landed
+in the range flagged as untested — did not reproduce a recall ceiling,
+but it did surface a new, previously-unseen failure mode: 2 of 3 Target B
+diluted runs failed outright before completion** (one hard server error
+mid-response, one silent truncation at 569/1121 with no continuation),
+and the run that did complete on its first non-retried attempt dropped
+the `snippet` field from all 1121 entries as a side effect of an internal
+compact-format workaround — caught by the hardened validator, repaired
+by backfilling from the independently-generated candidate list (a
+mechanical fact, not agent judgment), not silently passed through. The
+two failed runs were re-run from scratch, never patched. **The
+adjudication-volume ceiling this study was built to find is not a
+recall ceiling — every run that finished was accurate — it's a
+completion-reliability ceiling**, one a production pipeline would need
+to design around (batching, incremental persistence, retries) before
+recall itself becomes the limiting factor. Full vocabulary diff, per-
+run breakdown, and failure-mode detail: `rule_test/
+blind_vocab_experiment/report.md`.
+
 **2026-08-18 update (revision 6) — primary scale experiment: precision
 holds at 100% under dilution, recall drops from ~97-100% to a flat 85.0%,
 and the prospective FLAG-UNCERTAIN bucket was never used. This tests

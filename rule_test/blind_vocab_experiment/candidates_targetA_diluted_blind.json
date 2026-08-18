@@ -1,0 +1,67 @@
+[
+  {
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 6,
+    "snippet": "    openai.api_key = key"
+  },
+  {
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 7,
+    "snippet": "    response = openai.ChatCompletion.create("
+  },
+  {
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 51,
+    "snippet": "    openai.api_key = key"
+  },
+  {
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 52,
+    "snippet": "    response = openai.ChatCompletion.create("
+  },
+  {
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 64,
+    "snippet": "    openai.api_key = key"
+  },
+  {
+    "file": "integrations_openai/TomaszRewak_MAGI/ai.py",
+    "line": 65,
+    "snippet": "    response = openai.ChatCompletion.create("
+  },
+  {
+    "file": "integrations_openai/g0ldencybersec_sus_params/PoC.py",
+    "line": 7,
+    "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")"
+  },
+  {
+    "file": "integrations_openai/g0ldencybersec_sus_params/PoC.py",
+    "line": 11,
+    "snippet": "    response = openai.ChatCompletion.create("
+  },
+  {
+    "file": "integrations_openai/g0ldencybersec_sus_params/PoC.py",
+    "line": 192,
+    "snippet": "        except openai.error.RateLimitError as e:"
+  },
+  {
+    "file": "integrations_openai/g0ldencybersec_sus_params/PoC.py",
+    "line": 201,
+    "snippet": "        except openai.error.ServiceUnavailableError as e:"
+  },
+  {
+    "file": "integrations_openai/franalgaba_chatgpt-telegram-bot-serverless/app.py",
+    "line": 41,
+    "snippet": "    message = openai.ChatCompletion.create("
+  },
+  {
+    "file": "integrations_openai/batuhantoker_Flask-OpenAI-Chatbot/app.py",
+    "line": 8,
+    "snippet": "openai.api_key = \"OPENAI_API\""
+  },
+  {
+    "file": "integrations_openai/batuhantoker_Flask-OpenAI-Chatbot/app.py",
+    "line": 48,
+    "snippet": "    output = openai.ChatCompletion.create("
+  }
+]
