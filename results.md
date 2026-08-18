@@ -596,3 +596,24 @@ central to such a codebase, transitive closure could plausibly approach
 "almost nothing gets dropped," and reduction would have to come from
 stages B/C alone. Not measured here, not assumed.** Full detail:
 `rule_test/entanglement_experiment/report.md`.
+
+**2026-08-18 update (audit, not a new experiment) — every recall failure
+recorded anywhere in this study, tallied by mechanism and file class: the
+test/mock concentration is real (87% of miss-instances, 83% of distinct
+sites ever missed, against a GT population that's only 14% test/mock),
+but it does not hold as an absolute claim — one production site was
+missed.** `src/opsmesh/orchestrator/tool_catalog.py:46` (entanglement,
+all 3 shipped runs) is missed by the prefilter's stage A, not agent
+judgment (the stage-A-disabled diagnostic already proved the agent
+proposes it correctly). Every other recall failure across
+spec_reinstated (27 runs), dilution (3 runs), blind_vocab (12 runs), and
+the prefilter reliability runs (5 runs) is confined to test/mock code,
+via four independently-discovered mechanisms (agent over-applying the
+counting convention to impersonation cases, an at-scale silent-omission
+failure with no small-scale analogue, a grep vocabulary gap on chained
+mock-assertion syntax, and the mandatory Rule-1 hedge correctly firing
+and undercounting strict propose-only recall without losing the site).
+Every test/mock miss in this study would surface as an immediate CI
+failure (`ImportError`/`AssertionError`) if shipped unmigrated; the one
+production miss would not — it silently returns a wrong default value.
+Full table and both count methods: `rule_test/recall_failure_audit.md`.
