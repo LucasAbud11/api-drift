@@ -1,0 +1,7 @@
+{
+  "target": "B", "repo": "securityfortech_secops-mcp", "run": 2,
+  "proposed_sites": [
+    {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must import MCPServer from mcp.server.mcpserver"},
+    {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "pattern": "1", "reason": "FastMCP class no longer exists under that name; construction site itself must change to MCPServer(...)"}
+  ]
+}

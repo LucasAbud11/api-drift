@@ -1,0 +1,40 @@
+repo                                          run  TP  FP  FN  GT  recall   precision 
+TomaszRewak_MAGI                              1    6   0   0   6    100.0%   100.0%
+TomaszRewak_MAGI                              2    6   0   0   6    100.0%   100.0%
+TomaszRewak_MAGI                              3    6   0   0   6    100.0%   100.0%
+franalgaba_chatgpt-telegram-bot-serverless    1    1   0   0   1    100.0%   100.0%
+franalgaba_chatgpt-telegram-bot-serverless    2    1   0   0   1    100.0%   100.0%
+franalgaba_chatgpt-telegram-bot-serverless    3    1   0   0   1    100.0%   100.0%
+batuhantoker_Flask-OpenAI-Chatbot             1    2   0   0   2    100.0%   100.0%
+batuhantoker_Flask-OpenAI-Chatbot             2    2   0   0   2    100.0%   100.0%
+batuhantoker_Flask-OpenAI-Chatbot             3    2   0   0   2    100.0%   100.0%
+g0ldencybersec_sus_params                     1    4   0   0   4    100.0%   100.0%
+g0ldencybersec_sus_params                     2    4   0   0   4    100.0%   100.0%
+g0ldencybersec_sus_params                     3    4   0   0   4    100.0%   100.0%
+tonyzorin_youtrack-mcp                        1    3   0   0   3    100.0%   100.0%
+tonyzorin_youtrack-mcp                        2    3   0   0   3    100.0%   100.0%
+tonyzorin_youtrack-mcp                        3    3   0   0   3    100.0%   100.0%
+QAInsights_jmeter-mcp-server                  1    7   0   1   8     87.5%   100.0%
+    MISSED: [('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 12)]
+QAInsights_jmeter-mcp-server                  2    7   0   1   8     87.5%   100.0%
+    MISSED: [('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 12)]
+QAInsights_jmeter-mcp-server                  3    4   0   4   8     50.0%   100.0%
+    MISSED: [('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 11), ('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 12), ('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 21), ('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 22)]
+securityfortech_secops-mcp                    1    2   0   0   2    100.0%   100.0%
+securityfortech_secops-mcp                    2    2   0   0   2    100.0%   100.0%
+securityfortech_secops-mcp                    3    2   0   0   2    100.0%   100.0%
+m0xai_trello-mcp-server                       1    5   0   0   5    100.0%   100.0%
+m0xai_trello-mcp-server                       2    5   0   0   5    100.0%   100.0%
+m0xai_trello-mcp-server                       3    5   0   0   5    100.0%   100.0%
+danilop_MCP2Lambda                            1    3   0   0   3    100.0%   100.0%
+danilop_MCP2Lambda                            2    3   0   0   3    100.0%   100.0%
+danilop_MCP2Lambda                            3    3   0   0   3    100.0%   100.0%
+
+=== per-run totals across all 9 repos ===
+run1: TP=33 FP=0 FN=1 GT=34 proposed=33  recall=97.1%  precision=100.0%
+run2: TP=33 FP=0 FN=1 GT=34 proposed=33  recall=97.1%  precision=100.0%
+run3: TP=30 FP=0 FN=4 GT=34 proposed=30  recall=88.2%  precision=100.0%
+
+=== per-target breakdown (averaged is not meaningful; showing union across 3 runs per repo for stability check) ===
+Target A: 13 GT sites across 4 repos
+Target B: 21 GT sites across 5 repos

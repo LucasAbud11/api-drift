@@ -1,0 +1,13 @@
+{
+  "target": "B", "repo": "QAInsights_jmeter-mcp-server", "run": 2,
+  "proposed_sites": [
+    {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must import MCPServer from mcp.server.mcpserver"},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "FastMCP class no longer exists under that name; construction site itself must change to MCPServer(\"jmeter\")"},
+    {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must import MCPServer from mcp.server.mcpserver"},
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "FastMCP class no longer exists under that name; construction site itself must change to MCPServer(\"jmeter\")"},
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "pattern": "1", "reason": "mock module is built at the old module path string; once import is fixed this string must change for the stub to still intercept."},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "pattern": "1", "reason": "attribute is registered under the old symbol name FastMCP; fixed production code will look up MCPServer instead."},
+    {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "pattern": "1", "reason": "stub is registered in sys.modules under the old path key; must become mcp.server.mcpserver."}
+  ],
+  "considered_and_rejected_note": "Line 12 (`class FastMCP:`) again explicitly rejected (low confidence) with the same reasoning as run1 -- this is the run's one recall miss vs ground truth B8b."
+}

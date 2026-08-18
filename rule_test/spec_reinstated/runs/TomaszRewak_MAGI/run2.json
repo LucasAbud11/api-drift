@@ -1,0 +1,11 @@
+{
+  "target": "A", "repo": "TomaszRewak_MAGI", "run": 2,
+  "proposed_sites": [
+    {"file": "ai.py", "line": 6, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level global attribute assignment for auth; must be replaced with explicit client construction."},
+    {"file": "ai.py", "line": 7, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level API call; must become client.chat.completions.create(...)."},
+    {"file": "ai.py", "line": 51, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level global attribute assignment for auth; must be replaced with explicit client construction."},
+    {"file": "ai.py", "line": 52, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level API call; must become client.chat.completions.create(...)."},
+    {"file": "ai.py", "line": 64, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level global attribute assignment for auth; must be replaced with explicit client construction."},
+    {"file": "ai.py", "line": 65, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level API call; must become client.chat.completions.create(...)."}
+  ]
+}

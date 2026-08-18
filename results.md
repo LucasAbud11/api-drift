@@ -134,3 +134,59 @@ real grep baseline, not just "barely helps." This session's own
 simplified spec, not the rule or the agent, is why the benchmark now
 reads as saturated; see `ablation_and_root_cause.md` for the proposed
 fix (reinstate the real 9-item spec, then scale repo/fan-out size).
+
+**2026-08-18 update (revision 4, decisive) — the original 55.3%/48.5%
+precision figures were a convention-disagreement artifact, not a
+comprehension failure, and this is now a corrected finding, not a
+hypothesis. Full report: `rule_test/spec_reinstated/report.md`.** Re-ran
+all 9 repos, 3 fresh walled-off runs each (27 total), on the real
+recovered 9-item spec — not the 6-item digest — with one addition: an
+explicit counting convention paragraph, stated in the spec text the agents
+actually read (not just in `methodology_notes.md`), spelling out that a
+line only counts as a site if fixing an earlier line does not repair it
+automatically. Result: **zero false positives across all 27 runs, on
+both targets** — including m0xai and danilop, the exact two repos that
+produced the original 17 false positives, and including the full weight
+of the real spec's extra decoy surface (`McpError`, the low-level `Server`
+class, `NoBackChannelError`, five separate client-SDK changes) that the
+6-item digest never exposed agents to at all. Precision is not "improved
+by the rule" — it is 100%, unconditionally, once the one governing
+sentence the original spec omitted is stated once. **The original
+finding that this was "the agent's one real, systematic mistake" was
+wrong as originally framed.** It was a spec-completeness gap: the guide
+told agents that a `FastMCP` type annotation is broken but never said
+whether a `Context` annotation counts the same way, and the agents'
+own recorded reasoning shows they reasoned toward the wrong answer on a
+genuinely unstated question, not that they failed to understand a stated
+one. The clearest piece of evidence for this, preserved verbatim in
+`rule_test/original_session_recovered/danilop_original_result.txt`: the
+original danilop agent, explaining why it counted a `ctx: Context`
+annotation as its own site — *"Since Python evaluates parameter
+annotations at function-definition time... and the import already fails,
+this name would be unresolved. Flagging as affected via the broken import
+chain, **though the root cause is line 6**."* That is not confusion. The
+agent identified the actual root cause correctly, in the same sentence,
+and made a defensible, wrong-by-this-study's-convention judgment call
+about whether to count the downstream effect separately — precisely the
+kind of ambiguity a stated convention resolves and an unstated one does
+not.
+
+**One real, separate finding survived this correction and is unresolved:
+recall variance on test-mock fixture sites.** 26 of 27 repo-runs hit
+100% recall; every miss across all three runs is confined to one repo
+(QAInsights) and one site cluster — the `sys.modules` stub in
+`tests/test_jmeter_server.py` that fakes the SDK's module tree. Miss
+count: 1, 1, 4 across the three runs — real same-input variance, not a
+tail. Reasoning-level diagnosis (not yet acted on) found two distinct
+mechanisms, not one: two of the three runs made a defensible,
+low-confidence technical argument that disagrees with this repo's own
+inclusion philosophy (a stub class's own name doesn't have to match its
+exposed attribute name); the third run explicitly misapplied the new
+counting convention itself, reasoning that a test fixture requiring an
+independent edit was merely a "downstream consequence" of fixing the
+production import — the same class of misreasoning the convention
+exists to prevent, just triggered on a case (a redefined/faked name) the
+stated wording doesn't carve out. See `rule_test/spec_reinstated/
+report.md` for the full quotes and diagnosis. Convention wording was
+deliberately left unchanged pending a decision on which failure mode to
+target.

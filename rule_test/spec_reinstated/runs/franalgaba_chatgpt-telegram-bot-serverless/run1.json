@@ -1,0 +1,6 @@
+{
+  "target": "A", "repo": "franalgaba_chatgpt-telegram-bot-serverless", "run": 1,
+  "proposed_sites": [
+    {"file": "app.py", "line": 41, "snippet": "    message = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call openai.ChatCompletion.create(...) must become client.chat.completions.create(...) under the openai>=1.0 SDK."}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "target": "B", "repo": "QAInsights_jmeter-mcp-server", "run": 1,
+  "proposed_sites": [
+    {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must become 'from mcp.server.mcpserver import MCPServer'"},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "FastMCP identifier no longer exists; construction must change to MCPServer(\"jmeter\") even after the import is fixed"},
+    {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must become 'from mcp.server.mcpserver import MCPServer'"},
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "FastMCP identifier no longer exists; construction must change to MCPServer(\"jmeter\") even after the import is fixed"},
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "pattern": "1", "reason": "Test manually stubs the old module path string 'mcp.server.fastmcp' in sys.modules; once jmeter_server.py imports from mcp.server.mcpserver instead, this stub targets a path that is no longer imported, so this line's own text (the module name string) must change to 'mcp.server.mcpserver'"},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "pattern": "1", "reason": "Sets attribute name 'FastMCP' on the stub module; the fixed jmeter_server.py will do 'from mcp.server.mcpserver import MCPServer', so this line's attribute name must become MCPServer for the stub to satisfy the import"},
+    {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "pattern": "1", "reason": "Registers the stub under the old module path key 'mcp.server.fastmcp'; must become 'mcp.server.mcpserver' to match the corrected import in jmeter_server.py"}
+  ],
+  "considered_and_rejected_note": "Line 12 (`class FastMCP:`) was explicitly rejected by this agent -- reasoning it can keep its Python class name internally as long as the module attribute it's assigned to is renamed. Ground truth (B8b) counts this line as a required edit. This is the run's one recall miss -- see score_reinstated.py output."
+}

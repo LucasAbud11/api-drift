@@ -1,0 +1,7 @@
+{
+  "target": "B", "repo": "securityfortech_secops-mcp", "run": 3,
+  "proposed_sites": [
+    {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "The mcp.server.fastmcp module tree no longer exists in v2 with no compatibility alias; must become 'from mcp.server.mcpserver import MCPServer'."},
+    {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "pattern": "1", "reason": "Constructs FastMCP(...) directly; the identifier FastMCP no longer exists under any name in v2, so even after fixing the import this line's own text must change to MCPServer(...)."}
+  ]
+}

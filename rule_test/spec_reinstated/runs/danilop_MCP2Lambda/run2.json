@@ -1,0 +1,8 @@
+{
+  "target": "B", "repo": "danilop_MCP2Lambda", "run": 2,
+  "proposed_sites": [
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists (moved to mcp.server.mcpserver); import line itself must change."},
+    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "pattern": "1", "reason": "FastMCP identifier no longer exists under that name after migration; construction site must change to MCPServer(...)."},
+    {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "                input_schema={'json': tool.inputSchema}", "pattern": "2", "reason": "tool is an mcp.types.Tool instance from session.list_tools(); attribute access tool.inputSchema must become tool.input_schema."}
+  ]
+}

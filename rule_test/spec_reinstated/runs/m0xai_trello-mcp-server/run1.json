@@ -1,0 +1,10 @@
+{
+  "target": "B", "repo": "m0xai_trello-mcp-server", "run": 1,
+  "proposed_sites": [
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must become `from mcp.server.mcpserver import MCPServer`."},
+    {"file": "main.py", "line": 23, "snippet": "mcp = FastMCP(\"Trello MCP Server\")", "pattern": "1", "reason": "FastMCP identifier no longer exists under this name; construction site itself must change to MCPServer(...)."},
+    {"file": "server/tools/board.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "Context is imported from the moved mcp.server.fastmcp path; no compat alias, import must change to mcp.server.mcpserver."},
+    {"file": "server/tools/card.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "Context is imported from the moved mcp.server.fastmcp path; no compat alias, import must change to mcp.server.mcpserver."},
+    {"file": "server/tools/list.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "Context is imported from the moved mcp.server.fastmcp path; no compat alias, import must change to mcp.server.mcpserver."}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "target": "A", "repo": "g0ldencybersec_sus_params", "run": 3,
+  "proposed_sites": [
+    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction (client = OpenAI(api_key=...)) under the v1.x SDK."},
+    {"file": "PoC.py", "line": 11, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x module-level namespaced call; in v1.x it must be client.chat.completions.create(...)."},
+    {"file": "PoC.py", "line": 192, "snippet": "except openai.error.RateLimitError as e:", "pattern": "2", "reason": "openai.error.RateLimitError no longer exists in v1.x; exceptions moved to top-level openai.RateLimitError."},
+    {"file": "PoC.py", "line": 201, "snippet": "except openai.error.ServiceUnavailableError as e:", "pattern": "2", "reason": "openai.error.ServiceUnavailableError no longer exists in v1.x; exceptions moved to top-level openai namespace."}
+  ]
+}

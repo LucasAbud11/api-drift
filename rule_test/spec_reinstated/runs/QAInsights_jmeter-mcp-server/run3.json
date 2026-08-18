@@ -1,0 +1,10 @@
+{
+  "target": "B", "repo": "QAInsights_jmeter-mcp-server", "run": 3,
+  "proposed_sites": [
+    {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "Import path mcp.server.fastmcp no longer exists in v2; no compatibility alias."},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "Constructs the removed FastMCP class; must become MCPServer(\"jmeter\")."},
+    {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "Import path mcp.server.fastmcp no longer exists in v2; no compatibility alias."},
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "Constructs the removed FastMCP class; must become MCPServer(\"jmeter\")."}
+  ],
+  "considered_and_rejected_note": "This run rejected ALL FOUR test-file lines (11, 12, 21, 22), reasoning the sys.modules stub 'never touches the real mcp package' and is self-contained. This misses GT sites B8a, B8b, B8c, B8d entirely -- a larger recall miss than run1/run2 (which still caught 11, 21, 22 and only missed 12). See score_reinstated.py output."
+}

@@ -1,0 +1,8 @@
+{
+  "target": "B", "repo": "tonyzorin_youtrack-mcp", "run": 1,
+  "proposed_sites": [
+    {"file": "main.py", "line": 10, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must become 'from mcp.server.mcpserver import MCPServer'"},
+    {"file": "main.py", "line": 25, "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:", "pattern": "1", "reason": "Return type annotation references FastMCP, an identifier that no longer exists anywhere after the migration; must become MCPServer"},
+    {"file": "main.py", "line": 27, "snippet": "    mcp = FastMCP(", "pattern": "1", "reason": "Constructs FastMCP(...), a class that no longer exists in v2; must become MCPServer(...)"}
+  ]
+}

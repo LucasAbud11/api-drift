@@ -1,0 +1,9 @@
+{
+  "target": "A", "repo": "g0ldencybersec_sus_params", "run": 1,
+  "proposed_sites": [
+    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "pattern": "3", "reason": "Module-level assignment to openai.api_key; v1 requires explicit client construction via OpenAI(api_key=...) instead."},
+    {"file": "PoC.py", "line": 11, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced ChatCompletion.create call; v1 requires client.chat.completions.create(...). Reached by all handleXXX wrapper functions via chatgpt_conversation."},
+    {"file": "PoC.py", "line": 192, "snippet": "except openai.error.RateLimitError as e:", "pattern": "2", "reason": "Exception referenced via openai.error submodule; v1 moves RateLimitError to top-level openai.RateLimitError."},
+    {"file": "PoC.py", "line": 201, "snippet": "except openai.error.ServiceUnavailableError as e:", "pattern": "2", "reason": "Exception referenced via openai.error submodule; v1 moves ServiceUnavailableError to top-level openai.ServiceUnavailableError."}
+  ]
+}

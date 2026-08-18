@@ -1,0 +1,11 @@
+{
+  "target": "A", "repo": "TomaszRewak_MAGI", "run": 1,
+  "proposed_sites": [
+    {"file": "ai.py", "line": 6, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction (client = OpenAI(api_key=key))."},
+    {"file": "ai.py", "line": 7, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x namespaced call; must move to client.chat.completions.create."},
+    {"file": "ai.py", "line": 51, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction (client = OpenAI(api_key=key))."},
+    {"file": "ai.py", "line": 52, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x namespaced call; must move to client.chat.completions.create."},
+    {"file": "ai.py", "line": 64, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction (client = OpenAI(api_key=key))."},
+    {"file": "ai.py", "line": 65, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x namespaced call; must move to client.chat.completions.create."}
+  ]
+}
