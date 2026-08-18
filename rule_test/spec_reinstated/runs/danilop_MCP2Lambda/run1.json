@@ -4,5 +4,19 @@
     {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2 (moved to mcp.server.mcpserver); no compatibility alias, so this import raises ModuleNotFoundError."},
     {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "pattern": "1", "reason": "FastMCP identifier no longer exists under this name; construction site itself must change to MCPServer even after the import line is fixed."},
     {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "                input_schema={'json': tool.inputSchema}", "pattern": "2", "reason": "camelCase attribute access on an mcp.types.Tool instance; v2 requires tool.input_schema for Python attribute access."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 68, "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:", "reason": "Type annotation reuses the same name 'Context'; once the import on line 6 is fixed, this annotation resolves correctly without its own text changing (per counting convention)."},
+    {"file": "main.py", "line": 94, "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:", "reason": "Same as above -- downstream Context annotation, not a separate site once import is fixed."},
+    {"file": "main.py", "line": 136, "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:", "reason": "Same as above -- downstream Context annotation, not a separate site once import is fixed."},
+    {"file": "main.py", "line": 125, "snippet": "    mcp.tool()(list_lambda_functions_impl)", "reason": "High-level MCPServer/FastMCP .tool() decorator/call is unchanged in v2 per pattern 4."},
+    {"file": "main.py", "line": 145, "snippet": "    decorated_function = mcp.tool(name=tool_name)(lambda_function)", "reason": "High-level .tool() API unchanged in v2 per pattern 4."},
+    {"file": "main.py", "line": 73, "snippet": "    ctx.info(\"Calling AWS Lambda ListFunctions...\")", "reason": "Positional message-only call to ctx.info(); no extra= kwarg used, so unaffected by the Context logging changes in pattern 3."},
+    {"file": "main.py", "line": 113, "snippet": "        ctx.error(error_message)", "reason": "Positional message-only call; unaffected by removal of extra= parameter (pattern 3)."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 1, "snippet": "from mcp import ClientSession, StdioServerParameters", "reason": "Import paths for ClientSession/StdioServerParameters did not change per pattern 5."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 2, "snippet": "from mcp.client.stdio import stdio_client", "reason": "Import path for stdio_client did not change per pattern 5."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 44, "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)", "reason": "This is plain ClientSession.call_tool with arguments=, explicitly called out as unaffected (the args-parameter removal applies only to the separate ClientSessionGroup.call_tool)."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 36, "snippet": "        tools = await self.session.list_tools()", "reason": "No cursor= argument passed, so unaffected by removal of the cursor parameter (pattern 5)."},
+    {"file": "mcp_client_bedrock/converse_tools.py", "line": 35, "snippet": "                    'inputSchema': tool['input_schema']", "reason": "Plain dict key for Bedrock's own toolSpec API shape, not attribute access on an mcp.types object -- unrelated to the MCP SDK migration."}
   ]
 }

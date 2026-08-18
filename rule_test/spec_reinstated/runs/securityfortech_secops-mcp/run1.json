@@ -1,7 +1,12 @@
 {
   "target": "B", "repo": "securityfortech_secops-mcp", "run": 1,
   "proposed_sites": [
-    {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2 (moved to mcp.server.mcpserver); this import line raises ModuleNotFoundError and its text must change."},
-    {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "pattern": "1", "reason": "Constructs FastMCP(...); the FastMCP identifier no longer exists anywhere in v2 (renamed to MCPServer), so this construction site's own text must change even after the import is fixed."}
+    {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "The mcp.server.fastmcp module tree no longer exists in v2 with no compatibility alias; must become 'from mcp.server.mcpserver import MCPServer'."},
+    {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "pattern": "1", "reason": "Constructs FastMCP(...) directly; the identifier FastMCP no longer exists under any name in v2, so even after fixing the import this line's own text must change to MCPServer(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 31, "snippet": "@mcp.tool()", "reason": "Pattern 4 explicitly states @mcp.tool() on the high-level MCPServer/FastMCP API is unchanged in v2; same for the identical decorators at lines 42, 52, 62, 72, 82, 92, 101, 110, 119, 128, 136, 145, 155, 182, 207, 236, 255."},
+    {"file": "main.py", "line": 279, "snippet": "mcp.run(transport=\"stdio\")", "reason": "No breaking change documented for MCPServer.run() or its transport kwarg; only the class construction/import moved."},
+    {"file": "tools/httpx.py", "line": 21, "snippet": "cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input", "reason": "This shells out to the external httpx CLI tool via subprocess, unrelated to the MCP SDK's internal httpx->httpx2 transport migration (pattern 6) or the Python httpx library."}
   ]
 }

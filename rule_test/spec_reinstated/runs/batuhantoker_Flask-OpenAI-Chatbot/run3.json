@@ -3,5 +3,8 @@
   "proposed_sites": [
     {"file": "app.py", "line": 8, "snippet": "openai.api_key = \"OPENAI_API\"", "pattern": "3", "reason": "Module-level assignment to openai.api_key; must be replaced with explicit client construction via OpenAI(api_key=...)."},
     {"file": "app.py", "line": 48, "snippet": "output = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced ChatCompletion.create call inside the chatcompletion() helper function; must become client.chat.completions.create(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "app.py", "line": 60, "snippet": "for item in output['choices']:", "reason": "Dict-style subscript access on the response object is a downstream effect of the v1 response object shape change, but does not itself contain an openai.<Namespace>.<method> call, an openai.error.* reference, or a module-level auth assignment, so it does not match any of the 3 defined patterns."}
   ]
 }

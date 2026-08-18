@@ -3,5 +3,12 @@
   "proposed_sites": [
     {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "The mcp.server.fastmcp module tree no longer exists in v2 with no compatibility alias; must become 'from mcp.server.mcpserver import MCPServer'."},
     {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "pattern": "1", "reason": "Constructs FastMCP(...) directly; the identifier FastMCP no longer exists under any name in v2, so even after fixing the import this line's own text must change to MCPServer(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 31, "snippet": "@mcp.tool()", "reason": "Pattern 4 explicitly states @mcp.tool() on the high-level MCPServer/FastMCP API is unchanged in v2; same for the identical decorators at lines 42, 52, 62, 72, 82, 92, 101, 110, 119, 128, 136, 145, 155, 182, 207, 236, 255."},
+    {"file": "main.py", "line": 279, "snippet": "mcp.run(transport=\"stdio\")", "reason": "No breaking change documented for MCPServer.run() or its transport kwarg; only the class construction/import moved."},
+    {"file": "tools/httpx.py", "line": 21, "snippet": "cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input", "reason": "This 'httpx' refers to the ProjectDiscovery command-line security scanner invoked via subprocess, not the Python httpx library used internally by the MCP SDK's transport layer; pattern 6 explicitly excludes unrelated httpx usage."},
+    {"file": "tools/httpx.py", "line": 6, "snippet": "def run_httpx(", "reason": "Function name coincidentally contains 'httpx' but wraps the CLI tool, unrelated to MCP SDK transport."},
+    {"file": "main.py", "line": 15, "snippet": "from tools.httpx import run_httpx", "reason": "Imports a local module (tools/httpx.py) wrapping the CLI security tool, unrelated to the MCP SDK's httpx-based transport."}
   ]
 }

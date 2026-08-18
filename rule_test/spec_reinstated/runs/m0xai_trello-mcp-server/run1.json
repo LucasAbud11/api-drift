@@ -6,5 +6,14 @@
     {"file": "server/tools/board.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "Context is imported from the moved mcp.server.fastmcp path; no compat alias, import must change to mcp.server.mcpserver."},
     {"file": "server/tools/card.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "Context is imported from the moved mcp.server.fastmcp path; no compat alias, import must change to mcp.server.mcpserver."},
     {"file": "server/tools/list.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "Context is imported from the moved mcp.server.fastmcp path; no compat alias, import must change to mcp.server.mcpserver."}
+  ],
+  "considered_and_rejected": [
+    {"file": "server/tools/board.py", "line": 20, "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:", "reason": "Context type annotation; once the import on line 8 is fixed, this annotation's own text does not need to change (same reasoning applies to all other `ctx: Context` annotations in board.py, card.py, list.py)."},
+    {"file": "server/tools/board.py", "line": 37, "snippet": "await ctx.error(error_msg)", "reason": "Called with a single positional message string, no extra= kwarg -- explicitly unaffected per the guide (pattern 3 caveat). Same for all other ctx.error(error_msg) calls in board.py, card.py, list.py."},
+    {"file": "server/tools/tools.py", "line": 11, "snippet": "mcp.add_tool(board.get_board)", "reason": "MCPServer.add_tool() is explicitly unchanged in v2 per pattern 4; same for all other mcp.add_tool(...) lines in this file."},
+    {"file": "server/utils/trello_api.py", "line": 21, "snippet": "self.client = httpx.AsyncClient(base_url=self.base_url)", "reason": "This httpx.AsyncClient is the application's own client for calling the third-party Trello REST API; it is never passed into any MCP SDK function, so the httpx->httpx2 internal transport change (pattern 6) does not apply."},
+    {"file": "server/models.py", "line": 13, "snippet": "idOrganization: str | None = None", "reason": "camelCase field on a Trello domain model (Pydantic), not an MCP protocol object attribute -- not one of the renamed fields in pattern 2."},
+    {"file": "server/dtos/create_card.py", "line": 26, "snippet": "idMembers: str | None = None", "reason": "Trello API payload field name, unrelated to MCP SDK protocol objects -- not covered by pattern 2's renames."},
+    {"file": "server/tools/checklist.py", "line": 1, "snippet": "\"\"\"This module contains tools for managing Trello checklists.\"\"\"", "reason": "checklist.py has no MCP SDK imports and no ctx usage at all -- entire file unaffected by the migration."}
   ]
 }

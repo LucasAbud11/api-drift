@@ -1,0 +1,38 @@
+repo                                          run  GT  TP  FP  recall   precision  FN->flag  FN->reject  FN->invis 
+TomaszRewak_MAGI                              1    6   6   0    100.0%   100.0%    0         0           0         
+TomaszRewak_MAGI                              2    6   6   0    100.0%   100.0%    0         0           0         
+TomaszRewak_MAGI                              3    6   6   0    100.0%   100.0%    0         0           0         
+franalgaba_chatgpt-telegram-bot-serverless    1    1   1   0    100.0%   100.0%    0         0           0         
+franalgaba_chatgpt-telegram-bot-serverless    2    1   1   0    100.0%   100.0%    0         0           0         
+franalgaba_chatgpt-telegram-bot-serverless    3    1   1   0    100.0%   100.0%    0         0           0         
+batuhantoker_Flask-OpenAI-Chatbot             1    2   2   0    100.0%   100.0%    0         0           0         
+batuhantoker_Flask-OpenAI-Chatbot             2    2   2   0    100.0%   100.0%    0         0           0         
+batuhantoker_Flask-OpenAI-Chatbot             3    2   2   0    100.0%   100.0%    0         0           0         
+g0ldencybersec_sus_params                     1    4   4   0    100.0%   100.0%    0         0           0         
+g0ldencybersec_sus_params                     2    4   4   0    100.0%   100.0%    0         0           0         
+g0ldencybersec_sus_params                     3    4   4   0    100.0%   100.0%    0         0           0         
+tonyzorin_youtrack-mcp                        1    3   3   0    100.0%   100.0%    0         0           0         
+tonyzorin_youtrack-mcp                        2    3   3   0    100.0%   100.0%    0         0           0         
+tonyzorin_youtrack-mcp                        3    3   3   0    100.0%   100.0%    0         0           0         
+QAInsights_jmeter-mcp-server                  1    7   7   0    100.0%   100.0%    0         0           0         
+QAInsights_jmeter-mcp-server                  2    7   7   0    100.0%   100.0%    0         0           0         
+QAInsights_jmeter-mcp-server                  3    7   4   0     57.1%   100.0%    0         3           0         
+    silently missed via confident REJECT: [('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 11), ('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 21), ('B', 'QAInsights_jmeter-mcp-server', 'tests/test_jmeter_server.py', 22)]
+securityfortech_secops-mcp                    1    2   2   0    100.0%   100.0%    0         0           0         
+securityfortech_secops-mcp                    2    2   2   0    100.0%   100.0%    0         0           0         
+securityfortech_secops-mcp                    3    2   2   0    100.0%   100.0%    0         0           0         
+m0xai_trello-mcp-server                       1    5   5   0    100.0%   100.0%    0         0           0         
+m0xai_trello-mcp-server                       2    5   5   0    100.0%   100.0%    0         0           0         
+m0xai_trello-mcp-server                       3    5   5   0    100.0%   100.0%    0         0           0         
+danilop_MCP2Lambda                            1    3   3   0    100.0%   100.0%    0         0           0         
+danilop_MCP2Lambda                            2    3   3   0    100.0%   100.0%    0         0           0         
+danilop_MCP2Lambda                            3    3   3   0    100.0%   100.0%    0         0           0         
+
+=== AGGREGATE ACROSS ALL 27 RUNS ===
+Precision on proposed-only: 96/96 = 100.0%
+Recall on proposed-only:    96/99 = 97.0%
+
+Total recall misses (FN) across 27 runs: 3
+  -> correctly landed in FLAG-UNCERTAIN (agent flagged its own doubt): 0
+  -> silently missed via a confident REJECT reason:                   3
+  -> silently missed, not mentioned in proposed OR rejected at all:   0

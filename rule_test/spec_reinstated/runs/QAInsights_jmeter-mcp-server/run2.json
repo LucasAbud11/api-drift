@@ -5,9 +5,19 @@
     {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "FastMCP class no longer exists under that name; construction site itself must change to MCPServer(\"jmeter\")"},
     {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must import MCPServer from mcp.server.mcpserver"},
     {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "FastMCP class no longer exists under that name; construction site itself must change to MCPServer(\"jmeter\")"},
-    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "pattern": "1", "reason": "mock module is built at the old module path string; once import is fixed this string must change for the stub to still intercept."},
-    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "pattern": "1", "reason": "attribute is registered under the old symbol name FastMCP; fixed production code will look up MCPServer instead."},
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "pattern": "1", "reason": "mock module is built at the old module path string; once jmeter_server.py's import is fixed to mcp.server.mcpserver this string must change for the stub to still intercept the import"},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "pattern": "1", "reason": "attribute is registered under the old symbol name FastMCP; fixed production code will look up MCPServer instead, so this line's text must change"},
     {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "pattern": "1", "reason": "stub is registered in sys.modules under the old path key; must become mcp.server.mcpserver."}
   ],
-  "considered_and_rejected_note": "Line 12 (`class FastMCP:`) again explicitly rejected (low confidence) with the same reasoning as run1 -- this is the run's one recall miss vs ground truth B8b."
+  "considered_and_rejected": [
+    {"file": "jmeter_server.py", "line": 121, "snippet": "@mcp.tool()", "reason": "high-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per pattern 4"},
+    {"file": "jmeter_server.py", "line": 132, "snippet": "@mcp.tool()", "reason": "high-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per pattern 4"},
+    {"file": "jmeter_server.py", "line": 150, "snippet": "@mcp.tool()", "reason": "high-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per pattern 4"},
+    {"file": "jmeter_server.py", "line": 303, "snippet": "@mcp.tool()", "reason": "high-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per pattern 4"},
+    {"file": "jmeter_server.py", "line": 402, "snippet": "@mcp.tool()", "reason": "high-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per pattern 4"},
+    {"file": "jmeter_server.py", "line": 473, "snippet": "@mcp.tool()", "reason": "high-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per pattern 4"},
+    {"file": "analyzer/metrics/calculator.py", "line": 153, "snippet": "end_time = start_time + timedelta(seconds=interval_seconds)", "reason": "plain datetime.timedelta arithmetic unrelated to MCP client SDK timeout parameters"},
+    {"file": "analyzer/analyzer.py", "line": 278, "snippet": "spike_time = test_results.start_time + timedelta(seconds=i * interval_seconds)", "reason": "plain datetime.timedelta arithmetic unrelated to MCP client SDK timeout parameters"},
+    {"file": "tests/test_jmeter_server.py", "line": 12, "snippet": "class FastMCP:", "reason": "purely a local mock class name with no import-path significance; the mock could keep this identifier and just expose it under a renamed attribute (see line 21), so this line's own text is not strictly required to change -- flagged here with low confidence rather than silently dropped"}
+  ]
 }

@@ -2,9 +2,16 @@
   "target": "B", "repo": "QAInsights_jmeter-mcp-server", "run": 3,
   "proposed_sites": [
     {"file": "main.py", "line": 2, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "Import path mcp.server.fastmcp no longer exists in v2; no compatibility alias."},
-    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "Constructs the removed FastMCP class; must become MCPServer(\"jmeter\")."},
+    {"file": "main.py", "line": 9, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "Constructs the removed FastMCP class; must become MCPServer(\"jmeter\") — fixing only the import line does not repair this construction site since FastMCP no longer exists under any name."},
     {"file": "jmeter_server.py", "line": 4, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "Import path mcp.server.fastmcp no longer exists in v2; no compatibility alias."},
-    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "Constructs the removed FastMCP class; must become MCPServer(\"jmeter\")."}
+    {"file": "jmeter_server.py", "line": 23, "snippet": "mcp = FastMCP(\"jmeter\")", "pattern": "1", "reason": "Constructs the removed FastMCP class; must become MCPServer(\"jmeter\") — the construction site's own text must change independent of the import fix."}
   ],
-  "considered_and_rejected_note": "This run rejected ALL FOUR test-file lines (11, 12, 21, 22), reasoning the sys.modules stub 'never touches the real mcp package' and is self-contained. This misses GT sites B8a, B8b, B8c, B8d entirely -- a larger recall miss than run1/run2 (which still caught 11, 21, 22 and only missed 12). See score_reinstated.py output."
+  "considered_and_rejected": [
+    {"file": "tests/test_jmeter_server.py", "line": 11, "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')", "reason": "Self-contained mock: registers a fabricated module directly into sys.modules before jmeter_server is imported, so it never touches the real mcp package. Its own text isn't broken by the real SDK's v1->v2 change; it only becomes stale if jmeter_server.py's import is separately fixed, which is a downstream consequence, not a migration-broken site itself."},
+    {"file": "tests/test_jmeter_server.py", "line": 12, "snippet": "class FastMCP:", "reason": "Locally-defined stub class name; not an import of or reference to the real SDK's FastMCP symbol, so it isn't itself broken by the SDK migration."},
+    {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "reason": "Part of the same self-contained sys.modules stub; functions correctly regardless of real SDK version since it's never reached by real imports."},
+    {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "reason": "Registers the fake module under the old path string as a dict key, not via an actual import statement; this continues to satisfy jmeter_server.py's current (unfixed) import regardless of what the real installed mcp package version is."},
+    {"file": "jmeter_server.py", "line": 121, "snippet": "@mcp.tool()", "reason": "High-level MCPServer/FastMCP decorator API is explicitly unchanged in v2 per the guide; not a lowlevel Server class, so no rename to constructor kwargs applies."},
+    {"file": "jmeter_server.py", "line": 595, "snippet": "    mcp.run(transport='stdio')", "reason": ".run() is not mentioned as changed anywhere in the migration guide; unaffected."}
+  ]
 }

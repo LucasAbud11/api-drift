@@ -4,5 +4,19 @@
     {"file": "main.py", "line": 10, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "Module mcp.server.fastmcp no longer exists in v2; import must change to `from mcp.server.mcpserver import MCPServer`."},
     {"file": "main.py", "line": 25, "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:", "pattern": "1", "reason": "Return type annotation references removed symbol FastMCP; its own text must change to MCPServer even after the import line is fixed."},
     {"file": "main.py", "line": 27, "snippet": "    mcp = FastMCP(", "pattern": "1", "reason": "Direct construction of the removed FastMCP class; must become MCPServer(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 4, "snippet": "Uses FastMCP directly for clean stdio/SSE transport support.", "reason": "Docstring text only, not executable code or a symbol reference that breaks."},
+    {"file": "main.py", "line": 26, "snippet": "    \"\"\"Create and configure the FastMCP server with all tools registered.\"\"\"", "reason": "Docstring text only."},
+    {"file": "main.py", "line": 37, "snippet": "        mcp.add_tool(func, name=name)", "reason": "add_tool() is explicitly unchanged in v2 per the migration guide (pattern 4 caveat)."},
+    {"file": "main.py", "line": 39, "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")", "reason": "Plain log message string, not a symbol reference; unaffected functionally."},
+    {"file": "youtrack_mcp/mcp_server.py", "line": 10, "snippet": "class MCPServer:", "reason": "App-defined local class unrelated to the MCP SDK; file has no mcp SDK import at all."},
+    {"file": "tests/unit/test_mcp_server.py", "line": 8, "snippet": "from youtrack_mcp.mcp_server import MCPServer", "reason": "Imports the app's own MCPServer class, not the SDK's; name collision only."},
+    {"file": "youtrack_mcp/tools/resources.py", "line": 96, "snippet": "                    \"uriTemplate\": URI_TEMPLATES[\"project\"],", "reason": "Manually constructed JSON dict key for the app's own resources/list response, not attribute access on an SDK object; wire-format JSON keys remain camelCase in v2."},
+    {"file": "tests/docker/test_mcp_docker.py", "line": 48, "snippet": "                \"protocolVersion\": \"2024-11-05\",", "reason": "Raw JSON-RPC payload built by hand for a subprocess/stdio smoke test, not SDK attribute access."},
+    {"file": "youtrack_mcp/tools/articles.py", "line": 156, "snippet": "                extra=extra,", "reason": "Kwarg forwarded to the app's own create_article API method, unrelated to Context.debug/info/warning/error extra= removal."},
+    {"file": "youtrack_mcp/api/client.py", "line": 73, "snippet": "        extra=\"allow\",  # Allow extra fields in the model", "reason": "Pydantic ConfigDict option, unrelated to MCP Context logging."},
+    {"file": "youtrack_mcp/api/issues.py", "line": 1098, "snippet": "        mime_type = attachment_info.get(\"mimeType\", \"unknown\")", "reason": "Reads YouTrack's own REST API JSON field name (third-party API), not an MCP SDK protocol object attribute."},
+    {"file": "tests/unit/test_tools_resources.py", "line": 88, "snippet": "        result = tools.list_resources()", "reason": "Calls the app's own ResourcesTools.list_resources() method, not a lowlevel mcp.server.Server decorator/handler."}
   ]
 }

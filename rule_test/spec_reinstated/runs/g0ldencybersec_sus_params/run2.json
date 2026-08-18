@@ -1,9 +1,20 @@
 {
   "target": "A", "repo": "g0ldencybersec_sus_params", "run": 2,
   "proposed_sites": [
-    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "pattern": "3", "reason": "Direct assignment to openai.api_key; v1.x requires explicit client = OpenAI(api_key=...) construction."},
-    {"file": "PoC.py", "line": 11, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level call must become client.chat.completions.create(...) on a client instance in v1.x."},
+    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "pattern": "3", "reason": "Direct assignment to openai.api_key; v1.x requires explicit client = OpenAI(api_key=...) construction instead."},
+    {"file": "PoC.py", "line": 11, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level call; v1.x requires client.chat.completions.create(...) on a client instance."},
     {"file": "PoC.py", "line": 192, "snippet": "        except openai.error.RateLimitError as e:", "pattern": "2", "reason": "Exception moved from openai.error.RateLimitError to top-level openai.RateLimitError in v1.x."},
     {"file": "PoC.py", "line": 201, "snippet": "        except openai.error.ServiceUnavailableError as e:", "pattern": "2", "reason": "Exception moved from openai.error.ServiceUnavailableError to top-level openai.ServiceUnavailableError in v1.x."}
+  ],
+  "considered_and_rejected": [
+    {"file": "PoC.py", "line": 8, "snippet": "model_id = \"gpt-4\"", "reason": "Plain string assignment unrelated to the openai SDK's breaking API surface; not an openai.* reference."},
+    {"file": "PoC.py", "line": 1, "snippet": "import openai", "reason": "The top-level import openai statement itself is unchanged by the v1.x migration; only the usages below it change, so this line's own text does not need editing."},
+    {"file": "PoC.py", "line": 31, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Calls the local wrapper function, not the openai module directly; fixing line 11 inside the wrapper repairs this call's behavior without this line's own text needing to change."},
+    {"file": "PoC.py", "line": 41, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Same as above -- call to local wrapper, not a direct openai.* reference."},
+    {"file": "PoC.py", "line": 52, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Same as above -- call to local wrapper, not a direct openai.* reference."},
+    {"file": "PoC.py", "line": 62, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Same as above -- call to local wrapper, not a direct openai.* reference."},
+    {"file": "PoC.py", "line": 72, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Same as above -- call to local wrapper, not a direct openai.* reference."},
+    {"file": "PoC.py", "line": 83, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Same as above -- call to local wrapper, not a direct openai.* reference."},
+    {"file": "PoC.py", "line": 94, "snippet": "        conversation = chatgpt_conversation(conversation)", "reason": "Same as above -- call to local wrapper, not a direct openai.* reference."}
   ]
 }

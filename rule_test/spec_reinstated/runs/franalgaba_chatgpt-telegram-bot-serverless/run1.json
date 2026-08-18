@@ -1,6 +1,13 @@
 {
   "target": "A", "repo": "franalgaba_chatgpt-telegram-bot-serverless", "run": 1,
   "proposed_sites": [
-    {"file": "app.py", "line": 41, "snippet": "    message = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call openai.ChatCompletion.create(...) must become client.chat.completions.create(...) under the openai>=1.0 SDK."}
+    {"file": "app.py", "line": 41, "snippet": "    message = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call openai.ChatCompletion.create(...) must become client.chat.completions.create(...) under the v1.x SDK. This is inside the helper function ask_chatgpt, which is itself called from process_message and (via ask_chatgpt(transcript_msg)) from process_voice_message -- but the call site to fix is this one line where the actual API call is made."}
+  ],
+  "considered_and_rejected": [
+    {"file": "app.py", "line": 5, "snippet": "import openai", "reason": "Bare import statement remains valid syntax in openai v1.x; the import line itself does not need to change (only the usage at line 41 does)."},
+    {"file": "app.py", "line": 21, "snippet": "OPENAI_API_KEY = os.environ[\"OPENAI_API_KEY\"]", "reason": "This reads an env var into a local variable but is never assigned to openai.api_key or passed anywhere in this file; not a migration site (appears to be dead/unused in this repo)."},
+    {"file": "app.py", "line": 40, "snippet": "def ask_chatgpt(text):", "reason": "Function definition wrapping the broken call; fixing line 41 repairs this without the def line's own text changing."},
+    {"file": "app.py", "line": 64, "snippet": "    message = ask_chatgpt(transcript_msg)", "reason": "Call site of the helper wrapper, not the SDK call itself; repaired automatically once line 41 is fixed."},
+    {"file": "app.py", "line": 80, "snippet": "        message = ask_chatgpt(chat_text)", "reason": "Call site of the helper wrapper, not the SDK call itself; repaired automatically once line 41 is fixed."}
   ]
 }

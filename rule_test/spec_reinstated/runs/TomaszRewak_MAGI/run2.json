@@ -7,5 +7,12 @@
     {"file": "ai.py", "line": 52, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level API call; must become client.chat.completions.create(...)."},
     {"file": "ai.py", "line": 64, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level global attribute assignment for auth; must be replaced with explicit client construction."},
     {"file": "ai.py", "line": 65, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level API call; must become client.chat.completions.create(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "ai.py", "line": 1, "snippet": "import openai", "reason": "Bare import remains valid syntax in v1; the line itself does not need to change to fix the migration."},
+    {"file": "ai.py", "line": 27, "snippet": "content = response['choices'][0]['message']['content']", "reason": "Dict-style response access is a real v1 compatibility issue but is not one of the 3 specified patterns (namespaced call, openai.error.*, or auth assignment)."},
+    {"file": "ai.py", "line": 60, "snippet": "return response['choices'][0]['message']['content']", "reason": "Dict-style response access is a real v1 compatibility issue but is not one of the 3 specified patterns."},
+    {"file": "ai.py", "line": 75, "snippet": "content = response['choices'][0]['message']['content']", "reason": "Dict-style response access is a real v1 compatibility issue but is not one of the 3 specified patterns."},
+    {"file": "main.py", "line": 43, "snippet": "dcc.Input(id='key', autoComplete='off', type='password', value=os.getenv('OPENAI_API_KEY', '')),", "reason": "References an environment variable name, not an openai module attribute; unrelated to the 3 patterns."}
   ]
 }

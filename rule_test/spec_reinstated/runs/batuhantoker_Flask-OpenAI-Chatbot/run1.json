@@ -1,7 +1,11 @@
 {
   "target": "A", "repo": "batuhantoker_Flask-OpenAI-Chatbot", "run": 1,
   "proposed_sites": [
-    {"file": "app.py", "line": 8, "snippet": "openai.api_key = \"OPENAI_API\"", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction (client = OpenAI(api_key=...)) under v1.x."},
-    {"file": "app.py", "line": 48, "snippet": "output = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level call openai.ChatCompletion.create(...) must become client.chat.completions.create(...) under v1.x; reached via chatcompletion() helper invoked from chat() -> get_response() -> the /get route."}
+    {"file": "app.py", "line": 8, "snippet": "openai.api_key = \"OPENAI_API\"", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction, e.g. client = OpenAI(api_key=...)"},
+    {"file": "app.py", "line": 48, "snippet": "    output = openai.ChatCompletion.create(", "pattern": "1", "reason": "Namespaced module-level call openai.ChatCompletion.create(...) must become client.chat.completions.create(...) under v1.x; reached via chatcompletion() helper invoked from chat() -> get_response() -> the /get route."}
+  ],
+  "considered_and_rejected": [
+    {"file": "app.py", "line": 3, "snippet": "import openai", "reason": "The import itself remains valid in v1.x (the openai module still exists); only the usages below it are broken, so this line's own text does not need to change."},
+    {"file": "app.py", "line": 60, "snippet": "for item in output['choices']:", "reason": "This accesses the ChatCompletion response as a dict, which changes behavior in v1.x (responses become Pydantic objects with attribute access), but it does not match any of the three specified patterns (namespaced call, openai.error.*, or module-level auth assignment), so it is out of scope for this audit."}
   ]
 }

@@ -1,9 +1,12 @@
 {
   "target": "A", "repo": "g0ldencybersec_sus_params", "run": 1,
   "proposed_sites": [
-    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "pattern": "3", "reason": "Module-level assignment to openai.api_key; v1 requires explicit client construction via OpenAI(api_key=...) instead."},
-    {"file": "PoC.py", "line": 11, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced ChatCompletion.create call; v1 requires client.chat.completions.create(...). Reached by all handleXXX wrapper functions via chatgpt_conversation."},
-    {"file": "PoC.py", "line": 192, "snippet": "except openai.error.RateLimitError as e:", "pattern": "2", "reason": "Exception referenced via openai.error submodule; v1 moves RateLimitError to top-level openai.RateLimitError."},
-    {"file": "PoC.py", "line": 201, "snippet": "except openai.error.ServiceUnavailableError as e:", "pattern": "2", "reason": "Exception referenced via openai.error submodule; v1 moves ServiceUnavailableError to top-level openai.ServiceUnavailableError."}
+    {"file": "PoC.py", "line": 7, "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")", "pattern": "3", "reason": "Module-level auth attribute assignment; must become explicit OpenAI(api_key=...) client construction."},
+    {"file": "PoC.py", "line": 11, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call; must become client.chat.completions.create(...). Reached indirectly by all seven handleXXX functions via chatgpt_conversation, but the call itself lives only on this one line, so it is a single site."},
+    {"file": "PoC.py", "line": 192, "snippet": "except openai.error.RateLimitError as e:", "pattern": "2", "reason": "Exception moved from openai.error.* to top-level openai.*."},
+    {"file": "PoC.py", "line": 201, "snippet": "except openai.error.ServiceUnavailableError as e:", "pattern": "2", "reason": "Exception moved from openai.error.* to top-level openai.*, different exception class."}
+  ],
+  "considered_and_rejected": [
+    {"file": "PoC.py", "line": 1, "snippet": "import openai", "reason": "The bare import statement itself is unchanged by the v1 migration (the package name and top-level import remain `import openai`); only the subsequent usages (attribute assignment, namespaced calls, .error.* exceptions) need to change, so this line's own text does not need editing."}
   ]
 }

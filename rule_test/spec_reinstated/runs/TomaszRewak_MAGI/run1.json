@@ -7,5 +7,10 @@
     {"file": "ai.py", "line": 52, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x namespaced call; must move to client.chat.completions.create."},
     {"file": "ai.py", "line": 64, "snippet": "openai.api_key = key", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction (client = OpenAI(api_key=key))."},
     {"file": "ai.py", "line": 65, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x namespaced call; must move to client.chat.completions.create."}
+  ],
+  "considered_and_rejected": [
+    {"file": "ai.py", "line": 27, "snippet": "content = response['choices'][0]['message']['content']", "reason": "Dict-style response subscripting behavior changed in v1.x (now attribute-based), but this is not one of the three documented breaking-change patterns given in the task (module-level namespaced calls, openai.error.* exceptions, or auth assignment), so it was not included as a proposed site."},
+    {"file": "ai.py", "line": 60, "snippet": "return response['choices'][0]['message']['content']", "reason": "Same as above -- response subscripting is a real v1 compatibility issue but outside the three named patterns."},
+    {"file": "ai.py", "line": 75, "snippet": "content = response['choices'][0]['message']['content']", "reason": "Same as above -- response subscripting is a real v1 compatibility issue but outside the three named patterns."}
   ]
 }

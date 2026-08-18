@@ -171,3 +171,19 @@ independently converged on).
   m0xai (14 `ctx: Context` sites) and danilop (their `Context`/`ctx.info`/
   `ctx.error` sites) — the exact repos that produced the original 17 false
   positives — are clean across all 9 combined runs with the real spec.
+
+## 2026-08-18 addendum: the runs 1–2 "miss" above was ground truth being wrong
+
+The "Runs 1 and 2 (miss only line 12): does NOT cite the convention"
+section above was superseded, not just annotated. Runs 1–2's own
+argument — the stub's exposed attribute name is what has to match, not
+the `class FastMCP:` statement's own bound identifier — was verified
+empirically (real migration + test run + negative control; see
+`b8b_verification.md`) and found correct. `ground_truth.md` was wrong,
+not the agent. Corrected GT: runs 1–2 are **8/8 (100%) recall**, not
+7/8. Only run 3's 4/7 miss (the over-applied-convention mechanism,
+unaffected by this correction since none of its four lines was B8b)
+survives. A three-bucket PROPOSE/FLAG-UNCERTAIN/REJECT reclassification
+of all 27 runs against the corrected GT found all 3 remaining misses
+landed in a confident REJECT, none in FLAG-UNCERTAIN — full results in
+`results.md`'s revision 5 update and `score_output_three_bucket.txt`.

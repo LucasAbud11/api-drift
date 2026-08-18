@@ -101,7 +101,7 @@ likely hardest recall case in the set. Full-tree grep for all 13 categories
 of the breaking-change spec found zero hits outside `main.py`. Not a
 ground-truth site anywhere in the reflected code.
 
-### QAInsights/jmeter-mcp-server (5 sites)
+### QAInsights/jmeter-mcp-server (4 sites)
 
 | # | File:Line | Snippet | Depth | Class |
 |---|---|---|---|---|
@@ -110,18 +110,39 @@ ground-truth site anywhere in the reflected code.
 | B6 | jmeter_server.py:4 | `from mcp.server.fastmcp import FastMCP` | 0 | literal |
 | B7 | jmeter_server.py:23 | `mcp = FastMCP("jmeter")` | 0 | literal |
 | B8a | tests/test_jmeter_server.py:11 | `fastmcp_mod = types.ModuleType('mcp.server.fastmcp')` | 0 | test/mock |
-| B8b | tests/test_jmeter_server.py:12 | `class FastMCP:` | 0 | test/mock |
 | B8c | tests/test_jmeter_server.py:21 | `fastmcp_mod.FastMCP = FastMCP` | 0 | test/mock |
 | B8d | tests/test_jmeter_server.py:22 | `sys.modules['mcp.server.fastmcp'] = fastmcp_mod` | 0 | test/mock |
 
-Re-grained from a single block-level site (originally "B8, lines 9-22") into 4
+Re-grained from a single block-level site (originally "B8, lines 9-22") into
 line-level sites for scoring consistency with every other entry in this
 table. Lines 9-10 of that block (`sys.modules['mcp'] = ...`,
 `sys.modules['mcp.server'] = ...`) reference module paths that are still
 valid in v2 and do NOT need to change — excluded. Lines 13-20 (the stub
 class body: `__init__`/`tool`/`run`) don't reference any renamed token —
-excluded. Only the 4 lines above reference the old module-path string or
-the old class name.
+excluded.
+
+**Correction (2026-08-18, empirically verified — see
+`rule_test/spec_reinstated/b8b_verification.md`): line 12 (`class FastMCP:`)
+was originally counted as a fourth site ("B8b") and has been removed.** The
+migration was actually performed (a live copy of this repo, migrated and
+run under `python -m unittest`, not argued about): `jmeter_server.py`'s
+import/construction were changed to `MCPServer`, and the test's `sys.modules`
+key (B8d) and exposed attribute (B8c) were renamed accordingly, while the
+class *statement* on line 12 was deliberately left reading `class FastMCP:`.
+The test suite ran identically to a fully-migrated baseline — same 6/9 pass,
+same 3 pre-existing (migration-unrelated) failures, zero import errors. A
+negative control confirms the harness is sound: reverting *only* the B8c
+attribute rename does break the import immediately (`ImportError: cannot
+import name 'MCPServer'`). The class statement's own bound name has no
+effect on what `jmeter_server.py`'s import sees — only the module object's
+exposed attribute name (B8c) and its `sys.modules` key (B8d) are load-bearing;
+`class FastMCP:` could be renamed for cosmetic consistency but is not a site
+that must change under this study's own standard ("only lines that literally
+need to change count").
+**Not separately verified: B8a's `types.ModuleType('mcp.server.fastmcp')`
+constructor-argument string may also be non-load-bearing (only the
+`sys.modules` key at B8d appears to matter) — noticed as a side effect of
+the same test, not requested, not corrected here pending confirmation.**
 
 Note: `main.py` (B4-B5) is a dead/unused duplicate entry point — `jmeter_server.py`
 is what's actually run — but it's live, valid, importable code that still
@@ -191,5 +212,6 @@ the confirmed-unchanged `.tool()` decorator and found no `extra=`/`get_context()
 usage nearby. Zero true positives here despite being structurally the most
 "dynamic" code in Target B.
 
-**Target B total: 21 sites. literal=16, helper-wrapped=0, decorator/registration=0,
-dynamic/reflection=0, test/mock=4, client-side=1.**
+**Target B total: 20 sites (originally 21; B8b removed 2026-08-18, see
+QAInsights section above). literal=16, helper-wrapped=0,
+decorator/registration=0, dynamic/reflection=0, test/mock=3, client-side=1.**

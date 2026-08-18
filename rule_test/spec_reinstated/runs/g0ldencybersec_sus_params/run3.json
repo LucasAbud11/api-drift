@@ -5,5 +5,8 @@
     {"file": "PoC.py", "line": 11, "snippet": "response = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x module-level namespaced call; in v1.x it must be client.chat.completions.create(...)."},
     {"file": "PoC.py", "line": 192, "snippet": "except openai.error.RateLimitError as e:", "pattern": "2", "reason": "openai.error.RateLimitError no longer exists in v1.x; exceptions moved to top-level openai.RateLimitError."},
     {"file": "PoC.py", "line": 201, "snippet": "except openai.error.ServiceUnavailableError as e:", "pattern": "2", "reason": "openai.error.ServiceUnavailableError no longer exists in v1.x; exceptions moved to top-level openai namespace."}
+  ],
+  "considered_and_rejected": [
+    {"file": "PoC.py", "line": 1, "snippet": "import openai", "reason": "The bare 'import openai' statement remains valid syntax in v1.x; the module still exists, so this line's own text does not need to change. The actual breakage is in the attribute usages on lines 7, 11, 192, and 201."}
   ]
 }

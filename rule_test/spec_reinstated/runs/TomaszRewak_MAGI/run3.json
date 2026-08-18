@@ -1,11 +1,18 @@
 {
   "target": "A", "repo": "TomaszRewak_MAGI", "run": 3,
   "proposed_sites": [
-    {"file": "ai.py", "line": 6, "snippet": "    openai.api_key = key", "pattern": "3", "reason": "Direct module-level assignment to openai.api_key; v1 requires constructing a client instance instead."},
-    {"file": "ai.py", "line": 7, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call must become client.chat.completions.create(...) in v1."},
+    {"file": "ai.py", "line": 6, "snippet": "    openai.api_key = key", "pattern": "3", "reason": "Direct module-level assignment to openai.api_key; v1 requires constructing a client instance instead (client = OpenAI(api_key=...))."},
+    {"file": "ai.py", "line": 7, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call openai.ChatCompletion.create must become client.chat.completions.create(...) in v1."},
     {"file": "ai.py", "line": 51, "snippet": "    openai.api_key = key", "pattern": "3", "reason": "Direct module-level assignment to openai.api_key; v1 requires constructing a client instance instead."},
-    {"file": "ai.py", "line": 52, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call must become client.chat.completions.create(...) in v1."},
+    {"file": "ai.py", "line": 52, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call openai.ChatCompletion.create must become client.chat.completions.create(...) in v1."},
     {"file": "ai.py", "line": 64, "snippet": "    openai.api_key = key", "pattern": "3", "reason": "Direct module-level assignment to openai.api_key; v1 requires constructing a client instance instead."},
-    {"file": "ai.py", "line": 65, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call must become client.chat.completions.create(...) in v1."}
+    {"file": "ai.py", "line": 65, "snippet": "    response = openai.ChatCompletion.create(", "pattern": "1", "reason": "Module-level namespaced call openai.ChatCompletion.create must become client.chat.completions.create(...) in v1."}
+  ],
+  "considered_and_rejected": [
+    {"file": "ai.py", "line": 1, "snippet": "import openai", "reason": "The import statement itself is still valid in v1 (the openai package still exists and is imported the same way); only the usages below it are broken, and fixing the import alone does not require this line's text to change."},
+    {"file": "ai.py", "line": 27, "snippet": "    content = response['choices'][0]['message']['content']", "reason": "Dict-style subscript access on the response object is a real v1 behavioral change (responses become Pydantic objects), but it does not match any of the three specified patterns (namespaced call, openai.error.*, or module-level auth assignment), so it is out of scope for this report."},
+    {"file": "ai.py", "line": 60, "snippet": "    return response['choices'][0]['message']['content']", "reason": "Same subscript-access concern as line 27; not one of the three listed patterns."},
+    {"file": "ai.py", "line": 75, "snippet": "    content = response['choices'][0]['message']['content']", "reason": "Same subscript-access concern as line 27; not one of the three listed patterns."},
+    {"file": "main.py", "line": 6, "snippet": "import ai", "reason": "main.py never references openai directly; it only calls wrapper functions in ai.py. No line in main.py itself needs to change to fix the migration."}
   ]
 }

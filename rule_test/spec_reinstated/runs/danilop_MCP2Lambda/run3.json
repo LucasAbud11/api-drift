@@ -1,8 +1,19 @@
 {
   "target": "B", "repo": "danilop_MCP2Lambda", "run": 3,
   "proposed_sites": [
-    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must import MCPServer (and Context) from mcp.server.mcpserver."},
-    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "pattern": "1", "reason": "FastMCP class was renamed to MCPServer; even after fixing the import, this construction call's own text must change to MCPServer(...)."},
-    {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "                input_schema={'json': tool.inputSchema}", "pattern": "2", "reason": "tool is an mcp.types.Tool returned from ClientSession.list_tools(); attribute access tool.inputSchema must become tool.input_schema under v2's snake_case attribute renames."}
+    {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "pattern": "1", "reason": "The entire mcp.server.fastmcp module tree no longer exists; must become 'from mcp.server.mcpserver import MCPServer, Context'."},
+    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "pattern": "1", "reason": "FastMCP the class name itself is gone (renamed to MCPServer), so even after fixing the import, this line's own text (FastMCP(...)) must change to MCPServer(...). This is a separate site per the stated counting convention (identical to the guide's own worked example)."},
+    {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "                input_schema={'json': tool.inputSchema}", "pattern": "2", "reason": "tool here is an mcp.types.Tool object obtained via mcp_client.get_available_tools() -> session.list_tools() -> tools.tools. Attribute access tool.inputSchema breaks under v2; must become tool.input_schema."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 68, "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:", "reason": "Context is imported from the moved module at line 6, but per the stated counting convention, fixing the import line alone makes these annotations resolve without their own text changing. Not a separate site. (Same reasoning applies to lines 94 and 136.)"},
+    {"file": "main.py", "line": 94, "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:", "reason": "Same as line 68 -- downstream Context annotation fixed by the import change alone."},
+    {"file": "main.py", "line": 136, "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:", "reason": "Same as line 68 -- downstream Context annotation fixed by the import change alone."},
+    {"file": "main.py", "line": 73, "snippet": "    ctx.info(\"Calling AWS Lambda ListFunctions...\")", "reason": "All ctx.info(...)/ctx.error(...) calls (lines 73, 77, 83, 101, 109, 113) use a single positional message string only, no extra= kwarg. Explicitly unaffected per pattern 3's caveat."},
+    {"file": "main.py", "line": 113, "snippet": "        ctx.error(error_message)", "reason": "Positional message-only call to ctx.error(); unaffected."},
+    {"file": "main.py", "line": 125, "snippet": "    mcp.tool()(list_lambda_functions_impl)", "reason": "mcp.tool()(...) calls (lines 125, 126, 145, 181, 182) are the unchanged high-level MCPServer/FastMCP decorator API (pattern 4 says this is unchanged). Not the low-level Server class, so not affected."},
+    {"file": "mcp_client_bedrock/converse_tools.py", "line": 35, "snippet": "                    'inputSchema': tool['input_schema']", "reason": "Builds a Bedrock toolSpec dict (Bedrock's own API camelCase convention), not attribute access on any MCP SDK object. Unrelated to the MCP protocol object rename -- rejected."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 36, "snippet": "        tools = await self.session.list_tools()", "reason": "Called with no cursor argument -- unaffected by the removed parameter."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 44, "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)", "reason": "This is plain ClientSession.call_tool() using arguments=, not ClientSessionGroup.call_tool()'s removed args= parameter. Explicitly unaffected per pattern 5's caveat."}
   ]
 }

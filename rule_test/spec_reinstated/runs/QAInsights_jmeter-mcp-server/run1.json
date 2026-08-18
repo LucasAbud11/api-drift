@@ -9,5 +9,22 @@
     {"file": "tests/test_jmeter_server.py", "line": 21, "snippet": "fastmcp_mod.FastMCP = FastMCP", "pattern": "1", "reason": "Sets attribute name 'FastMCP' on the stub module; the fixed jmeter_server.py will do 'from mcp.server.mcpserver import MCPServer', so this line's attribute name must become MCPServer for the stub to satisfy the import"},
     {"file": "tests/test_jmeter_server.py", "line": 22, "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod", "pattern": "1", "reason": "Registers the stub under the old module path key 'mcp.server.fastmcp'; must become 'mcp.server.mcpserver' to match the corrected import in jmeter_server.py"}
   ],
-  "considered_and_rejected_note": "Line 12 (`class FastMCP:`) was explicitly rejected by this agent -- reasoning it can keep its Python class name internally as long as the module attribute it's assigned to is renamed. Ground truth (B8b) counts this line as a required edit. This is the run's one recall miss -- see score_reinstated.py output."
+  "considered_and_rejected": [
+    {"file": "tests/test_jmeter_server.py", "line": 12, "snippet": "class FastMCP:", "reason": "This is just a local Python class name used to build the mock; it can remain named FastMCP internally and still be assigned to a differently-named module attribute (e.g. `mcpserver_mod.MCPServer = FastMCP`), so this line's own text does not have to change to fix the migration"},
+    {"file": "jmeter_server.py", "line": 16, "snippet": "mcp.run(transport='stdio')", "reason": "References the `mcp` variable, not the FastMCP identifier itself; once the construction line (jmeter_server.py:23) is fixed, this line works unchanged, same as the Context-annotation example in the task guidance"},
+    {"file": "main.py", "line": 16, "snippet": "mcp.run(transport='stdio')", "reason": "References the `mcp` variable, not the FastMCP identifier itself; unaffected once the construction line is fixed"},
+    {"file": "jmeter_server.py", "line": 121, "snippet": "@mcp.tool()", "reason": "Decorator usage on the high-level MCPServer/FastMCP API is explicitly unchanged in v2 per the guide"},
+    {"file": "jmeter_server.py", "line": 132, "snippet": "@mcp.tool()", "reason": "Same as above - high-level decorator unchanged in v2"},
+    {"file": "jmeter_server.py", "line": 150, "snippet": "@mcp.tool()", "reason": "Same as above - high-level decorator unchanged in v2"},
+    {"file": "jmeter_server.py", "line": 303, "snippet": "@mcp.tool()", "reason": "Same as above - high-level decorator unchanged in v2"},
+    {"file": "jmeter_server.py", "line": 402, "snippet": "@mcp.tool()", "reason": "Same as above - high-level decorator unchanged in v2"},
+    {"file": "jmeter_server.py", "line": 473, "snippet": "@mcp.tool()", "reason": "Same as above - high-level decorator unchanged in v2"},
+    {"file": "analyzer/analyzer.py", "line": 278, "snippet": "spike_time = test_results.start_time + timedelta(seconds=i * interval_seconds)", "reason": "Plain Python datetime.timedelta arithmetic unrelated to the MCP client SDK's timeout parameters; not an MCP SDK call"},
+    {"file": "analyzer/metrics/calculator.py", "line": 153, "snippet": "end_time = start_time + timedelta(seconds=interval_seconds)", "reason": "Plain Python datetime.timedelta arithmetic unrelated to MCP client timeouts"},
+    {"file": "analyzer/metrics/calculator.py", "line": 158, "snippet": "next_time = current_time + timedelta(seconds=interval_seconds)", "reason": "Plain Python datetime.timedelta arithmetic unrelated to MCP client timeouts"},
+    {"file": "tests/test_metrics_calculator.py", "line": 26, "snippet": "timestamp=base_time + timedelta(seconds=i),", "reason": "Plain Python datetime.timedelta arithmetic, not MCP ClientSession timeout usage"},
+    {"file": "tests/test_bottleneck_analyzer.py", "line": 87, "snippet": "timestamp=base_time + timedelta(seconds=i * 5),", "reason": "Plain Python datetime.timedelta arithmetic, not MCP ClientSession timeout usage"},
+    {"file": "tests/test_visualization_engine.py", "line": 27, "snippet": "timestamp=base_time + timedelta(seconds=i * 5),", "reason": "Plain Python datetime.timedelta arithmetic, not MCP ClientSession timeout usage"},
+    {"file": "analyzer/mcp/__init__.py", "line": 2, "snippet": "MCP interface for the JMeter Test Results Analyzer.", "reason": "Docstring text only, mentions 'MCP' but contains no code referencing the SDK; no actual import or API usage present in this file"}
+  ]
 }

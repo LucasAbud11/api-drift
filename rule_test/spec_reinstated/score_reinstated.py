@@ -29,7 +29,8 @@ GT = {
     ("B", "QAInsights_jmeter-mcp-server", "jmeter_server.py", 4): "literal",
     ("B", "QAInsights_jmeter-mcp-server", "jmeter_server.py", 23): "literal",
     ("B", "QAInsights_jmeter-mcp-server", "tests/test_jmeter_server.py", 11): "test/mock",
-    ("B", "QAInsights_jmeter-mcp-server", "tests/test_jmeter_server.py", 12): "test/mock",
+    # B8b (tests/test_jmeter_server.py:12, `class FastMCP:`) REMOVED 2026-08-18:
+    # empirically verified not to be a required edit -- see b8b_verification.md.
     ("B", "QAInsights_jmeter-mcp-server", "tests/test_jmeter_server.py", 21): "test/mock",
     ("B", "QAInsights_jmeter-mcp-server", "tests/test_jmeter_server.py", 22): "test/mock",
 

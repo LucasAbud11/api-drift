@@ -190,3 +190,67 @@ stated wording doesn't carve out. See `rule_test/spec_reinstated/
 report.md` for the full quotes and diagnosis. Convention wording was
 deliberately left unchanged pending a decision on which failure mode to
 target.
+
+**2026-08-18 update (revision 5) — the "low-confidence" recall miss above
+was ground truth being wrong, not the agent. Corrected; also formalized
+a third output bucket to check whether misses are silent or self-flagged.**
+Two follow-ups on revision 4's unresolved recall-variance finding, run
+before any convention-wording change or scale work, per instruction to
+verify ground truth empirically before trusting it further.
+
+*B8b was not a required edit.* `ground_truth.md` counted
+`tests/test_jmeter_server.py:12` (`class FastMCP:`, the mock's own local
+class statement) as a required site. Runs 1–2's argument — that a
+`sys.modules` stub's exposed attribute name is what has to match, not the
+class statement's own bound identifier — was tested empirically, not
+argued: performed the real migration on a scratch copy of the repo,
+changed only the import path, the constructor call, and the two lines
+that set/register the stub's exposed attribute name, left the `class
+FastMCP:` statement itself untouched, and ran the test suite. Identical
+pass/fail result to the unmigrated baseline (6/9, matching pre-existing
+unrelated failures). A negative control — reverting the actually
+load-bearing line (the exposed attribute name) instead — broke the
+import as expected, confirming the test harness does discriminate real
+breaks from non-breaks. Ground truth was wrong; corrected. Target B's
+GT total drops from 21 sites to **20** (`ground_truth.md`, full
+before/after and mechanism explanation in
+`rule_test/spec_reinstated/b8b_verification.md`). Re-scoring the 27 runs
+against the corrected GT moves QAInsights run1 and run2 from 7/8 (87.5%)
+to **8/8 (100%) recall** — they were never wrong. Only run3's 4/7
+(57.1%) miss survives, unchanged, since none of its four excluded lines
+was B8b.
+
+*Three-bucket reclassification (PROPOSE / FLAG-UNCERTAIN / REJECT),
+applied to all 27 runs.* Every `considered_and_rejected` entry across
+all 27 runs (649 entries) was scanned for explicit hedge language
+("low confidence," "flagged here... rather than silently dropped,"
+"not strictly required," etc.) to separate sites the agent correctly
+flagged its own uncertainty about from sites it silently, confidently
+excluded. Method and script: `rule_test/spec_reinstated/
+score_three_bucket.py`; full output in `score_output_three_bucket.txt`.
+Against the corrected GT: **precision on proposed-only is 96/96 = 100%**,
+**recall on proposed-only is 96/99 = 97.0%**. All 3 remaining GT misses
+are QAInsights run3's lines 11/21/22 (the run-3-only over-applied-
+convention mechanism from revision 4) — **zero of the 3 landed in
+FLAG-UNCERTAIN; all 3 were silently missed via a confident REJECT
+reason**, and zero were "invisible" (i.e. the detector always discussed
+every eventual miss and gave a stated reason for excluding it — it never
+simply failed to notice a site). Only one entry in the entire 649-entry
+corpus used hedge language at all: QAInsights run2's rejection of line
+12 — the exact B8b site just removed from ground truth. So the single
+clearest self-flagged-uncertainty signal this detector produced across
+27 runs was about a site that, empirically, turned out not to need
+editing — a data point of one, but suggestive that when this detector's
+hedge language does fire, it may be tracking something real, while its
+confident-REJECT language (used for the run-3 misses) currently carries
+no such signal. **Limitation, stated plainly rather than glossed over:**
+this is a purely retrospective free-text scan against a detector that
+was only ever given a binary propose/reject contract — it was never
+asked to self-report confidence, so a near-total absence of hedge
+language mostly reflects that no bucket for it existed, not that the
+detector has no calibration. A prospective run with an actual
+three-bucket contract in the prompt is the real test of whether
+self-flagged uncertainty is a usable signal; this analysis only
+establishes that it's rare and, in its one occurrence, was right.
+Convention wording and the scale experiment remain on hold pending both
+of these landing.

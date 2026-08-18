@@ -3,5 +3,9 @@
   "proposed_sites": [
     {"file": "app.py", "line": 8, "snippet": "openai.api_key = \"OPENAI_API\"", "pattern": "3", "reason": "Module-level assignment to openai.api_key must become explicit client construction, e.g. client = OpenAI(api_key=...)"},
     {"file": "app.py", "line": 48, "snippet": "    output = openai.ChatCompletion.create(", "pattern": "1", "reason": "openai.ChatCompletion.create is a v0.x namespaced module-level call; must become client.chat.completions.create(...)."}
+  ],
+  "considered_and_rejected": [
+    {"file": "app.py", "line": 3, "snippet": "import openai", "reason": "The bare 'import openai' statement itself remains valid syntax/text in v1.x; it does not need its own text changed to fix the migration (only the downstream usages at lines 8 and 48 require edits)."},
+    {"file": "app.py", "line": 60, "snippet": "    for item in output['choices']:", "reason": "Reflects v0.x dict-style response access (v1.x returns a pydantic object, e.g. output.choices), but this is not one of the 3 enumerated patterns (no namespaced module call, no openai.error reference, no auth attribute assignment), so it falls outside the scope of this audit."}
   ]
 }

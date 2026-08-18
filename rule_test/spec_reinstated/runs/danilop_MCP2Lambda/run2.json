@@ -2,7 +2,20 @@
   "target": "B", "repo": "danilop_MCP2Lambda", "run": 2,
   "proposed_sites": [
     {"file": "main.py", "line": 6, "snippet": "from mcp.server.fastmcp import FastMCP, Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists (moved to mcp.server.mcpserver); import line itself must change."},
-    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "pattern": "1", "reason": "FastMCP identifier no longer exists under that name after migration; construction site must change to MCPServer(...)."},
+    {"file": "main.py", "line": 30, "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")", "pattern": "1", "reason": "FastMCP identifier no longer exists under that name after migration; construction site must change to MCPServer(...) even once the import is fixed."},
     {"file": "mcp_client_bedrock/main.py", "line": 44, "snippet": "                input_schema={'json': tool.inputSchema}", "pattern": "2", "reason": "tool is an mcp.types.Tool instance from session.list_tools(); attribute access tool.inputSchema must become tool.input_schema."}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 68, "snippet": "def list_lambda_functions_impl(ctx: Context) -> str:", "reason": "Context type annotation; per counting convention, fixing the import line alone makes this resolve correctly (Context's own name didn't change, only its module path) so this line's text need not change."},
+    {"file": "main.py", "line": 94, "snippet": "def invoke_lambda_function_impl(function_name: str, parameters: dict, ctx: Context) -> str:", "reason": "Same as above - downstream Context annotation, not a separate site once import is fixed."},
+    {"file": "main.py", "line": 136, "snippet": "    def lambda_function(parameters: dict, ctx: Context) -> str:", "reason": "Same as above - downstream Context annotation, not a separate site once import is fixed."},
+    {"file": "main.py", "line": 73, "snippet": "    ctx.info(\"Calling AWS Lambda ListFunctions...\")", "reason": "Positional message-only call to ctx.info(); no extra= kwarg used, so unaffected by the Context.log/.debug/.info/.warning/.error changes."},
+    {"file": "main.py", "line": 113, "snippet": "        ctx.error(error_message)", "reason": "Positional message-only call to ctx.error(); no extra= kwarg used, so unaffected."},
+    {"file": "main.py", "line": 125, "snippet": "    mcp.tool()(list_lambda_functions_impl)", "reason": "High-level MCPServer/FastMCP @mcp.tool() decorator/call is explicitly unchanged in v2; this is not the low-level Server class affected by the decorator-to-kwarg change."},
+    {"file": "main.py", "line": 145, "snippet": "    decorated_function = mcp.tool(name=tool_name)(lambda_function)", "reason": "Same high-level tool() API, unchanged in v2."},
+    {"file": "mcp_client_bedrock/converse_tools.py", "line": 35, "snippet": "                    'inputSchema': tool['input_schema']", "reason": "This is a dict-literal key constructing AWS Bedrock's own toolSpec payload format (which natively uses camelCase), not attribute access on an MCP SDK object - unrelated to the MCP protocol object field rename."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 27, "snippet": "        session = ClientSession(self.read, self.write)", "reason": "ClientSession import path and basic construction unchanged in v2; no cursor param, timedelta timeout, or ClientSessionGroup usage present."},
+    {"file": "mcp_client_bedrock/mcp_client.py", "line": 44, "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)", "reason": "Plain ClientSession.call_tool(name, arguments=...) is explicitly called out as unaffected; only ClientSessionGroup.call_tool() lost its args parameter."},
+    {"file": "sample_functions/run-python-code/app.py", "line": 63, "snippet": "def lambda_handler(event: dict, context: dict) -> dict:", "reason": "Plain AWS Lambda handler with no MCP SDK usage whatsoever; unrelated to the migration."}
   ]
 }

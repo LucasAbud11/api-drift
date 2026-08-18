@@ -3,5 +3,11 @@
   "proposed_sites": [
     {"file": "main.py", "line": 7, "snippet": "from mcp.server.fastmcp import FastMCP", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; must import MCPServer from mcp.server.mcpserver"},
     {"file": "main.py", "line": 26, "snippet": "mcp = FastMCP(name=\"secops-mcp\",", "pattern": "1", "reason": "FastMCP class no longer exists under that name; construction site itself must change to MCPServer(...)"}
+  ],
+  "considered_and_rejected": [
+    {"file": "main.py", "line": 31, "snippet": "@mcp.tool()", "reason": "Decorators on high-level MCPServer/FastMCP API are explicitly unchanged in v2 per pattern 4"},
+    {"file": "main.py", "line": 279, "snippet": "mcp.run(transport=\"stdio\")", "reason": "Not part of any described breaking change; .run() usage is unaffected once the import/construction is fixed"},
+    {"file": "main.py", "line": 15, "snippet": "from tools.httpx import run_httpx", "reason": "Refers to a local module wrapping the ProjectDiscovery httpx CLI tool, unrelated to the MCP SDK's internal httpx->httpx2 transport change (pattern 6)"},
+    {"file": "tools/httpx.py", "line": 21, "snippet": "cmd = [\"httpx\", \"-json\", \"-l\", \"-\"]  # Use stdin for list input", "reason": "Shells out to the httpx CLI security scanner, not the Python httpx library used by the MCP SDK transport; not affected by pattern 6"}
   ]
 }

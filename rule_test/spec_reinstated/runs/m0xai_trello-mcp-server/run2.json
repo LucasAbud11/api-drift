@@ -6,5 +6,23 @@
     {"file": "server/tools/board.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; Context moved to mcp.server.mcpserver"},
     {"file": "server/tools/card.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; Context moved to mcp.server.mcpserver"},
     {"file": "server/tools/list.py", "line": 8, "snippet": "from mcp.server.fastmcp import Context", "pattern": "1", "reason": "mcp.server.fastmcp module tree no longer exists in v2; Context moved to mcp.server.mcpserver"}
+  ],
+  "considered_and_rejected": [
+    {"file": "server/tools/board.py", "line": 20, "snippet": "async def get_board(ctx: Context, board_id: str) -> TrelloBoard:", "reason": "Downstream reference to Context; fixing the import at board.py:8 alone makes this annotation resolve again without its own text changing, per the counting convention"},
+    {"file": "server/tools/board.py", "line": 41, "snippet": "async def get_boards(ctx: Context) -> List[TrelloBoard]:", "reason": "Same as above - downstream annotation, not a separate site"},
+    {"file": "server/tools/board.py", "line": 59, "snippet": "async def get_board_labels(ctx: Context, board_id: str) -> List[TrelloLabel]:", "reason": "Same as above - downstream annotation, not a separate site"},
+    {"file": "server/tools/board.py", "line": 80, "snippet": "async def create_board_label(ctx: Context, board_id: str, payload: CreateLabelPayload) -> TrelloLabel:", "reason": "Same as above - downstream annotation, not a separate site"},
+    {"file": "server/tools/card.py", "line": 21, "snippet": "async def get_card(ctx: Context, card_id: str) -> TrelloCard:", "reason": "Downstream annotation, resolved once card.py:8 import is fixed"},
+    {"file": "server/tools/card.py", "line": 42, "snippet": "async def get_cards(ctx: Context, list_id: str) -> List[TrelloCard]:", "reason": "Downstream annotation, resolved once card.py:8 import is fixed"},
+    {"file": "server/tools/card.py", "line": 63, "snippet": "async def create_card(ctx: Context, payload: CreateCardPayload) -> TrelloCard:", "reason": "Downstream annotation, resolved once card.py:8 import is fixed"},
+    {"file": "server/tools/card.py", "line": 87, "snippet": "    ctx: Context, card_id: str, payload: UpdateCardPayload", "reason": "Downstream annotation, resolved once card.py:8 import is fixed"},
+    {"file": "server/tools/card.py", "line": 112, "snippet": "async def delete_card(ctx: Context, card_id: str) -> dict:", "reason": "Downstream annotation, resolved once card.py:8 import is fixed"},
+    {"file": "server/tools/list.py", "line": 20, "snippet": "async def get_list(ctx: Context, list_id: str) -> TrelloList:", "reason": "Downstream annotation, resolved once list.py:8 import is fixed"},
+    {"file": "server/tools/list.py", "line": 41, "snippet": "async def get_lists(ctx: Context, board_id: str) -> List[TrelloList]:", "reason": "Downstream annotation, resolved once list.py:8 import is fixed"},
+    {"file": "server/tools/list.py", "line": 63, "snippet": "    ctx: Context, board_id: str, name: str, pos: str = \"bottom\"", "reason": "Downstream annotation, resolved once list.py:8 import is fixed"},
+    {"file": "server/tools/list.py", "line": 87, "snippet": "async def update_list(ctx: Context, list_id: str, name: str) -> TrelloList:", "reason": "Downstream annotation, resolved once list.py:8 import is fixed"},
+    {"file": "server/tools/list.py", "line": 109, "snippet": "async def delete_list(ctx: Context, list_id: str) -> TrelloList:", "reason": "Downstream annotation, resolved once list.py:8 import is fixed"},
+    {"file": "server/utils/trello_api.py", "line": 21, "snippet": "self.client = httpx.AsyncClient(base_url=self.base_url)", "reason": "This httpx.AsyncClient is used solely to call Trello's own third-party REST API and is never passed into an MCP SDK function; guide explicitly excludes this usage from pattern 6"},
+    {"file": "server/tools/tools.py", "line": 11, "snippet": "mcp.add_tool(board.get_board)", "reason": "MCPServer.add_tool() is explicitly unchanged in v2 per pattern 4"}
   ]
 }
