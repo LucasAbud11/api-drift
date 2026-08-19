@@ -32,21 +32,24 @@ checking its own answer.
 
 - **Target A**: OpenAI SDK v0.x → v1.x, a real, well-documented migration,
   applied to 4 public repos (13 ground-truth sites).
-- **Target B**: MCP Python SDK v1 → v2, an *invented* migration for a real
-  SDK, dated in the future (stated as "released July 2026," after any
-  realistic training cutoff), applied to 5 public repos (20 sites after
-  one correction — see below).
+- **Target B**: MCP Python SDK v1 → v2, a real migration with a real
+  public guide (py.sdk.modelcontextprotocol.io), released July 2026,
+  applied to 5 public repos (20 sites after one correction — see below).
 
-Target B is the control. Target A's migration is real and old enough that
-a model could plausibly recite its facts from memorized training data
-without reading a single line of code — good performance there doesn't
+Target B is the control, and the reason is its recency, not its
+existence. Target A's migration is real and old enough that a model
+could plausibly recite its facts from memorized training data without
+reading a single line of code — good performance there doesn't
 distinguish "reasoning about this codebase" from "recalling a famous
-migration guide." Target B cannot be recalled from anywhere: it doesn't
-exist. Any correct answer on Target B has to come from actually reading
-the supplied spec and the actual code. Target A stayed clean (100%/100%,
-no exceptions, every experiment) for the whole study; nearly everything
-interesting — every reversal below — happened on Target B, which is
-exactly what the control is supposed to surface.
+migration guide." Target B's migration is equally real, but it shipped
+after any realistic training cutoff for the models used in this study —
+nothing about it could have been memorized, so a correct answer can only
+come from reading the supplied guide and the actual code. (The one
+invented artifact anywhere in this study is a synthetic test application
+built later for one experiment, Section 3 below — the migration itself
+was never fictional.) Target A stayed clean (100%/100%, no exceptions,
+every experiment); nearly everything interesting — every reversal below
+— happened on Target B, exactly what the control is supposed to surface.
 
 ## 3. Findings, in the order they were found
 
@@ -132,11 +135,11 @@ sites dropped by a deterministic candidate-reduction filter that assumed
 certain irrelevance — wrong here, because the file touched the SDK's data
 shape only through the app's own wrapper and never named the package.
 One of those two was production code, not a test file — the only
-production-code miss recorded anywhere in this entire study. It was
-traced to the filter, not the agent (confirmed by disabling the filter
-stage and re-running: the agent proposed the site correctly every time
-given the chance), fixed by making that filter's relevance check follow
-the codebase's own import graph instead of just the file's own text, and
+production-code miss recorded anywhere in this study. Traced to the
+filter, not the agent (confirmed by disabling the filter and
+re-running: the agent proposed the site correctly every time given the
+chance), fixed by making the filter's relevance check follow the
+codebase's own import graph instead of just the file's own text, and
 re-verified with 9 fresh runs across three hosts: the fix recovered the
 site with zero regressions and zero new production misses, at a real,
 accepted cost in how much the filter reduces candidate volume.
@@ -146,9 +149,12 @@ accepted cost in how much the filter reduces candidate volume.
 Three stages, each doing one job:
 
 1. **Grep** — exhaustive, coverage-tuned pattern matching. Not asked to be
-   precise; a broad vocabulary derived from the public migration guide
-   alone (without looking at the answer key) still found every ground-truth
-   site across both targets in this study.
+   precise; a broad vocabulary derived from the public guide alone
+   (without looking at the answer key) found all 33 ground-truth sites in
+   the core study — but not universally: the same vocabulary missed one
+   site on the entangled host (Section 3), a mock-assertion idiom no
+   pattern anticipated. Grep is exhaustive relative to the vocabulary
+   someone wrote, not exhaustive by construction.
 2. **A deterministic, LLM-free prefilter** — cuts candidate volume (raw
    candidate counts in the thousands caused outright completion failures
    before this existed) using rules built to fail toward *keeping*: a
@@ -186,9 +192,20 @@ ambiguous fact rather than guessing. The entangled host's 90% surfaced
 ceiling is the one number here that isn't a hedge: it's the single
 real site the grep vocabulary never turned into a candidate at all.
 
+The Target B and entangled rows are one fresh pipeline run end-to-end:
+the exact candidate list shown was adjudicated 3 times each. The Target A
+rows are not that. The 30.8% reduction is freshly verified (the
+prefilter has no LLM in it and is byte-for-byte reproducible), but the
+100%/100% agent figures are carried over from two earlier experiments
+run before this prefilter stage existed, not from adjudicating this
+exact 9-candidate list. Given zero variance on Target A across every
+configuration tested elsewhere (18 runs, zero misses, zero false
+positives), this is a low-risk carryover — but it's a carryover, not a
+fresh result, flagged here rather than presented as one.
+
 ## 6. Limitations, stated plainly
 
-**Test/mock coverage is the study's real, recurring weak spot**, via four
+**Test/mock coverage is the study's real, recurring weak spot** — four
 independently-discovered mechanisms, not one recurring bug: an agent
 over-applying "fixing the import repairs downstream usage" to code that
 *impersonates* a moved symbol rather than merely referencing it; the
@@ -207,12 +224,12 @@ safety net a missed production site doesn't have.
 monorepo.** It now follows a codebase's own import graph to avoid
 dropping files that touch an SDK only through the host's own wrapper —
 fixed and verified on the one host that exposed the bug. Every host
-tested is either a handful of independent small repos or one large repo
-with no single shared internal module most files import. A real company
-monorepo with a shared internal SDK/framework layer is a structurally
-different, untested case; if the filter's relevant file is central to
-such a codebase, its reduction value could collapse toward zero there.
-The documented fallback is dropping that filter stage entirely and
+tested here is either a handful of independent small repos or one large
+repo with no single shared internal module most files import. A real
+company monorepo with a shared internal SDK/framework layer is
+structurally different and untested; if the filter's relevant file is
+central to such a codebase, its reduction value could collapse toward
+zero there. The documented fallback is dropping that filter stage and
 absorbing higher review volume — a cost problem, not a silent-miss one.
 
 **Everything here is one migration per target, one SDK family per
@@ -222,26 +239,23 @@ change with no textual signature (a behavior-only change, a
 config-driven default), or a codebase behind on more than one migration
 at once.
 
-**The absolute sample size is small.** 43 total ground-truth sites is
-enough to find and characterize specific failure mechanisms, not enough
-to claim their rates are stable. Both real gaps this study found — the
-test/mock cluster and the entanglement miss — were invisible until a
-host was specifically built to go looking for them; there is no
-guarantee a larger, more varied corpus wouldn't surface another one the
-same way.
+**The absolute sample size is small.** 43 ground-truth sites is enough
+to find and characterize specific failure mechanisms, not enough to
+claim their rates are stable. Both real gaps found here — the test/mock
+cluster and the entanglement miss — were invisible until a host was
+specifically built to go looking for them; a larger, more varied corpus
+could easily surface another one the same way.
 
 ## 7. What would have to be true for this to be a product
 
 This measures detection accuracy on a fixed, known candidate list against
 a hand-verified answer key. It does not measure: whether a real reviewer
-trusts and correctly acts on a PROPOSE/FLAG-UNCERTAIN/REJECT list in an
-actual workflow; whether the grep-vocabulary-derivation step holds up
-against migration guides far less complete than the ones used here;
-latency and cost at repository sizes and candidate volumes larger than
-anything tested; a real shared-core monorepo, the one topology explicitly
-flagged as untested above; a second language; a breaking change with no
-grep-able signature at all; or a codebase carrying multiple overlapping,
-unresolved migrations simultaneously. Turning this into a product means
-closing those gaps one at a time, in the open, the same way each finding
-in this report closed the gap that came before it — not asserting the
-final numbers cover them.
+trusts and acts correctly on a PROPOSE/FLAG-UNCERTAIN/REJECT list in an
+actual workflow; whether grep-vocabulary derivation holds up against
+guides far less complete than these; latency and cost at repository
+sizes larger than anything tested; a real shared-core monorepo, flagged
+above as untested; a second language; a breaking change with no
+grep-able signature at all; or a codebase behind on several overlapping
+migrations at once. Turning this into a product means closing those gaps
+one at a time, in the open, the way each finding here closed the one
+before it — not asserting the final numbers already cover them.
