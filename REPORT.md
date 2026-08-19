@@ -192,16 +192,10 @@ ambiguous fact rather than guessing. The entangled host's 90% surfaced
 ceiling is the one number here that isn't a hedge: it's the single
 real site the grep vocabulary never turned into a candidate at all.
 
-The Target B and entangled rows are one fresh pipeline run end-to-end:
-the exact candidate list shown was adjudicated 3 times each. The Target A
-rows are not that. The 30.8% reduction is freshly verified (the
-prefilter has no LLM in it and is byte-for-byte reproducible), but the
-100%/100% agent figures are carried over from two earlier experiments
-run before this prefilter stage existed, not from adjudicating this
-exact 9-candidate list. Given zero variance on Target A across every
-configuration tested elsewhere (18 runs, zero misses, zero false
-positives), this is a low-risk carryover — but it's a carryover, not a
-fresh result, flagged here rather than presented as one.
+Every row is one consistent, fresh, end-to-end run of the current
+three-stage pipeline: the same prefilter code, the same candidate list
+shown, adjudicated 3 times per host, 15 runs total. No row mixes in a
+result from before this exact pipeline existed.
 
 ## 6. Limitations, stated plainly
 

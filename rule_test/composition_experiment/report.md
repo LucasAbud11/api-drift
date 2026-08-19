@@ -92,9 +92,11 @@ anything about entanglement — this pipeline still hasn't been tested
 against a host where the target library's own shapes are woven through
 the host's code (subclassed `Context`, wrapped SDK objects, re-exported
 symbols), which is the next experiment; (3) that the grep vocabulary
-used here generalizes to a real migration where the breaking-change
-vocabulary isn't already known as precisely as it is in this study's
-synthetic Target B — coverage-tuned grep is only exhaustive relative to
+used here generalizes to a migration where the breaking-change
+vocabulary isn't already known as precisely as it is for this study's
+Target B, whose real guide has been read and hand-verified against
+ground truth in unusual depth — coverage-tuned grep is only exhaustive
+relative to
 a vocabulary someone had to write, and mis-specifying that vocabulary
 (missing a term the way the original baseline missed bare `Context`,
 see `rule_test/original_session_recovered/grep_baseline_command.sh`'s

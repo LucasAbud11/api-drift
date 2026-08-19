@@ -140,6 +140,44 @@ entirely by the decorator/registration class (grep: 43 false leads, agent:
 0) and the client-side class (grep: 12.5% precision, agent: 100%). Full
 breakdown in `results.md`.
 
+## Lesson 5: a wrong label propagated across many artifacts because nothing re-checked the source
+
+Line 77 of this file, written near the start of the study, already has the
+correct framing: Target B is "this real, recent, unmemorized migration."
+That was accurate then and is accurate now — MCP Python SDK v1→v2 is a
+real migration with a real public guide (py.sdk.modelcontextprotocol.io),
+released July 2026, chosen specifically because its recency rules out
+memorization, not because it was made up.
+
+At some later point, in some artifact, "unmemorized" or "this study's own
+Target B" drifted into "synthetic Target B" — and once that label existed
+in one file, it was copied, paraphrased, and asserted as established fact
+in at least one other (`rule_test/composition_experiment/report.md`,
+"this study's synthetic Target B") and then, worse, generalized into an
+entire paragraph of a later external-facing report (`REPORT.md`'s first
+draft: "an *invented* migration... it doesn't exist") without anyone
+re-deriving it from the original source or checking it against the live
+guide. Caught only when a reader who knew the guide was real asked the
+report to show its work, and a direct fetch of the actual URL confirmed
+the guide's details — including specific ones (the `httpx`→`httpx2`
+dependency swap, `NoBackChannelError`, the `2026-07-28` protocol-version
+marker) that had been assumed too oddly specific to be real, and were
+exactly the details that would have disconfirmed the wrong label fastest
+if anyone had checked.
+
+This is the same mechanism as the reconstruction-from-memory failures
+documented elsewhere in this study (`results.md` revision 5's silent
+data corruption, the circular precision reconstruction) — not a copy-paste
+accident but the general failure mode: a claim gets asserted once without
+being freshly re-derived from its source, and every subsequent artifact
+that cites it is citing the claim, not the source, so the error compounds
+invisibly instead of surfacing. The fix pattern is the same one already
+in place for run data (`validate_run_file()` refusing to trust anything
+not read fresh from disk): treat any claim about the study's own setup —
+not just its results — as something to re-verify against the primary
+source before repeating it in a new document, especially an
+external-facing one.
+
 ## Difficulty class taxonomy (fixed for the whole study)
 
 - `literal` — direct call, textually obvious
