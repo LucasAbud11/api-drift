@@ -1,0 +1,243 @@
+Only in <scratch>/entangled_correct_fix/host: .pytest_cache
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/orchestrator/tool_catalog.py <scratch>/entangled_correct_fix/host/src/opsmesh/orchestrator/tool_catalog.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/orchestrator/tool_catalog.py	2026-08-18 14:35:43
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/orchestrator/tool_catalog.py	2026-08-19 09:39:49
+@@ -43,7 +43,7 @@
+                         server_name=server_name,
+                         tool_name=tool.name,
+                         description=getattr(tool, "description", "") or "",
+-                        input_schema=getattr(tool, "inputSchema", {}) or {},
++                        input_schema=getattr(tool, "input_schema", {}) or {},
+                     )
+                 )
+         logger.debug("Built tool catalog with %d tools", len(catalog._tools))
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/base.py <scratch>/entangled_correct_fix/host/src/opsmesh/server/base.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/base.py	2026-08-18 14:34:45
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/server/base.py	2026-08-19 09:39:49
+@@ -13,7 +13,7 @@
+ import logging
+ from typing import Any
+ 
+-from mcp.server.fastmcp import FastMCP
++from mcp.server.mcpserver import MCPServer
+ 
+ from opsmesh.config import OpsMeshConfig
+ from opsmesh.exceptions import ServerStartupError
+@@ -21,7 +21,7 @@
+ logger = logging.getLogger(__name__)
+ 
+ 
+-class OpsMeshServer(FastMCP):
++class OpsMeshServer(MCPServer):
+     """FastMCP subclass with OpsMesh-specific startup and lifecycle hooks."""
+ 
+     def __init__(self, config: OpsMeshConfig, **kwargs: Any) -> None:
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/context.py <scratch>/entangled_correct_fix/host/src/opsmesh/server/context.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/context.py	2026-08-18 14:34:48
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/server/context.py	2026-08-19 09:39:31
+@@ -9,18 +9,9 @@
+ 
+ import logging
+ 
+-from mcp.server.fastmcp import Context
+-from mcp.server.fastmcp import get_context as _mcp_get_context
++from mcp.server.mcpserver import Context
+ 
+ logger = logging.getLogger(__name__)
+-
+-
+-def current_context() -> Context:
+-    """Return the active request Context, raising a clear error if unavailable."""
+-    ctx = _mcp_get_context()
+-    if ctx is None:
+-        raise RuntimeError("current_context() called outside of a request handler")
+-    return ctx
+ 
+ 
+ async def report_error(ctx: Context, message: str, *, exc: Exception | None = None) -> None:
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/deployments.py <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/deployments.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/deployments.py	2026-08-18 14:35:05
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/deployments.py	2026-08-19 09:39:31
+@@ -5,7 +5,7 @@
+ from dataclasses import dataclass
+ 
+ from opsmesh.exceptions import ToolExecutionError
+-from opsmesh.server.context import current_context, report_error, report_info
++from opsmesh.server.context import Context, report_error, report_info
+ 
+ 
+ @dataclass
+@@ -45,9 +45,8 @@
+     _seed_demo_data()
+ 
+     @mcp.tool()
+-    async def get_deployment_status(service: str) -> dict:
++    async def get_deployment_status(service: str, ctx: Context) -> dict:
+         """Return the most recent deployment record for a service."""
+-        ctx = current_context()
+         record = _DEPLOYMENT_LOG.get(service)
+         if record is None:
+             await report_error(ctx, f"No deployment records found for service {service!r}")
+@@ -61,9 +60,8 @@
+             "deployed_by": record.deployed_by,
+         }
+ 
+-    async def trigger_rollback(service: str, target_version: str) -> dict:
++    async def trigger_rollback(service: str, target_version: str, ctx: Context) -> dict:
+         """Roll a service back to a previously known-good version."""
+-        ctx = current_context()
+         record = _DEPLOYMENT_LOG.get(service)
+         if record is None:
+             raise ToolExecutionError(f"unknown service: {service}")
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/incidents.py <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/incidents.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/incidents.py	2026-08-18 14:35:11
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/incidents.py	2026-08-19 09:39:31
+@@ -10,7 +10,7 @@
+ import datetime as dt
+ from dataclasses import dataclass
+ 
+-from opsmesh.server.context import current_context, report_info
++from opsmesh.server.context import Context, report_info
+ 
+ 
+ @dataclass
+@@ -65,9 +65,8 @@
+ 
+ def register(mcp) -> None:
+     @mcp.tool()
+-    async def list_recent_incidents(service: str = "", include_resolved: bool = False) -> list[dict]:
++    async def list_recent_incidents(service: str = "", include_resolved: bool = False, *, ctx: Context) -> list[dict]:
+         """List recent incidents, optionally filtered to a single service."""
+-        ctx = current_context()
+         incidents = _store.recent(service or None, include_resolved=include_resolved)
+         await report_info(ctx, f"Returning {len(incidents)} incident(s)")
+         return [
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/runbooks.py <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/runbooks.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/runbooks.py	2026-08-18 14:35:18
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/runbooks.py	2026-08-19 09:39:31
+@@ -5,7 +5,7 @@
+ """
+ from __future__ import annotations
+ 
+-from opsmesh.server.context import current_context
++from opsmesh.server.context import Context
+ 
+ _RUNBOOKS = [
+     {
+@@ -28,9 +28,8 @@
+ 
+ def register(mcp) -> None:
+     @mcp.tool()
+-    async def search_runbooks(query: str) -> list[dict]:
++    async def search_runbooks(query: str, ctx: Context) -> list[dict]:
+         """Search runbook titles/tags for a query string."""
+-        current_context()
+         query_lower = query.lower()
+         matches = [
+             rb
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/service_catalog.py <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/service_catalog.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/tools/service_catalog.py	2026-08-18 14:35:15
++++ <scratch>/entangled_correct_fix/host/src/opsmesh/server/tools/service_catalog.py	2026-08-19 09:39:31
+@@ -5,7 +5,7 @@
+ """
+ from __future__ import annotations
+ 
+-from opsmesh.server.context import current_context
++from opsmesh.server.context import Context
+ 
+ CATALOG = {
+     "billing-api": {"owner": "team-payments", "repo": "github.com/acme/billing-api", "tier": 1},
+@@ -20,9 +20,8 @@
+ 
+ def register(mcp) -> None:
+     @mcp.tool()
+-    async def get_service_owner(service: str) -> dict:
++    async def get_service_owner(service: str, ctx: Context) -> dict:
+         """Look up the owning team, repo, and criticality tier for a service."""
+-        current_context()  # validates we're inside a request; raises otherwise
+         entry = CATALOG.get(service)
+         if entry is None:
+             return {"service": service, "owner": None, "found": False}
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/tests/test_orchestrator_agent.py <scratch>/entangled_correct_fix/host/tests/test_orchestrator_agent.py
+--- <repo-root>/rule_test/entanglement_experiment/host/tests/test_orchestrator_agent.py	2026-08-18 14:36:24
++++ <scratch>/entangled_correct_fix/host/tests/test_orchestrator_agent.py	2026-08-19 09:39:49
+@@ -15,7 +15,7 @@
+ 
+ 
+ def _fake_tool(name: str, description: str, schema: dict):
+-    return SimpleNamespace(name=name, description=description, inputSchema=schema)
++    return SimpleNamespace(name=name, description=description, input_schema=schema)
+ 
+ 
+ @pytest.mark.asyncio
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/tests/test_server_base.py <scratch>/entangled_correct_fix/host/tests/test_server_base.py
+--- <repo-root>/rule_test/entanglement_experiment/host/tests/test_server_base.py	2026-08-18 14:36:05
++++ <scratch>/entangled_correct_fix/host/tests/test_server_base.py	2026-08-19 09:39:49
+@@ -28,7 +28,7 @@
+ 
+ def test_run_marks_ready_and_delegates_to_fastmcp(config: OpsMeshConfig):
+     server = OpsMeshServer(config)
+-    with patch("mcp.server.fastmcp.FastMCP.run") as fastmcp_run:
++    with patch("mcp.server.mcpserver.MCPServer.run") as fastmcp_run:
+         server.run()
+     assert server.is_ready
+     fastmcp_run.assert_called_once()
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/tests/test_tools.py <scratch>/entangled_correct_fix/host/tests/test_tools.py
+--- <repo-root>/rule_test/entanglement_experiment/host/tests/test_tools.py	2026-08-18 14:36:12
++++ <scratch>/entangled_correct_fix/host/tests/test_tools.py	2026-08-19 09:39:49
+@@ -34,45 +34,40 @@
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_get_deployment_status_known_service(fake_mcp, mock_context, monkeypatch):
++async def test_get_deployment_status_known_service(fake_mcp, mock_context):
+     deployments.register(fake_mcp)
+-    monkeypatch.setattr("opsmesh.server.tools.deployments.current_context", lambda: mock_context)
+-    result = await fake_mcp.tools["get_deployment_status"]("billing-api")
++    result = await fake_mcp.tools["get_deployment_status"]("billing-api", mock_context)
+     assert result["service"] == "billing-api"
+     assert result["environment"] == "production"
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_get_deployment_status_unknown_service_raises(fake_mcp, mock_context, monkeypatch):
++async def test_get_deployment_status_unknown_service_raises(fake_mcp, mock_context):
+     from opsmesh.exceptions import ToolExecutionError
+ 
+     deployments.register(fake_mcp)
+-    monkeypatch.setattr("opsmesh.server.tools.deployments.current_context", lambda: mock_context)
+     with pytest.raises(ToolExecutionError):
+-        await fake_mcp.tools["get_deployment_status"]("does-not-exist")
++        await fake_mcp.tools["get_deployment_status"]("does-not-exist", mock_context)
+     mock_context.error.assert_awaited()
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_trigger_rollback_updates_version(fake_mcp, mock_context, monkeypatch):
++async def test_trigger_rollback_updates_version(fake_mcp, mock_context):
+     deployments.register(fake_mcp)
+-    monkeypatch.setattr("opsmesh.server.tools.deployments.current_context", lambda: mock_context)
+-    result = await fake_mcp.tools["trigger_rollback"]("billing-api", "2.13.0")
++    result = await fake_mcp.tools["trigger_rollback"]("billing-api", "2.13.0", mock_context)
+     assert result["status"] == "rolled_back"
+     assert result["version"] == "2.13.0"
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_list_recent_incidents_filters_resolved(fake_mcp, mock_context, monkeypatch):
++async def test_list_recent_incidents_filters_resolved(fake_mcp, mock_context):
+     incidents.register(fake_mcp)
+-    monkeypatch.setattr("opsmesh.server.tools.incidents.current_context", lambda: mock_context)
+-    result = await fake_mcp.tools["list_recent_incidents"]()
++    result = await fake_mcp.tools["list_recent_incidents"](ctx=mock_context)
+     assert all(not i["resolved"] for i in result)
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_search_runbooks_matches_tag(fake_mcp, mock_context, monkeypatch):
++async def test_search_runbooks_matches_tag(fake_mcp, mock_context):
+     runbooks.register(fake_mcp)
+-    monkeypatch.setattr("opsmesh.server.tools.runbooks.current_context", lambda: mock_context)
+-    matches = await fake_mcp.tools["search_runbooks"]("5xx")
++    matches = await fake_mcp.tools["search_runbooks"]("5xx", mock_context)
+     assert any("Billing API" in m["title"] for m in matches)

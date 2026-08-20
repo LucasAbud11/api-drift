@@ -1,0 +1,128 @@
+{
+  "note": "Input to the fix-generation stage. This is the confirmed-sites list a human reviewer would hand off after the detection stage: every site here is already agreed to need an edit (100% surfaced recall / 100% precision was independently measured for targetB_small in rule_test/prefilter_experiment/transitive_verification). The 'reason' field intentionally states only WHY the site was flagged, never the replacement text -- giving the fix-generation agent the answer in its own input would make the experiment circular. Fix-generation's job is to read the migration spec and the actual source and determine the correct edit itself. The reason field intentionally states only WHY the site was flagged, never the replacement text. This is the same 20 sites as targetB_small, embedded inside the diluted host (685 unrelated Django files + the 5 repos under integrations/) used for that host's detection-stage measurements.",
+  "target": "B",
+  "repo_set": "targetB_diluted",
+  "sites": [
+    {
+      "id": "B1",
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 10,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B2",
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 25,
+      "reason": "References a symbol from the module tree affected by the migration (type annotation)."
+    },
+    {
+      "id": "B3",
+      "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+      "line": 27,
+      "reason": "References a symbol from the module tree affected by the migration (construction call)."
+    },
+    {
+      "id": "B4",
+      "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+      "line": 2,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B5",
+      "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+      "line": 9,
+      "reason": "References a symbol from the module tree affected by the migration (construction call)."
+    },
+    {
+      "id": "B6",
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 4,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B7",
+      "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+      "line": 23,
+      "reason": "References a symbol from the module tree affected by the migration (construction call)."
+    },
+    {
+      "id": "B8a",
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 11,
+      "reason": "Test-mock machinery that impersonates a module path affected by the migration."
+    },
+    {
+      "id": "B8c",
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 21,
+      "reason": "Test-mock machinery that impersonates a module path affected by the migration."
+    },
+    {
+      "id": "B8d",
+      "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+      "line": 22,
+      "reason": "Test-mock machinery that impersonates a module path affected by the migration."
+    },
+    {
+      "id": "B9",
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 7,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B10",
+      "file": "integrations/securityfortech_secops-mcp/main.py",
+      "line": 26,
+      "reason": "References a symbol from the module tree affected by the migration (construction call)."
+    },
+    {
+      "id": "B11",
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 6,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B12",
+      "file": "integrations/m0xai_trello-mcp-server/main.py",
+      "line": 23,
+      "reason": "References a symbol from the module tree affected by the migration (construction call)."
+    },
+    {
+      "id": "B13",
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+      "line": 8,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B14",
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+      "line": 8,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B15",
+      "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+      "line": 8,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B16",
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 6,
+      "reason": "References a symbol from the module tree affected by the migration (import statement)."
+    },
+    {
+      "id": "B17",
+      "file": "integrations/danilop_MCP2Lambda/main.py",
+      "line": 30,
+      "reason": "References a symbol from the module tree affected by the migration (construction call)."
+    },
+    {
+      "id": "B18",
+      "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+      "line": 44,
+      "reason": "Client-side attribute access on an SDK-returned tool metadata object."
+    }
+  ],
+  "host_root": "rule_test/scale_experiment/host"
+}

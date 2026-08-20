@@ -1,0 +1,72 @@
+Only in <scratch>/entangled_naive_fix/host: .pytest_cache
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/orchestrator/tool_catalog.py <scratch>/entangled_naive_fix/host/src/opsmesh/orchestrator/tool_catalog.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/orchestrator/tool_catalog.py	2026-08-18 14:35:43
++++ <scratch>/entangled_naive_fix/host/src/opsmesh/orchestrator/tool_catalog.py	2026-08-19 09:39:12
+@@ -43,7 +43,7 @@
+                         server_name=server_name,
+                         tool_name=tool.name,
+                         description=getattr(tool, "description", "") or "",
+-                        input_schema=getattr(tool, "inputSchema", {}) or {},
++                        input_schema=getattr(tool, "input_schema", {}) or {},
+                     )
+                 )
+         logger.debug("Built tool catalog with %d tools", len(catalog._tools))
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/base.py <scratch>/entangled_naive_fix/host/src/opsmesh/server/base.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/base.py	2026-08-18 14:34:45
++++ <scratch>/entangled_naive_fix/host/src/opsmesh/server/base.py	2026-08-19 09:39:12
+@@ -13,7 +13,7 @@
+ import logging
+ from typing import Any
+ 
+-from mcp.server.fastmcp import FastMCP
++from mcp.server.mcpserver import MCPServer
+ 
+ from opsmesh.config import OpsMeshConfig
+ from opsmesh.exceptions import ServerStartupError
+@@ -21,7 +21,7 @@
+ logger = logging.getLogger(__name__)
+ 
+ 
+-class OpsMeshServer(FastMCP):
++class OpsMeshServer(MCPServer):
+     """FastMCP subclass with OpsMesh-specific startup and lifecycle hooks."""
+ 
+     def __init__(self, config: OpsMeshConfig, **kwargs: Any) -> None:
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/context.py <scratch>/entangled_naive_fix/host/src/opsmesh/server/context.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/server/context.py	2026-08-18 14:34:48
++++ <scratch>/entangled_naive_fix/host/src/opsmesh/server/context.py	2026-08-19 09:39:12
+@@ -9,8 +9,8 @@
+ 
+ import logging
+ 
+-from mcp.server.fastmcp import Context
+-from mcp.server.fastmcp import get_context as _mcp_get_context
++from mcp.server.mcpserver import Context
++from mcp.server.mcpserver import get_context as _mcp_get_context
+ 
+ logger = logging.getLogger(__name__)
+ 
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/tests/test_orchestrator_agent.py <scratch>/entangled_naive_fix/host/tests/test_orchestrator_agent.py
+--- <repo-root>/rule_test/entanglement_experiment/host/tests/test_orchestrator_agent.py	2026-08-18 14:36:24
++++ <scratch>/entangled_naive_fix/host/tests/test_orchestrator_agent.py	2026-08-19 09:39:12
+@@ -15,7 +15,7 @@
+ 
+ 
+ def _fake_tool(name: str, description: str, schema: dict):
+-    return SimpleNamespace(name=name, description=description, inputSchema=schema)
++    return SimpleNamespace(name=name, description=description, input_schema=schema)
+ 
+ 
+ @pytest.mark.asyncio
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/tests/test_server_base.py <scratch>/entangled_naive_fix/host/tests/test_server_base.py
+--- <repo-root>/rule_test/entanglement_experiment/host/tests/test_server_base.py	2026-08-18 14:36:05
++++ <scratch>/entangled_naive_fix/host/tests/test_server_base.py	2026-08-19 09:39:12
+@@ -28,7 +28,7 @@
+ 
+ def test_run_marks_ready_and_delegates_to_fastmcp(config: OpsMeshConfig):
+     server = OpsMeshServer(config)
+-    with patch("mcp.server.fastmcp.FastMCP.run") as fastmcp_run:
++    with patch("mcp.server.mcpserver.MCPServer.run") as fastmcp_run:
+         server.run()
+     assert server.is_ready
+     fastmcp_run.assert_called_once()

@@ -1,0 +1,305 @@
+{
+  "run1": {
+    "run_file": "run1.json",
+    "n_sites": 10,
+    "exact_match_rate": 0.6,
+    "semantic_equivalent_rate": 0.0,
+    "locally_plausible_globally_wrong_rate": 0.0,
+    "legitimate_hedge_rate": 0.4,
+    "avoidable_hedge_rate": 0.0,
+    "wrong_rate": 0.0,
+    "duplicate_ids_in_run": [],
+    "missing_ids": [],
+    "unexpected_extra_ids": [],
+    "detail": [
+      {
+        "id": "E1",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Fact 1: the whole mcp.server.fastmcp module tree moves to mcp.server.mcpserver with no compatibility alias, and FastMCP is renamed MCPServer. This import must be rewritten to import MCPServer from the new path; the subsequent use as a base class (line 24) is a separate site (E2) since fixing this import alone does not repair that line's own text (per the spec's own FastMCP/MCPServer counting example)."
+      },
+      {
+        "id": "E2",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "class OpsMeshServer(MCPServer):",
+        "required_line": "class OpsMeshServer(MCPServer):",
+        "reason": "Fact 1: FastMCP is renamed to MCPServer with no compatibility alias, so any construction/base-class reference to the identifier FastMCP must itself change text (this is the spec's own worked example of a separate site from the import fix). Constructor/inheritance contract is otherwise unchanged, so swapping the base class name alone is sufficient once the import (E1) is also fixed."
+      },
+      {
+        "id": "E3",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Fact 1 explicitly states Context, when imported from mcp.server.fastmcp, moves along with the rest of the submodule tree to mcp.server.mcpserver. Context itself is not renamed, only relocated, so a straight path swap is the complete fix for this import."
+      },
+      {
+        "id": "E7",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+        "required_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+        "reason": "Fact 2: tool.inputSchema -> tool.input_schema is a stated attribute-access rename. This getattr call reads the attribute by string name (equivalent to dotted attribute access), so the string literal must change from \"inputSchema\" to \"input_schema\". This is a self-contained single-line fix; the CatalogedTool.input_schema field it's assigned into is unrelated local naming and needs no change."
+      },
+      {
+        "id": "E8",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+        "required_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+        "reason": "Fact 1: the whole fastmcp module tree, including the FastMCP class (renamed MCPServer), moves to mcp.server.mcpserver. Once base.py's OpsMeshServer subclasses MCPServer (see E1/E2), this mock.patch dotted-path string must target the new location and class name for the patch to actually intercept the base class's run() method that OpsMeshServer.run() delegates to via super(). Only the string literal needs to change; the local variable name fastmcp_run is cosmetic and not part of the migration."
+      },
+      {
+        "id": "E10",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+        "required_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+        "reason": "Fact 2: tool.inputSchema -> tool.input_schema is an attribute-access rename (the constructor-kwargs-accept-both caveat in fact 2 applies to the real SDK's protocol object constructors, not to this plain SimpleNamespace test double, whose keyword arguments become the object's actual attribute names with no aliasing). Once ToolCatalog.build reads getattr(tool, \"input_schema\", ...) (E7), this fake tool object must expose an input_schema attribute for the test to still observe real data instead of silently falling back to the {} default -- so the kwarg here must be renamed to match."
+      },
+      {
+        "id": "E4",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "Unlike Context, get_context is not merely relocated -- fact 3 says 'mcp.get_context() removed entirely (inject ctx: Context as a handler parameter instead)'. There is no mcp.server.mcpserver.get_context to import, so this cannot be fixed by swapping the module path on this line. The correct fix is architectural: the current_context() wrapper this import feeds (context.py lines 18-23) needs to be removed/reworked so callers receive ctx via handler-parameter injection instead. That change ripples into every caller of current_context() -- src/opsmesh/server/tools/deployments.py (lines 8, 50, 66), src/opsmesh/server/tools/runbooks.py (lines 8, 33), src/opsmesh/server/tools/incidents.py (lines 13, 70), src/opsmesh/server/tools/service_catalog.py (lines 8, 25), plus the monkeypatches of current_context in tests/test_tools.py -- none of which are in the confirmed-sites list. This is a multi-file, multi-line refactor, not a single-line replacement."
+      },
+      {
+        "id": "E6",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "Fact 5 states ClientSessionGroup.call_tool() 'lost its args parameter' but does not say what, if anything, replaced it -- this is exactly the underspecified-replacement-contract case called out in the task instructions. self._group is a ClientSessionGroup (see the constructor type hint at line 26 and the module docstring), and this call passes `arguments` positionally into the now-removed parameter slot, so the call will break, but I cannot confidently write the correct v2 call (e.g. whether arguments are now passed some other way, or via a different method entirely) from the spec facts alone. Guessing a replacement risks being confidently wrong."
+      },
+      {
+        "id": "E5",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "This calls the function that fact 3 says is removed entirely in v2 with no drop-in replacement (the stated migration path is handler-parameter injection of ctx, not a renamed/relocated function call). Fixing this line alone (e.g. swapping to some other call) is not a confident single-line repair -- the whole current_context()/report_error()/report_info() helper pattern in this file, and every one of its callers across the tools/ modules and tests, would need to be redesigned around parameter injection. Same underlying issue as E4; flagging separately per the one-verdict-per-site contract."
+      },
+      {
+        "id": "E9",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "This assertion checks the exact call arguments FleetClient.call_tool passes to ClientSessionGroup.call_tool (session_group.py line 38, site E6). Fact 5 says ClientSessionGroup.call_tool lost its args parameter but the spec does not say what replaces it, so E6 itself is flagged as underspecified. Until it's known what the corrected production call at session_group.py:38 actually looks like, there's no way to know what this test's expected call signature should assert -- writing a specific replacement here would just be guessing in lockstep with an unresolved upstream site."
+      }
+    ]
+  },
+  "run2": {
+    "run_file": "run2.json",
+    "n_sites": 10,
+    "exact_match_rate": 0.6,
+    "semantic_equivalent_rate": 0.0,
+    "locally_plausible_globally_wrong_rate": 0.0,
+    "legitimate_hedge_rate": 0.4,
+    "avoidable_hedge_rate": 0.0,
+    "wrong_rate": 0.0,
+    "duplicate_ids_in_run": [],
+    "missing_ids": [],
+    "unexpected_extra_ids": [],
+    "detail": [
+      {
+        "id": "E1",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Fact 1: the whole mcp.server.fastmcp module tree moves to mcp.server.mcpserver with no compatibility alias, and FastMCP is renamed to MCPServer. This import line is a self-contained rename of both the module path and the imported symbol; nothing else needs to change for the import itself to resolve."
+      },
+      {
+        "id": "E2",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "class OpsMeshServer(MCPServer):",
+        "required_line": "class OpsMeshServer(MCPServer):",
+        "reason": "Fact 1 explicitly calls out that a base-class reference to FastMCP does not self-repair when only the import is fixed -- the identifier's own text must change to MCPServer. This is exactly that case: OpsMeshServer subclasses FastMCP directly, so this line's text must be updated (paired with the E1 import fix) to compile under v2."
+      },
+      {
+        "id": "E3",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Fact 1 explicitly states Context moves along with the rest of the fastmcp module tree when imported from that path. Simple import-path rewrite; the downstream `ctx: Context` annotations elsewhere do not need their own text changed once this import is fixed."
+      },
+      {
+        "id": "E7",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+        "required_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+        "reason": "Fact 2 lists tool.inputSchema -> tool.input_schema as a Python attribute-access rename on protocol objects. This is a string-keyed getattr() doing exactly that attribute access; renaming the string argument is a complete, self-contained fix for this line. (Note: the same rename must be made in the matching test fixture, tests/test_orchestrator_agent.py line 18 / E10, for tests to keep passing, but that is a separate confirmed site.)"
+      },
+      {
+        "id": "E8",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+        "required_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+        "reason": "Fact 1: the module tree and the class name both change (mcp.server.fastmcp.FastMCP -> mcp.server.mcpserver.MCPServer). Since OpsMeshServer will subclass MCPServer after the E1/E2 fixes, its inherited .run is now MCPServer.run under the new dotted path, and mock.patch's string target must be rewritten to match verbatim for the patch to still target the right attribute. The `fastmcp_run` local variable name is unaffected functionally (it is not a spec-covered identifier) and does not need to change."
+      },
+      {
+        "id": "E10",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+        "required_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+        "reason": "Fact 2: tool.inputSchema -> tool.input_schema is an attribute-access rename. This test's _fake_tool() builds a stand-in tool object whose inputSchema attribute is read via getattr(tool, \"inputSchema\"/\"input_schema\", ...) by ToolCatalog.build (E7). Once E7 is fixed to look up \"input_schema\", this fixture must expose that same attribute name or the tests silently fall back to the {} default and fail their assertions. Renaming the keyword argument is a complete, self-contained fix for this line."
+      },
+      {
+        "id": "E4",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "This imports a free function `get_context` that this module's current_context() helper uses to fetch the active Context out of thin air, outside of any handler-parameter injection. Fact 3 says the ambient-fetch mechanism ('mcp.get_context()') is removed entirely in v2, with the only sanctioned replacement being to inject `ctx: Context` as a handler parameter -- not a straight import-path move like Context (fact 1) or a rename. There is no v2 import that preserves this function's behavior, so simply rewriting the module path is not a correct fix. The real fix is architectural: delete this import and the get_context()-based current_context() abstraction, and thread `ctx: Context` as a parameter into every caller instead (see E5; callers span src/opsmesh/server/tools/{deployments,incidents,runbooks,service_catalog}.py and are monkeypatched in tests/test_tools.py). That is a multi-file change, not a single-line replacement of this import."
+      },
+      {
+        "id": "E6",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "self._group is a ClientSessionGroup (imported at line 15, `from mcp.client.session_group import ClientSessionGroup`), and fact 5 says ClientSessionGroup.call_tool() lost its `args` parameter -- explicitly the different, entangled case from the unaffected plain ClientSession.call_tool(name, arguments={...}) used in session.py. The spec states the parameter was removed but does not say what, if anything, replaced it (a differently-named parameter, a restructured call shape, or simply no way to pass per-call arguments to this method anymore). This call currently passes the arguments dict positionally as the second argument; without knowing the actual v2 signature I cannot write a confident exact replacement line -- guessing risks silently breaking (or silently no-op'ing) every fleet-wide tool call this wrapper makes."
+      },
+      {
+        "id": "E5",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "Per fact 3, `mcp.get_context()` (the ambient-context accessor this line calls through _mcp_get_context) is removed entirely in v2 with no direct replacement call -- the spec's only guidance is to inject ctx as a handler parameter instead, which is a different calling convention, not a substitute expression for this line. current_context() is designed as a zero-argument helper that tool modules call from inside deeply nested logic (src/opsmesh/server/tools/deployments.py, incidents.py, runbooks.py, service_catalog.py) without threading ctx through; that whole call pattern has no v2 equivalent. Fixing this correctly requires removing/redesigning current_context() and changing every one of its call sites (and the corresponding monkeypatches in tests/test_tools.py) to accept ctx as a parameter -- not a self-contained edit of this one line."
+      },
+      {
+        "id": "E9",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "This assertion pins the exact call arguments of FleetClient.call_tool's underlying self._group.call_tool() invocation (src/opsmesh/client/session_group.py line 38 / E6), which fact 5 confirms is affected (ClientSessionGroup.call_tool lost its `args` parameter) but whose replacement call shape the spec does not specify. Since E6 itself cannot be resolved to a confident single-line fix, this assertion's correct expected-arguments shape is equally undetermined -- it must be updated in lockstep with whatever the real E6 fix turns out to be, not guessed independently."
+      }
+    ]
+  },
+  "run3": {
+    "run_file": "run3.json",
+    "n_sites": 10,
+    "exact_match_rate": 0.6,
+    "semantic_equivalent_rate": 0.0,
+    "locally_plausible_globally_wrong_rate": 0.0,
+    "legitimate_hedge_rate": 0.4,
+    "avoidable_hedge_rate": 0.0,
+    "wrong_rate": 0.0,
+    "duplicate_ids_in_run": [],
+    "missing_ids": [],
+    "unexpected_extra_ids": [],
+    "detail": [
+      {
+        "id": "E1",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Fact 1: the whole mcp.server.fastmcp module tree moves to mcp.server.mcpserver with no compatibility alias, and FastMCP itself is renamed to MCPServer. This import must point at the new module and new symbol name. Fixing this import line alone does not repair line 24's class definition (that identifier's own text still says FastMCP) -- that is tracked separately as E2."
+      },
+      {
+        "id": "E2",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "class OpsMeshServer(MCPServer):",
+        "required_line": "class OpsMeshServer(MCPServer):",
+        "reason": "Fact 1: any construction/subclassing of FastMCP is broken because the symbol no longer exists under that name; the base-class reference must be updated to MCPServer. Fact 4 confirms the high-level API surface OpsMeshServer relies on (decorators, add_tool, __init__/run behavior) is otherwise unchanged, so renaming the base class is sufficient for this line. (Requires E1's import to also be fixed for the module to resolve at all, but this line's own text-level fix is unambiguous.)"
+      },
+      {
+        "id": "E3",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Fact 1 explicitly calls out Context as one of the submodules that moves with the rest of the mcp.server.fastmcp -> mcp.server.mcpserver tree. Straightforward import path update."
+      },
+      {
+        "id": "E7",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+        "required_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+        "reason": "Fact 2: tool.inputSchema -> tool.input_schema is a stated attribute-access rename. This getattr(tool, \"inputSchema\", ...) call is exactly that attribute access (via string name instead of dot syntax, but semantically identical), so the string literal must be updated to \"input_schema\" to keep reading the field correctly under v2."
+      },
+      {
+        "id": "E8",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+        "required_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+        "reason": "Fact 1: the dotted path mcp.server.fastmcp.FastMCP no longer exists; the module and class both move/rename to mcp.server.mcpserver.MCPServer. Once E1/E2 are fixed, OpsMeshServer's super().run() resolves through MCPServer, so the patch target must be updated to match. The local variable name `fastmcp_run` is unaffected by the migration and left as-is since only the string literal's own text needs to change to fix this site."
+      },
+      {
+        "id": "E10",
+        "verdict": "FIX",
+        "class": "exact",
+        "site_type": "single-line",
+        "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+        "required_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+        "reason": "This fixture builds a fake tool object that stands in for the SDK's discovery payload object read by tool_catalog.py via getattr(tool, \"inputSchema\"/\"input_schema\", ...) (see E7). Per fact 2, that attribute is renamed to input_schema in v2, so this mock must expose the field under the new name for the test to keep exercising the real post-migration read path (a fake with the old field name would just silently fall through to the getattr default, masking bugs)."
+      },
+      {
+        "id": "E4",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "Fact 3 states 'mcp.get_context() removed entirely (inject ctx: Context as a handler parameter instead)' -- this module's own docstring (lines 3-6) confirms this file's get_context import IS that exact removed function ('Handlers should generally go through these helpers instead of importing mcp.server.fastmcp.get_context directly'). Unlike Context (fact 1), this is not a simple module-path rename: the function is gone, period, with no import-path fix that makes it resolve again. The spec's stated replacement is architectural (inject ctx as a handler parameter), which requires rewriting current_context() itself and every one of its callers to accept/pass ctx explicitly instead of fetching it via a module-level call. Those callers span multiple other files (opsmesh/server/tools/deployments.py, incidents.py, runbooks.py, service_catalog.py -- 5 call sites total, none of which are in the confirmed-sites list) plus their handler signatures and the @mcp.tool()-decorated functions that would need a new ctx parameter. This is a multi-file, multi-line restructuring, not a single-line import fix, so no confident line-level replacement exists for this site alone."
+      },
+      {
+        "id": "E6",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "self._group is typed as ClientSessionGroup (line 26), and fact 5 states ClientSessionGroup.call_tool() 'lost its args parameter' -- it does not say what, if anything, replaced it, only that plain ClientSession.call_tool(name, arguments={...}) (a different class) is unaffected. This call passes `arguments` as a second positional argument to ClientSessionGroup.call_tool, which per the spec no longer accepts it. Since the spec gives no replacement contract (new parameter name, different calling convention, or arguments dropped from this method entirely), there is no way to write a confident, correct replacement line -- this matches the FLAG-FOR-HUMAN case of an underspecified target contract explicitly called out in the task instructions."
+      },
+      {
+        "id": "E5",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "Same underlying break as E4: this line calls the now-entirely-removed get_context() function. There is no drop-in replacement call to substitute here -- the spec's stated fix (inject ctx: Context as a handler parameter) means current_context() as a concept goes away and its 5 call sites across opsmesh/server/tools/{deployments,incidents,runbooks,service_catalog}.py need their enclosing handler signatures changed to accept ctx directly, which is outside the scope of a single-line edit to this file. Flagging together with E4 since both are part of the same helper mechanism that needs multi-file restructuring."
+      },
+      {
+        "id": "E9",
+        "verdict": "FLAG-FOR-HUMAN",
+        "class": "hedge-legitimate",
+        "site_type": "no-single-line-fix",
+        "proposed_line": null,
+        "reason": "This assertion pins down the exact call arguments of FleetClient.call_tool's underlying self._group.call_tool(tool_name, arguments) call, which is the same ClientSessionGroup.call_tool() site flagged as E6 for having an underspecified post-migration contract (fact 5 says it 'lost its args parameter' but does not state a replacement). Since the correct production-code call at E6 cannot be confidently determined, the correct expected-call assertion here cannot be confidently determined either -- rewriting this line would require guessing at a contract the spec does not specify."
+      }
+    ]
+  }
+}

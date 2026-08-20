@@ -1,0 +1,25 @@
+Only in <scratch>/entangled_site6_dropped/host: .pytest_cache
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/client/session_group.py <scratch>/entangled_site6_dropped/host/src/opsmesh/client/session_group.py
+--- <repo-root>/rule_test/entanglement_experiment/host/src/opsmesh/client/session_group.py	2026-08-18 14:35:35
++++ <scratch>/entangled_site6_dropped/host/src/opsmesh/client/session_group.py	2026-08-19 09:40:23
+@@ -35,7 +35,7 @@
+         if server_name not in self._servers:
+             raise UpstreamCallError(server_name, tool_name, reason="unregistered server")
+         try:
+-            return await self._group.call_tool(tool_name, arguments)
++            return await self._group.call_tool(tool_name)
+         except Exception as exc:  # noqa: BLE001
+             logger.warning("fleet call_tool(%s.%s) failed", server_name, tool_name)
+             raise UpstreamCallError(server_name, tool_name) from exc
+diff -ru <repo-root>/rule_test/entanglement_experiment/host/tests/test_client_session_group.py <scratch>/entangled_site6_dropped/host/tests/test_client_session_group.py
+--- <repo-root>/rule_test/entanglement_experiment/host/tests/test_client_session_group.py	2026-08-18 14:36:19
++++ <scratch>/entangled_site6_dropped/host/tests/test_client_session_group.py	2026-08-19 09:40:42
+@@ -20,7 +20,7 @@
+ async def test_call_tool_against_known_server(mock_session_group, servers):
+     fleet = FleetClient(mock_session_group, servers)
+     result = await fleet.call_tool("docs-mcp", "search_docs", {"query": "rollback"})
+-    mock_session_group.call_tool.assert_awaited_once_with("search_docs", {"query": "rollback"})
++    mock_session_group.call_tool.assert_awaited_once_with("search_docs")
+     assert result == {"ok": True}
+ 
+ 

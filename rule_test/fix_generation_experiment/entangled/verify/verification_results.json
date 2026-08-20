@@ -1,0 +1,437 @@
+{
+  "run1": {
+    "run": 1,
+    "scratch_dir": "<scratch>/fixgen_entangled_verify_run1",
+    "n_fix_applied": 6,
+    "n_skipped_non_fix": 4,
+    "skipped_non_fix": [
+      {
+        "id": "E4",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E5",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E6",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E9",
+        "verdict": "FLAG-FOR-HUMAN"
+      }
+    ],
+    "apply_detail": [
+      {
+        "id": "E1",
+        "ok": true,
+        "file": "src/opsmesh/server/base.py",
+        "line": 16,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer"
+      },
+      {
+        "id": "E2",
+        "ok": true,
+        "file": "src/opsmesh/server/base.py",
+        "line": 24,
+        "original_matched_source": true,
+        "original_on_disk": "class OpsMeshServer(FastMCP):",
+        "agent_claimed_original": "class OpsMeshServer(FastMCP):",
+        "proposed_line": "class OpsMeshServer(MCPServer):"
+      },
+      {
+        "id": "E3",
+        "ok": true,
+        "file": "src/opsmesh/server/context.py",
+        "line": 12,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context",
+        "proposed_line": "from mcp.server.mcpserver import Context"
+      },
+      {
+        "id": "E7",
+        "ok": true,
+        "file": "src/opsmesh/orchestrator/tool_catalog.py",
+        "line": 46,
+        "original_matched_source": true,
+        "original_on_disk": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+        "agent_claimed_original": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+        "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},"
+      },
+      {
+        "id": "E8",
+        "ok": true,
+        "file": "tests/test_server_base.py",
+        "line": 31,
+        "original_matched_source": true,
+        "original_on_disk": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+        "agent_claimed_original": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+        "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:"
+      },
+      {
+        "id": "E10",
+        "ok": true,
+        "file": "tests/test_orchestrator_agent.py",
+        "line": 18,
+        "original_matched_source": true,
+        "original_on_disk": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+        "agent_claimed_original": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+        "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)"
+      }
+    ],
+    "hard_site_fix_attempts": [],
+    "all_original_lines_matched_source": true,
+    "all_applies_ok": true,
+    "parse_results": [
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run1/host/src/opsmesh/orchestrator/tool_catalog.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run1/host/src/opsmesh/server/base.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run1/host/src/opsmesh/server/context.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run1/host/tests/test_orchestrator_agent.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run1/host/tests/test_server_base.py",
+        "parses": true
+      }
+    ],
+    "all_parse_ok": true,
+    "import_boundary_results": [
+      {
+        "id": "E1",
+        "file": "src/opsmesh/server/base.py",
+        "line": 16,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "E3",
+        "file": "src/opsmesh/server/context.py",
+        "line": 12,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      }
+    ],
+    "all_imports_resolved": true,
+    "n_import_checks": 2,
+    "pytest_after_fix": {
+      "returncode": 2,
+      "summary_line": "=============================== 1 error in 0.09s ===============================",
+      "n_passed": 0,
+      "n_failed": 0,
+      "n_errored": 0,
+      "failed_tests": [],
+      "errored_tests": [],
+      "matches_baseline": false,
+      "raw_tail": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0 -- /Library/Developer/CommandLineTools/usr/bin/python3\ncachedir: .pytest_cache\nrootdir: <scratch>/fixgen_entangled_verify_run1/host\nconfigfile: pyproject.toml\nplugins: asyncio-1.2.0\nasyncio: mode=auto, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 11 items / 1 error\n\n==================================== ERRORS ====================================\n_____________________ ERROR collecting tests/test_tools.py _____________________\nImportError while importing test module '<scratch>/fixgen_entangled_verify_run1/host/tests/test_tools.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_tools.py:11: in <module>\n    from opsmesh.server.tools import deployments, incidents, runbooks\nsrc/opsmesh/server/tools/deployments.py:8: in <module>\n    from opsmesh.server.context import current_context, report_error, report_info\nsrc/opsmesh/server/context.py:13: in <module>\n    from mcp.server.fastmcp import get_context as _mcp_get_context\nE   ModuleNotFoundError: No module named 'mcp.server.fastmcp'\n=========================== short test summary info ============================\nERROR tests/test_tools.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 0.09s ===============================\n"
+    }
+  },
+  "run2": {
+    "run": 2,
+    "scratch_dir": "<scratch>/fixgen_entangled_verify_run2",
+    "n_fix_applied": 6,
+    "n_skipped_non_fix": 4,
+    "skipped_non_fix": [
+      {
+        "id": "E4",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E5",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E6",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E9",
+        "verdict": "FLAG-FOR-HUMAN"
+      }
+    ],
+    "apply_detail": [
+      {
+        "id": "E1",
+        "ok": true,
+        "file": "src/opsmesh/server/base.py",
+        "line": 16,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer"
+      },
+      {
+        "id": "E2",
+        "ok": true,
+        "file": "src/opsmesh/server/base.py",
+        "line": 24,
+        "original_matched_source": true,
+        "original_on_disk": "class OpsMeshServer(FastMCP):",
+        "agent_claimed_original": "class OpsMeshServer(FastMCP):",
+        "proposed_line": "class OpsMeshServer(MCPServer):"
+      },
+      {
+        "id": "E3",
+        "ok": true,
+        "file": "src/opsmesh/server/context.py",
+        "line": 12,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context",
+        "proposed_line": "from mcp.server.mcpserver import Context"
+      },
+      {
+        "id": "E7",
+        "ok": true,
+        "file": "src/opsmesh/orchestrator/tool_catalog.py",
+        "line": 46,
+        "original_matched_source": true,
+        "original_on_disk": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+        "agent_claimed_original": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+        "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},"
+      },
+      {
+        "id": "E8",
+        "ok": true,
+        "file": "tests/test_server_base.py",
+        "line": 31,
+        "original_matched_source": true,
+        "original_on_disk": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+        "agent_claimed_original": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+        "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:"
+      },
+      {
+        "id": "E10",
+        "ok": true,
+        "file": "tests/test_orchestrator_agent.py",
+        "line": 18,
+        "original_matched_source": true,
+        "original_on_disk": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+        "agent_claimed_original": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+        "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)"
+      }
+    ],
+    "hard_site_fix_attempts": [],
+    "all_original_lines_matched_source": true,
+    "all_applies_ok": true,
+    "parse_results": [
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run2/host/src/opsmesh/orchestrator/tool_catalog.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run2/host/src/opsmesh/server/base.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run2/host/src/opsmesh/server/context.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run2/host/tests/test_orchestrator_agent.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run2/host/tests/test_server_base.py",
+        "parses": true
+      }
+    ],
+    "all_parse_ok": true,
+    "import_boundary_results": [
+      {
+        "id": "E1",
+        "file": "src/opsmesh/server/base.py",
+        "line": 16,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "E3",
+        "file": "src/opsmesh/server/context.py",
+        "line": 12,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      }
+    ],
+    "all_imports_resolved": true,
+    "n_import_checks": 2,
+    "pytest_after_fix": {
+      "returncode": 2,
+      "summary_line": "=============================== 1 error in 0.09s ===============================",
+      "n_passed": 0,
+      "n_failed": 0,
+      "n_errored": 0,
+      "failed_tests": [],
+      "errored_tests": [],
+      "matches_baseline": false,
+      "raw_tail": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0 -- /Library/Developer/CommandLineTools/usr/bin/python3\ncachedir: .pytest_cache\nrootdir: <scratch>/fixgen_entangled_verify_run2/host\nconfigfile: pyproject.toml\nplugins: asyncio-1.2.0\nasyncio: mode=auto, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 11 items / 1 error\n\n==================================== ERRORS ====================================\n_____________________ ERROR collecting tests/test_tools.py _____________________\nImportError while importing test module '<scratch>/fixgen_entangled_verify_run2/host/tests/test_tools.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_tools.py:11: in <module>\n    from opsmesh.server.tools import deployments, incidents, runbooks\nsrc/opsmesh/server/tools/deployments.py:8: in <module>\n    from opsmesh.server.context import current_context, report_error, report_info\nsrc/opsmesh/server/context.py:13: in <module>\n    from mcp.server.fastmcp import get_context as _mcp_get_context\nE   ModuleNotFoundError: No module named 'mcp.server.fastmcp'\n=========================== short test summary info ============================\nERROR tests/test_tools.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 0.09s ===============================\n"
+    }
+  },
+  "run3": {
+    "run": 3,
+    "scratch_dir": "<scratch>/fixgen_entangled_verify_run3",
+    "n_fix_applied": 6,
+    "n_skipped_non_fix": 4,
+    "skipped_non_fix": [
+      {
+        "id": "E4",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E5",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E6",
+        "verdict": "FLAG-FOR-HUMAN"
+      },
+      {
+        "id": "E9",
+        "verdict": "FLAG-FOR-HUMAN"
+      }
+    ],
+    "apply_detail": [
+      {
+        "id": "E1",
+        "ok": true,
+        "file": "src/opsmesh/server/base.py",
+        "line": 16,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer"
+      },
+      {
+        "id": "E2",
+        "ok": true,
+        "file": "src/opsmesh/server/base.py",
+        "line": 24,
+        "original_matched_source": true,
+        "original_on_disk": "class OpsMeshServer(FastMCP):",
+        "agent_claimed_original": "class OpsMeshServer(FastMCP):",
+        "proposed_line": "class OpsMeshServer(MCPServer):"
+      },
+      {
+        "id": "E3",
+        "ok": true,
+        "file": "src/opsmesh/server/context.py",
+        "line": 12,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context",
+        "proposed_line": "from mcp.server.mcpserver import Context"
+      },
+      {
+        "id": "E7",
+        "ok": true,
+        "file": "src/opsmesh/orchestrator/tool_catalog.py",
+        "line": 46,
+        "original_matched_source": true,
+        "original_on_disk": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+        "agent_claimed_original": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+        "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},"
+      },
+      {
+        "id": "E8",
+        "ok": true,
+        "file": "tests/test_server_base.py",
+        "line": 31,
+        "original_matched_source": true,
+        "original_on_disk": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+        "agent_claimed_original": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+        "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:"
+      },
+      {
+        "id": "E10",
+        "ok": true,
+        "file": "tests/test_orchestrator_agent.py",
+        "line": 18,
+        "original_matched_source": true,
+        "original_on_disk": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+        "agent_claimed_original": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+        "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)"
+      }
+    ],
+    "hard_site_fix_attempts": [],
+    "all_original_lines_matched_source": true,
+    "all_applies_ok": true,
+    "parse_results": [
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run3/host/src/opsmesh/orchestrator/tool_catalog.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run3/host/src/opsmesh/server/base.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run3/host/src/opsmesh/server/context.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run3/host/tests/test_orchestrator_agent.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_entangled_verify_run3/host/tests/test_server_base.py",
+        "parses": true
+      }
+    ],
+    "all_parse_ok": true,
+    "import_boundary_results": [
+      {
+        "id": "E1",
+        "file": "src/opsmesh/server/base.py",
+        "line": 16,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "E3",
+        "file": "src/opsmesh/server/context.py",
+        "line": 12,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      }
+    ],
+    "all_imports_resolved": true,
+    "n_import_checks": 2,
+    "pytest_after_fix": {
+      "returncode": 2,
+      "summary_line": "=============================== 1 error in 0.09s ===============================",
+      "n_passed": 0,
+      "n_failed": 0,
+      "n_errored": 0,
+      "failed_tests": [],
+      "errored_tests": [],
+      "matches_baseline": false,
+      "raw_tail": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0 -- /Library/Developer/CommandLineTools/usr/bin/python3\ncachedir: .pytest_cache\nrootdir: <scratch>/fixgen_entangled_verify_run3/host\nconfigfile: pyproject.toml\nplugins: asyncio-1.2.0\nasyncio: mode=auto, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 11 items / 1 error\n\n==================================== ERRORS ====================================\n_____________________ ERROR collecting tests/test_tools.py _____________________\nImportError while importing test module '<scratch>/fixgen_entangled_verify_run3/host/tests/test_tools.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_tools.py:11: in <module>\n    from opsmesh.server.tools import deployments, incidents, runbooks\nsrc/opsmesh/server/tools/deployments.py:8: in <module>\n    from opsmesh.server.context import current_context, report_error, report_info\nsrc/opsmesh/server/context.py:13: in <module>\n    from mcp.server.fastmcp import get_context as _mcp_get_context\nE   ModuleNotFoundError: No module named 'mcp.server.fastmcp'\n=========================== short test summary info ============================\nERROR tests/test_tools.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 0.09s ===============================\n"
+    }
+  }
+}

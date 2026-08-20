@@ -1,0 +1,1004 @@
+{
+  "run1": {
+    "run": 1,
+    "scratch_dir": "<scratch>/fixgen_diluted_verify_run1",
+    "n_fix_applied": 20,
+    "n_skipped_non_fix": 0,
+    "skipped_non_fix": [],
+    "apply_detail": [
+      {
+        "id": "B1",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 10,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B2",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 25,
+        "original_matched_source": true,
+        "original_on_disk": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
+        "agent_claimed_original": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:"
+      },
+      {
+        "id": "B3",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 27,
+        "original_matched_source": true,
+        "original_on_disk": "    mcp = FastMCP(",
+        "agent_claimed_original": "    mcp = FastMCP("
+      },
+      {
+        "id": "B4",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 2,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B5",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 9,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"jmeter\")",
+        "agent_claimed_original": "mcp = FastMCP(\"jmeter\")"
+      },
+      {
+        "id": "B6",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 4,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B7",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 23,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"jmeter\")",
+        "agent_claimed_original": "mcp = FastMCP(\"jmeter\")"
+      },
+      {
+        "id": "B8a",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 11,
+        "original_matched_source": true,
+        "original_on_disk": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
+        "agent_claimed_original": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')"
+      },
+      {
+        "id": "B8c",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 21,
+        "original_matched_source": true,
+        "original_on_disk": "fastmcp_mod.FastMCP = FastMCP",
+        "agent_claimed_original": "fastmcp_mod.FastMCP = FastMCP"
+      },
+      {
+        "id": "B8d",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 22,
+        "original_matched_source": true,
+        "original_on_disk": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
+        "agent_claimed_original": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod"
+      },
+      {
+        "id": "B9",
+        "ok": true,
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 7,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B10",
+        "ok": true,
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 26,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(name=\"secops-mcp\",",
+        "agent_claimed_original": "mcp = FastMCP(name=\"secops-mcp\","
+      },
+      {
+        "id": "B11",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 6,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B12",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 23,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"Trello MCP Server\")",
+        "agent_claimed_original": "mcp = FastMCP(\"Trello MCP Server\")"
+      },
+      {
+        "id": "B13",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B14",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B15",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B16",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 6,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP, Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP, Context"
+      },
+      {
+        "id": "B17",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 30,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
+        "agent_claimed_original": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")"
+      },
+      {
+        "id": "B18",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+        "line": 44,
+        "original_matched_source": true,
+        "original_on_disk": "                input_schema={'json': tool.inputSchema}",
+        "agent_claimed_original": "                input_schema={'json': tool.inputSchema}"
+      }
+    ],
+    "all_original_lines_matched_source": true,
+    "all_applies_ok": true,
+    "parse_results": [
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/QAInsights_jmeter-mcp-server/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/danilop_MCP2Lambda/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/m0xai_trello-mcp-server/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/securityfortech_secops-mcp/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run1/integrations/tonyzorin_youtrack-mcp/main.py",
+        "parses": true
+      }
+    ],
+    "all_parse_ok": true,
+    "import_boundary_results": [
+      {
+        "id": "B1",
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 10,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B4",
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 2,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B6",
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 4,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B9",
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 7,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B11",
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 6,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B13",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B14",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B15",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B16",
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 6,
+        "statement": "from mcp.server.mcpserver import MCPServer, Context",
+        "resolved": true,
+        "stdout": "OK ['MCPServer', 'Context']",
+        "stderr": ""
+      }
+    ],
+    "all_imports_resolved": true,
+    "n_import_checks": 9,
+    "qainsights_after_fix": {
+      "returncode": 1,
+      "ran_line": "Ran 9 tests in 0.022s",
+      "failing_tests": [
+        "test_execute_jmeter_test_default",
+        "test_execute_jmeter_test_gui",
+        "test_execute_jmeter_test_non_gui"
+      ],
+      "matches_baseline_signature": true,
+      "raw_tail": "    ret = await awaitable\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py\", line 1354, in patched\n    return await func(*newargs, **newkeywargs)\n  File \"<scratch>/fixgen_diluted_verify_run1/integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py\", line 109, in test_execute_jmeter_test_non_gui\n    mock_run_jmeter.assert_awaited_with(\"file.jmx\", non_gui=True)\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py\", line 2215, in assert_awaited_with\n    raise AssertionError(_error_message()) from cause\nAssertionError: expected await not found.\nExpected: run_jmeter('file.jmx', non_gui=True)\nActual: run_jmeter('file.jmx', non_gui=True, properties=None, generate_report=False, report_output_dir=None, log_file=None)\n\n----------------------------------------------------------------------\nRan 9 tests in 0.022s\n\nFAILED (failures=3)"
+    }
+  },
+  "run2": {
+    "run": 2,
+    "scratch_dir": "<scratch>/fixgen_diluted_verify_run2",
+    "n_fix_applied": 20,
+    "n_skipped_non_fix": 0,
+    "skipped_non_fix": [],
+    "apply_detail": [
+      {
+        "id": "B1",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 10,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B2",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 25,
+        "original_matched_source": true,
+        "original_on_disk": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
+        "agent_claimed_original": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:"
+      },
+      {
+        "id": "B3",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 27,
+        "original_matched_source": true,
+        "original_on_disk": "    mcp = FastMCP(",
+        "agent_claimed_original": "    mcp = FastMCP("
+      },
+      {
+        "id": "B4",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 2,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B5",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 9,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"jmeter\")",
+        "agent_claimed_original": "mcp = FastMCP(\"jmeter\")"
+      },
+      {
+        "id": "B6",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 4,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B7",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 23,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"jmeter\")",
+        "agent_claimed_original": "mcp = FastMCP(\"jmeter\")"
+      },
+      {
+        "id": "B8a",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 11,
+        "original_matched_source": true,
+        "original_on_disk": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
+        "agent_claimed_original": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')"
+      },
+      {
+        "id": "B8c",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 21,
+        "original_matched_source": true,
+        "original_on_disk": "fastmcp_mod.FastMCP = FastMCP",
+        "agent_claimed_original": "fastmcp_mod.FastMCP = FastMCP"
+      },
+      {
+        "id": "B8d",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 22,
+        "original_matched_source": true,
+        "original_on_disk": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
+        "agent_claimed_original": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod"
+      },
+      {
+        "id": "B9",
+        "ok": true,
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 7,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B10",
+        "ok": true,
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 26,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(name=\"secops-mcp\",",
+        "agent_claimed_original": "mcp = FastMCP(name=\"secops-mcp\","
+      },
+      {
+        "id": "B11",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 6,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B12",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 23,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"Trello MCP Server\")",
+        "agent_claimed_original": "mcp = FastMCP(\"Trello MCP Server\")"
+      },
+      {
+        "id": "B13",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B14",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B15",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B16",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 6,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP, Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP, Context"
+      },
+      {
+        "id": "B17",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 30,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
+        "agent_claimed_original": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")"
+      },
+      {
+        "id": "B18",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+        "line": 44,
+        "original_matched_source": true,
+        "original_on_disk": "                input_schema={'json': tool.inputSchema}",
+        "agent_claimed_original": "                input_schema={'json': tool.inputSchema}"
+      }
+    ],
+    "all_original_lines_matched_source": true,
+    "all_applies_ok": true,
+    "parse_results": [
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/QAInsights_jmeter-mcp-server/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/danilop_MCP2Lambda/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/m0xai_trello-mcp-server/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/securityfortech_secops-mcp/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run2/integrations/tonyzorin_youtrack-mcp/main.py",
+        "parses": true
+      }
+    ],
+    "all_parse_ok": true,
+    "import_boundary_results": [
+      {
+        "id": "B1",
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 10,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B4",
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 2,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B6",
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 4,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B9",
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 7,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B11",
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 6,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B13",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B14",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B15",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B16",
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 6,
+        "statement": "from mcp.server.mcpserver import MCPServer, Context",
+        "resolved": true,
+        "stdout": "OK ['MCPServer', 'Context']",
+        "stderr": ""
+      }
+    ],
+    "all_imports_resolved": true,
+    "n_import_checks": 9,
+    "qainsights_after_fix": {
+      "returncode": 1,
+      "ran_line": "Ran 9 tests in 0.020s",
+      "failing_tests": [
+        "test_execute_jmeter_test_default",
+        "test_execute_jmeter_test_gui",
+        "test_execute_jmeter_test_non_gui"
+      ],
+      "matches_baseline_signature": true,
+      "raw_tail": "    ret = await awaitable\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py\", line 1354, in patched\n    return await func(*newargs, **newkeywargs)\n  File \"<scratch>/fixgen_diluted_verify_run2/integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py\", line 109, in test_execute_jmeter_test_non_gui\n    mock_run_jmeter.assert_awaited_with(\"file.jmx\", non_gui=True)\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py\", line 2215, in assert_awaited_with\n    raise AssertionError(_error_message()) from cause\nAssertionError: expected await not found.\nExpected: run_jmeter('file.jmx', non_gui=True)\nActual: run_jmeter('file.jmx', non_gui=True, properties=None, generate_report=False, report_output_dir=None, log_file=None)\n\n----------------------------------------------------------------------\nRan 9 tests in 0.020s\n\nFAILED (failures=3)"
+    }
+  },
+  "run3": {
+    "run": 3,
+    "scratch_dir": "<scratch>/fixgen_diluted_verify_run3",
+    "n_fix_applied": 20,
+    "n_skipped_non_fix": 0,
+    "skipped_non_fix": [],
+    "apply_detail": [
+      {
+        "id": "B1",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 10,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B2",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 25,
+        "original_matched_source": true,
+        "original_on_disk": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
+        "agent_claimed_original": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:"
+      },
+      {
+        "id": "B3",
+        "ok": true,
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 27,
+        "original_matched_source": true,
+        "original_on_disk": "    mcp = FastMCP(",
+        "agent_claimed_original": "    mcp = FastMCP("
+      },
+      {
+        "id": "B4",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 2,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B5",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 9,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"jmeter\")",
+        "agent_claimed_original": "mcp = FastMCP(\"jmeter\")"
+      },
+      {
+        "id": "B6",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 4,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B7",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 23,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"jmeter\")",
+        "agent_claimed_original": "mcp = FastMCP(\"jmeter\")"
+      },
+      {
+        "id": "B8a",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 11,
+        "original_matched_source": true,
+        "original_on_disk": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
+        "agent_claimed_original": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')"
+      },
+      {
+        "id": "B8c",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 21,
+        "original_matched_source": true,
+        "original_on_disk": "fastmcp_mod.FastMCP = FastMCP",
+        "agent_claimed_original": "fastmcp_mod.FastMCP = FastMCP"
+      },
+      {
+        "id": "B8d",
+        "ok": true,
+        "file": "integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "line": 22,
+        "original_matched_source": true,
+        "original_on_disk": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
+        "agent_claimed_original": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod"
+      },
+      {
+        "id": "B9",
+        "ok": true,
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 7,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B10",
+        "ok": true,
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 26,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(name=\"secops-mcp\",",
+        "agent_claimed_original": "mcp = FastMCP(name=\"secops-mcp\","
+      },
+      {
+        "id": "B11",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 6,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP"
+      },
+      {
+        "id": "B12",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 23,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"Trello MCP Server\")",
+        "agent_claimed_original": "mcp = FastMCP(\"Trello MCP Server\")"
+      },
+      {
+        "id": "B13",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B14",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B15",
+        "ok": true,
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "line": 8,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import Context"
+      },
+      {
+        "id": "B16",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 6,
+        "original_matched_source": true,
+        "original_on_disk": "from mcp.server.fastmcp import FastMCP, Context",
+        "agent_claimed_original": "from mcp.server.fastmcp import FastMCP, Context"
+      },
+      {
+        "id": "B17",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 30,
+        "original_matched_source": true,
+        "original_on_disk": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
+        "agent_claimed_original": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")"
+      },
+      {
+        "id": "B18",
+        "ok": true,
+        "file": "integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+        "line": 44,
+        "original_matched_source": true,
+        "original_on_disk": "                input_schema={'json': tool.inputSchema}",
+        "agent_claimed_original": "                input_schema={'json': tool.inputSchema}"
+      }
+    ],
+    "all_original_lines_matched_source": true,
+    "all_applies_ok": true,
+    "parse_results": [
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/QAInsights_jmeter-mcp-server/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/danilop_MCP2Lambda/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/danilop_MCP2Lambda/mcp_client_bedrock/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/m0xai_trello-mcp-server/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/securityfortech_secops-mcp/main.py",
+        "parses": true
+      },
+      {
+        "file": "<scratch>/fixgen_diluted_verify_run3/integrations/tonyzorin_youtrack-mcp/main.py",
+        "parses": true
+      }
+    ],
+    "all_parse_ok": true,
+    "import_boundary_results": [
+      {
+        "id": "B1",
+        "file": "integrations/tonyzorin_youtrack-mcp/main.py",
+        "line": 10,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B4",
+        "file": "integrations/QAInsights_jmeter-mcp-server/main.py",
+        "line": 2,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B6",
+        "file": "integrations/QAInsights_jmeter-mcp-server/jmeter_server.py",
+        "line": 4,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B9",
+        "file": "integrations/securityfortech_secops-mcp/main.py",
+        "line": 7,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B11",
+        "file": "integrations/m0xai_trello-mcp-server/main.py",
+        "line": 6,
+        "statement": "from mcp.server.mcpserver import MCPServer",
+        "resolved": true,
+        "stdout": "OK ['MCPServer']",
+        "stderr": ""
+      },
+      {
+        "id": "B13",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/board.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B14",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/card.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B15",
+        "file": "integrations/m0xai_trello-mcp-server/server/tools/list.py",
+        "line": 8,
+        "statement": "from mcp.server.mcpserver import Context",
+        "resolved": true,
+        "stdout": "OK ['Context']",
+        "stderr": ""
+      },
+      {
+        "id": "B16",
+        "file": "integrations/danilop_MCP2Lambda/main.py",
+        "line": 6,
+        "statement": "from mcp.server.mcpserver import MCPServer, Context",
+        "resolved": true,
+        "stdout": "OK ['MCPServer', 'Context']",
+        "stderr": ""
+      }
+    ],
+    "all_imports_resolved": true,
+    "n_import_checks": 9,
+    "qainsights_after_fix": {
+      "returncode": 1,
+      "ran_line": "Ran 9 tests in 0.018s",
+      "failing_tests": [
+        "test_execute_jmeter_test_default",
+        "test_execute_jmeter_test_gui",
+        "test_execute_jmeter_test_non_gui"
+      ],
+      "matches_baseline_signature": true,
+      "raw_tail": "    ret = await awaitable\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py\", line 1354, in patched\n    return await func(*newargs, **newkeywargs)\n  File \"<scratch>/fixgen_diluted_verify_run3/integrations/QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py\", line 109, in test_execute_jmeter_test_non_gui\n    mock_run_jmeter.assert_awaited_with(\"file.jmx\", non_gui=True)\n  File \"/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py\", line 2215, in assert_awaited_with\n    raise AssertionError(_error_message()) from cause\nAssertionError: expected await not found.\nExpected: run_jmeter('file.jmx', non_gui=True)\nActual: run_jmeter('file.jmx', non_gui=True, properties=None, generate_report=False, report_output_dir=None, log_file=None)\n\n----------------------------------------------------------------------\nRan 9 tests in 0.018s\n\nFAILED (failures=3)"
+    }
+  }
+}

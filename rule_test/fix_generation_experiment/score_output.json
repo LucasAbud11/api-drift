@@ -1,0 +1,524 @@
+{
+  "run1": {
+    "run_file": "run1.json",
+    "n_sites": 20,
+    "exact_match_rate": 1.0,
+    "semantic_equivalent_rate": 0.0,
+    "legitimate_hedge_rate": 0.0,
+    "avoidable_hedge_rate": 0.0,
+    "wrong_rate": 0.0,
+    "duplicate_ids_in_run": [],
+    "missing_ids": [],
+    "unexpected_extra_ids": [],
+    "detail": [
+      {
+        "id": "B1",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import path mcp.server.fastmcp is removed and moves to mcp.server.mcpserver (fact 1), and the imported class FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B2",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> MCPServer:",
+        "required_line": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> MCPServer:",
+        "reason": "FastMCP used as a type annotation must be renamed to MCPServer per fact 2, which explicitly calls out type-annotation usages."
+      },
+      {
+        "id": "B3",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "    mcp = MCPServer(",
+        "required_line": "    mcp = MCPServer(",
+        "reason": "Construction call FastMCP(...) must use the renamed class MCPServer per fact 2."
+      },
+      {
+        "id": "B4",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import path change (fact 1) plus class rename FastMCP -> MCPServer (fact 2)."
+      },
+      {
+        "id": "B5",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"jmeter\")",
+        "required_line": "mcp = MCPServer(\"jmeter\")",
+        "reason": "Construction call must use the renamed class per fact 2."
+      },
+      {
+        "id": "B6",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import path change (fact 1) plus class rename FastMCP -> MCPServer (fact 2)."
+      },
+      {
+        "id": "B7",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"jmeter\")",
+        "required_line": "mcp = MCPServer(\"jmeter\")",
+        "reason": "Construction call must use the renamed class per fact 2."
+      },
+      {
+        "id": "B8a",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "fastmcp_mod = types.ModuleType('mcp.server.mcpserver')",
+        "required_line": "fastmcp_mod = types.ModuleType('mcp.server.mcpserver')",
+        "reason": "This test hand-builds a fake module to stand in for the real SDK module before importing jmeter_server. The string literal passed to types.ModuleType names the module path being emulated, which per fact 1 must be mcp.server.mcpserver in v2. The local Python variable name fastmcp_mod is just an arbitrary identifier the spec says nothing about, so it is left unchanged."
+      },
+      {
+        "id": "B8c",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "fastmcp_mod.MCPServer = FastMCP",
+        "required_line": "fastmcp_mod.MCPServer = FastMCP",
+        "reason": "The left-hand side is the attribute being exposed on the fake module, i.e. the symbol name that `from mcp.server.mcpserver import MCPServer` will look up after jmeter_server.py's import is fixed (B6) -- per fact 2 that symbol is now named MCPServer, so the attribute name must change. The right-hand side `FastMCP` is a distinct, separately-defined local test class (defined at line 12, not a confirmed site here) and the spec does not require renaming that local helper class; Python allows assigning it to an attribute of any name, so it is left as-is."
+      },
+      {
+        "id": "B8d",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "sys.modules['mcp.server.mcpserver'] = fastmcp_mod",
+        "required_line": "sys.modules['mcp.server.mcpserver'] = fastmcp_mod",
+        "reason": "This registers the fake module under the module path key that jmeter_server.py's import statement will look up. Since B6 changes that import to mcp.server.mcpserver, the sys.modules key (a string literal referencing the old module path, explicitly called out in the spec's task section) must be updated to match. The local variable fastmcp_mod on the right-hand side is unaffected."
+      },
+      {
+        "id": "B9",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import path change (fact 1) plus class rename FastMCP -> MCPServer (fact 2)."
+      },
+      {
+        "id": "B10",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(name=\"secops-mcp\",",
+        "required_line": "mcp = MCPServer(name=\"secops-mcp\",",
+        "reason": "Construction call must use the renamed class per fact 2; the keyword arguments (name=, version= on the following line) are unaffected by the migration and left unchanged."
+      },
+      {
+        "id": "B11",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import path change (fact 1) plus class rename FastMCP -> MCPServer (fact 2)."
+      },
+      {
+        "id": "B12",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"Trello MCP Server\")",
+        "required_line": "mcp = MCPServer(\"Trello MCP Server\")",
+        "reason": "Construction call must use the renamed class per fact 2."
+      },
+      {
+        "id": "B13",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Context moves to mcp.server.mcpserver along with the rest of the module (fact 1) but per fact 3 explicitly keeps its own name, so only the import path changes."
+      },
+      {
+        "id": "B14",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Context moves to mcp.server.mcpserver along with the rest of the module (fact 1) but per fact 3 explicitly keeps its own name, so only the import path changes."
+      },
+      {
+        "id": "B15",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Context moves to mcp.server.mcpserver along with the rest of the module (fact 1) but per fact 3 explicitly keeps its own name, so only the import path changes."
+      },
+      {
+        "id": "B16",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer, Context",
+        "required_line": "from mcp.server.mcpserver import MCPServer, Context",
+        "reason": "Both symbols move to mcp.server.mcpserver (fact 1); FastMCP is renamed to MCPServer (fact 2) while Context keeps its own name (fact 3)."
+      },
+      {
+        "id": "B17",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"MCP Gateway to AWS Lambda\")",
+        "required_line": "mcp = MCPServer(\"MCP Gateway to AWS Lambda\")",
+        "reason": "Construction call must use the renamed class per fact 2."
+      },
+      {
+        "id": "B18",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "                input_schema={'json': tool.input_schema}",
+        "required_line": "                input_schema={'json': tool.input_schema}",
+        "reason": "tool is an SDK-returned tool metadata object from mcp_client.get_available_tools(); fact 4 renames its .inputSchema field to .input_schema. The surrounding input_schema= keyword argument belongs to the unrelated local register_tool() function signature (already snake_case before the migration, for a different reason) and is not itself an SDK symbol, so it is left unchanged."
+      }
+    ]
+  },
+  "run2": {
+    "run_file": "run2.json",
+    "n_sites": 20,
+    "exact_match_rate": 1.0,
+    "semantic_equivalent_rate": 0.0,
+    "legitimate_hedge_rate": 0.0,
+    "avoidable_hedge_rate": 0.0,
+    "wrong_rate": 0.0,
+    "duplicate_ids_in_run": [],
+    "missing_ids": [],
+    "unexpected_extra_ids": [],
+    "detail": [
+      {
+        "id": "B1",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves from mcp.server.fastmcp to mcp.server.mcpserver (fact 1) and the imported class FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B2",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> MCPServer:",
+        "required_line": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> MCPServer:",
+        "reason": "FastMCP used as a return-type annotation must be renamed to MCPServer per fact 2 (\"uses it as a type annotation\")."
+      },
+      {
+        "id": "B3",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "    mcp = MCPServer(",
+        "required_line": "    mcp = MCPServer(",
+        "reason": "Construction call FastMCP(...) must use the renamed identifier MCPServer per fact 2 (\"constructs it (FastMCP(...))\"). Only the opening line of the multi-line call is in scope; the constructor arguments on the following lines are unaffected."
+      },
+      {
+        "id": "B4",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B5",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"jmeter\")",
+        "required_line": "mcp = MCPServer(\"jmeter\")",
+        "reason": "Construction call must use the renamed class identifier MCPServer per fact 2; the string argument \"jmeter\" is unaffected."
+      },
+      {
+        "id": "B6",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B7",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"jmeter\")",
+        "required_line": "mcp = MCPServer(\"jmeter\")",
+        "reason": "Construction call must use the renamed class identifier MCPServer per fact 2; the string argument \"jmeter\" is unaffected."
+      },
+      {
+        "id": "B8a",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "fastmcp_mod = types.ModuleType('mcp.server.mcpserver')",
+        "required_line": "fastmcp_mod = types.ModuleType('mcp.server.mcpserver')",
+        "reason": "String literal names the stub module's __name__ using the old module path; per fact 1 and the spec's explicit instruction to watch for string literals referencing the old module path inside test mocks, this must become 'mcp.server.mcpserver' to match the module jmeter_server.py will now import. The local Python variable name fastmcp_mod is an unrelated local identifier and is left unchanged."
+      },
+      {
+        "id": "B8c",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "fastmcp_mod.MCPServer = FastMCP",
+        "required_line": "fastmcp_mod.MCPServer = FastMCP",
+        "reason": "The two occurrences of 'FastMCP' on this line play different roles. The left-hand side is the attribute name under which the stub module exposes its class to importers -- it must match what jmeter_server.py's migrated `from mcp.server.mcpserver import MCPServer` statement will look up, so it becomes .MCPServer (facts 1, 2). The right-hand side is a reference to the locally-defined stub class `FastMCP` declared at line 12 of this file, which is not one of the confirmed sites (no B8b was listed) -- that class's own name is an internal test-only identifier not governed by the migration, so it is left as-is."
+      },
+      {
+        "id": "B8d",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "sys.modules['mcp.server.mcpserver'] = fastmcp_mod",
+        "required_line": "sys.modules['mcp.server.mcpserver'] = fastmcp_mod",
+        "reason": "String literal key registers the stub module under the old import path in sys.modules; per fact 1 this must become 'mcp.server.mcpserver' so that jmeter_server.py's migrated import resolves to the stub. The local variable fastmcp_mod is unaffected."
+      },
+      {
+        "id": "B9",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B10",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(name=\"secops-mcp\",",
+        "required_line": "mcp = MCPServer(name=\"secops-mcp\",",
+        "reason": "Construction call must use the renamed identifier MCPServer per fact 2. This is the opening line of a multi-line call; the keyword arguments on the following lines are unaffected."
+      },
+      {
+        "id": "B11",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B12",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"Trello MCP Server\")",
+        "required_line": "mcp = MCPServer(\"Trello MCP Server\")",
+        "reason": "Construction call must use the renamed class identifier MCPServer per fact 2; the string argument is unaffected."
+      },
+      {
+        "id": "B13",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Only the import path changes (fact 1); per fact 3, Context keeps its own name, so the imported identifier stays 'Context'."
+      },
+      {
+        "id": "B14",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Only the import path changes (fact 1); per fact 3, Context keeps its own name, so the imported identifier stays 'Context'."
+      },
+      {
+        "id": "B15",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Only the import path changes (fact 1); per fact 3, Context keeps its own name, so the imported identifier stays 'Context'."
+      },
+      {
+        "id": "B16",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer, Context",
+        "required_line": "from mcp.server.mcpserver import MCPServer, Context",
+        "reason": "Import path changes for both symbols (fact 1). FastMCP is renamed to MCPServer (fact 2), while Context on the same line keeps its own name unchanged (fact 3) -- only the module path and the FastMCP token change."
+      },
+      {
+        "id": "B17",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"MCP Gateway to AWS Lambda\")",
+        "required_line": "mcp = MCPServer(\"MCP Gateway to AWS Lambda\")",
+        "reason": "Construction call must use the renamed class identifier MCPServer per fact 2; the string argument is unaffected."
+      },
+      {
+        "id": "B18",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "                input_schema={'json': tool.input_schema}",
+        "required_line": "                input_schema={'json': tool.input_schema}",
+        "reason": "Client-side attribute access on an SDK-returned tool metadata object: tool.inputSchema is renamed to tool.input_schema per fact 4. The dict key 'json' and the local keyword argument name input_schema (the function parameter of register_tool, unrelated to the SDK's field name) are unaffected."
+      }
+    ]
+  },
+  "run3": {
+    "run_file": "run3.json",
+    "n_sites": 20,
+    "exact_match_rate": 1.0,
+    "semantic_equivalent_rate": 0.0,
+    "legitimate_hedge_rate": 0.0,
+    "avoidable_hedge_rate": 0.0,
+    "wrong_rate": 0.0,
+    "duplicate_ids_in_run": [],
+    "missing_ids": [],
+    "unexpected_extra_ids": [],
+    "detail": [
+      {
+        "id": "B1",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves from mcp.server.fastmcp to mcp.server.mcpserver (fact 1), and the imported class FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B2",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> MCPServer:",
+        "required_line": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> MCPServer:",
+        "reason": "FastMCP used as a return-type annotation; fact 2 says every type-annotation use of FastMCP must become MCPServer."
+      },
+      {
+        "id": "B3",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "    mcp = MCPServer(",
+        "required_line": "    mcp = MCPServer(",
+        "reason": "Construction call FastMCP(...) must become MCPServer(...) per fact 2."
+      },
+      {
+        "id": "B4",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves from mcp.server.fastmcp to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B5",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"jmeter\")",
+        "required_line": "mcp = MCPServer(\"jmeter\")",
+        "reason": "Construction call FastMCP(...) must become MCPServer(...) per fact 2."
+      },
+      {
+        "id": "B6",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves from mcp.server.fastmcp to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B7",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"jmeter\")",
+        "required_line": "mcp = MCPServer(\"jmeter\")",
+        "reason": "Construction call FastMCP(...) must become MCPServer(...) per fact 2."
+      },
+      {
+        "id": "B8a",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "fastmcp_mod = types.ModuleType('mcp.server.mcpserver')",
+        "required_line": "fastmcp_mod = types.ModuleType('mcp.server.mcpserver')",
+        "reason": "This test stub fabricates the module object that will be inserted into sys.modules at the old import path (see line 22, B8d). Since jmeter_server.py's import will move to mcp.server.mcpserver (fact 1), the module's own __name__ string must match that new path for the mock to remain a faithful stand-in for the real module. The local Python variable name 'fastmcp_mod' is not part of the spec's affected symbol set and is left unchanged."
+      },
+      {
+        "id": "B8c",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "fastmcp_mod.MCPServer = FastMCP",
+        "required_line": "fastmcp_mod.MCPServer = FastMCP",
+        "reason": "This line exposes an attribute on the fake module for `from mcp.server.fastmcp import FastMCP` to resolve. After the fix, production code (B6) does `from mcp.server.mcpserver import MCPServer`, so the fake module must expose an attribute named MCPServer (fact 2) for that import to succeed. Only the left-hand attribute name changes. The right-hand side refers to the test's own locally-defined stub class (line 12, `class FastMCP:`), which is not one of the confirmed sites and is not the SDK's real FastMCP class being imported/subclassed/constructed -- it is an independently-named local test double, so per the instruction to rename only what the spec actually affects, its name is left as-is."
+      },
+      {
+        "id": "B8d",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "sys.modules['mcp.server.mcpserver'] = fastmcp_mod",
+        "required_line": "sys.modules['mcp.server.mcpserver'] = fastmcp_mod",
+        "reason": "This registers the stub module at the import path that jmeter_server.py will use. Since that import moves to mcp.server.mcpserver (fact 1, and per the B6 fix), the sys.modules key must be updated to the same new path or the mock will no longer intercept the import."
+      },
+      {
+        "id": "B9",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves from mcp.server.fastmcp to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B10",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(name=\"secops-mcp\",",
+        "required_line": "mcp = MCPServer(name=\"secops-mcp\",",
+        "reason": "Construction call FastMCP(...) must become MCPServer(...) per fact 2; the name= and version= keyword arguments and trailing content are unaffected by the migration."
+      },
+      {
+        "id": "B11",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer",
+        "required_line": "from mcp.server.mcpserver import MCPServer",
+        "reason": "Import moves from mcp.server.fastmcp to mcp.server.mcpserver (fact 1) and FastMCP is renamed to MCPServer (fact 2)."
+      },
+      {
+        "id": "B12",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"Trello MCP Server\")",
+        "required_line": "mcp = MCPServer(\"Trello MCP Server\")",
+        "reason": "Construction call FastMCP(...) must become MCPServer(...) per fact 2."
+      },
+      {
+        "id": "B13",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Context moves to mcp.server.mcpserver but keeps its own name per fact 3 -- only the module path in the import changes."
+      },
+      {
+        "id": "B14",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Context moves to mcp.server.mcpserver but keeps its own name per fact 3 -- only the module path in the import changes."
+      },
+      {
+        "id": "B15",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import Context",
+        "required_line": "from mcp.server.mcpserver import Context",
+        "reason": "Context moves to mcp.server.mcpserver but keeps its own name per fact 3 -- only the module path in the import changes."
+      },
+      {
+        "id": "B16",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "from mcp.server.mcpserver import MCPServer, Context",
+        "required_line": "from mcp.server.mcpserver import MCPServer, Context",
+        "reason": "Both symbols move to mcp.server.mcpserver (fact 1). FastMCP is renamed to MCPServer (fact 2), while Context keeps its own name unchanged (fact 3)."
+      },
+      {
+        "id": "B17",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "mcp = MCPServer(\"MCP Gateway to AWS Lambda\")",
+        "required_line": "mcp = MCPServer(\"MCP Gateway to AWS Lambda\")",
+        "reason": "Construction call FastMCP(...) must become MCPServer(...) per fact 2."
+      },
+      {
+        "id": "B18",
+        "verdict": "FIX",
+        "class": "exact",
+        "proposed_line": "                input_schema={'json': tool.input_schema}",
+        "required_line": "                input_schema={'json': tool.input_schema}",
+        "reason": "Client-side attribute access on an SDK-returned tool metadata object: tool.inputSchema is renamed to tool.input_schema per fact 4. The dict key 'json' and the input_schema= keyword argument on the surrounding register_tool call are local application identifiers, not SDK-provided names, so they are left unchanged."
+      }
+    ]
+  }
+}

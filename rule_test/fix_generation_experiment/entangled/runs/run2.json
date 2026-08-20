@@ -1,0 +1,98 @@
+[
+  {
+    "id": "E1",
+    "file": "src/opsmesh/server/base.py",
+    "line": 16,
+    "original_line": "from mcp.server.fastmcp import FastMCP",
+    "verdict": "FIX",
+    "proposed_line": "from mcp.server.mcpserver import MCPServer",
+    "spec_facts": [1],
+    "reason": "Fact 1: the whole mcp.server.fastmcp module tree moves to mcp.server.mcpserver with no compatibility alias, and FastMCP is renamed to MCPServer. This import line is a self-contained rename of both the module path and the imported symbol; nothing else needs to change for the import itself to resolve."
+  },
+  {
+    "id": "E2",
+    "file": "src/opsmesh/server/base.py",
+    "line": 24,
+    "original_line": "class OpsMeshServer(FastMCP):",
+    "verdict": "FIX",
+    "proposed_line": "class OpsMeshServer(MCPServer):",
+    "spec_facts": [1],
+    "reason": "Fact 1 explicitly calls out that a base-class reference to FastMCP does not self-repair when only the import is fixed -- the identifier's own text must change to MCPServer. This is exactly that case: OpsMeshServer subclasses FastMCP directly, so this line's text must be updated (paired with the E1 import fix) to compile under v2."
+  },
+  {
+    "id": "E3",
+    "file": "src/opsmesh/server/context.py",
+    "line": 12,
+    "original_line": "from mcp.server.fastmcp import Context",
+    "verdict": "FIX",
+    "proposed_line": "from mcp.server.mcpserver import Context",
+    "spec_facts": [1],
+    "reason": "Fact 1 explicitly states Context moves along with the rest of the fastmcp module tree when imported from that path. Simple import-path rewrite; the downstream `ctx: Context` annotations elsewhere do not need their own text changed once this import is fixed."
+  },
+  {
+    "id": "E4",
+    "file": "src/opsmesh/server/context.py",
+    "line": 13,
+    "original_line": "from mcp.server.fastmcp import get_context as _mcp_get_context",
+    "verdict": "FLAG-FOR-HUMAN",
+    "spec_facts": [3],
+    "reason": "This imports a free function `get_context` that this module's current_context() helper uses to fetch the active Context out of thin air, outside of any handler-parameter injection. Fact 3 says the ambient-fetch mechanism ('mcp.get_context()') is removed entirely in v2, with the only sanctioned replacement being to inject `ctx: Context` as a handler parameter -- not a straight import-path move like Context (fact 1) or a rename. There is no v2 import that preserves this function's behavior, so simply rewriting the module path is not a correct fix. The real fix is architectural: delete this import and the get_context()-based current_context() abstraction, and thread `ctx: Context` as a parameter into every caller instead (see E5; callers span src/opsmesh/server/tools/{deployments,incidents,runbooks,service_catalog}.py and are monkeypatched in tests/test_tools.py). That is a multi-file change, not a single-line replacement of this import."
+  },
+  {
+    "id": "E5",
+    "file": "src/opsmesh/server/context.py",
+    "line": 20,
+    "original_line": "    ctx = _mcp_get_context()",
+    "verdict": "FLAG-FOR-HUMAN",
+    "spec_facts": [3],
+    "reason": "Per fact 3, `mcp.get_context()` (the ambient-context accessor this line calls through _mcp_get_context) is removed entirely in v2 with no direct replacement call -- the spec's only guidance is to inject ctx as a handler parameter instead, which is a different calling convention, not a substitute expression for this line. current_context() is designed as a zero-argument helper that tool modules call from inside deeply nested logic (src/opsmesh/server/tools/deployments.py, incidents.py, runbooks.py, service_catalog.py) without threading ctx through; that whole call pattern has no v2 equivalent. Fixing this correctly requires removing/redesigning current_context() and changing every one of its call sites (and the corresponding monkeypatches in tests/test_tools.py) to accept ctx as a parameter -- not a self-contained edit of this one line."
+  },
+  {
+    "id": "E6",
+    "file": "src/opsmesh/client/session_group.py",
+    "line": 38,
+    "original_line": "            return await self._group.call_tool(tool_name, arguments)",
+    "verdict": "FLAG-FOR-HUMAN",
+    "spec_facts": [5],
+    "reason": "self._group is a ClientSessionGroup (imported at line 15, `from mcp.client.session_group import ClientSessionGroup`), and fact 5 says ClientSessionGroup.call_tool() lost its `args` parameter -- explicitly the different, entangled case from the unaffected plain ClientSession.call_tool(name, arguments={...}) used in session.py. The spec states the parameter was removed but does not say what, if anything, replaced it (a differently-named parameter, a restructured call shape, or simply no way to pass per-call arguments to this method anymore). This call currently passes the arguments dict positionally as the second argument; without knowing the actual v2 signature I cannot write a confident exact replacement line -- guessing risks silently breaking (or silently no-op'ing) every fleet-wide tool call this wrapper makes."
+  },
+  {
+    "id": "E7",
+    "file": "src/opsmesh/orchestrator/tool_catalog.py",
+    "line": 46,
+    "original_line": "                        input_schema=getattr(tool, \"inputSchema\", {}) or {},",
+    "verdict": "FIX",
+    "proposed_line": "                        input_schema=getattr(tool, \"input_schema\", {}) or {},",
+    "spec_facts": [2],
+    "reason": "Fact 2 lists tool.inputSchema -> tool.input_schema as a Python attribute-access rename on protocol objects. This is a string-keyed getattr() doing exactly that attribute access; renaming the string argument is a complete, self-contained fix for this line. (Note: the same rename must be made in the matching test fixture, tests/test_orchestrator_agent.py line 18 / E10, for tests to keep passing, but that is a separate confirmed site.)"
+  },
+  {
+    "id": "E8",
+    "file": "tests/test_server_base.py",
+    "line": 31,
+    "original_line": "    with patch(\"mcp.server.fastmcp.FastMCP.run\") as fastmcp_run:",
+    "verdict": "FIX",
+    "proposed_line": "    with patch(\"mcp.server.mcpserver.MCPServer.run\") as fastmcp_run:",
+    "spec_facts": [1],
+    "reason": "Fact 1: the module tree and the class name both change (mcp.server.fastmcp.FastMCP -> mcp.server.mcpserver.MCPServer). Since OpsMeshServer will subclass MCPServer after the E1/E2 fixes, its inherited .run is now MCPServer.run under the new dotted path, and mock.patch's string target must be rewritten to match verbatim for the patch to still target the right attribute. The `fastmcp_run` local variable name is unaffected functionally (it is not a spec-covered identifier) and does not need to change."
+  },
+  {
+    "id": "E9",
+    "file": "tests/test_client_session_group.py",
+    "line": 23,
+    "original_line": "    mock_session_group.call_tool.assert_awaited_once_with(\"search_docs\", {\"query\": \"rollback\"})",
+    "verdict": "FLAG-FOR-HUMAN",
+    "spec_facts": [5],
+    "reason": "This assertion pins the exact call arguments of FleetClient.call_tool's underlying self._group.call_tool() invocation (src/opsmesh/client/session_group.py line 38 / E6), which fact 5 confirms is affected (ClientSessionGroup.call_tool lost its `args` parameter) but whose replacement call shape the spec does not specify. Since E6 itself cannot be resolved to a confident single-line fix, this assertion's correct expected-arguments shape is equally undetermined -- it must be updated in lockstep with whatever the real E6 fix turns out to be, not guessed independently."
+  },
+  {
+    "id": "E10",
+    "file": "tests/test_orchestrator_agent.py",
+    "line": 18,
+    "original_line": "    return SimpleNamespace(name=name, description=description, inputSchema=schema)",
+    "verdict": "FIX",
+    "proposed_line": "    return SimpleNamespace(name=name, description=description, input_schema=schema)",
+    "spec_facts": [2],
+    "reason": "Fact 2: tool.inputSchema -> tool.input_schema is an attribute-access rename. This test's _fake_tool() builds a stand-in tool object whose inputSchema attribute is read via getattr(tool, \"inputSchema\"/\"input_schema\", ...) by ToolCatalog.build (E7). Once E7 is fixed to look up \"input_schema\", this fixture must expose that same attribute name or the tests silently fall back to the {} default and fail their assertions. Renaming the keyword argument is a complete, self-contained fix for this line."
+  }
+]

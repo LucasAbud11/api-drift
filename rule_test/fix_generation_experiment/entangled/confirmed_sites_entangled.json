@@ -1,0 +1,18 @@
+{
+  "note": "Confirmed-sites input for the entangled host (OpsMesh). Same discipline as targetB_small/diluted: file+line+a reason stating only WHY the site was flagged, never the replacement text. Detection's own numbers for this host (rule_test/entanglement_experiment/report.md, 'Shipped' section) were 100% precision but recall against true GT of only 70-90% across 3 runs -- one site (site 9 here) never reaches a detector at all (grep vocabulary gap) and would not actually appear in a real confirmed-sites list. It is included here anyway so fix-generation is tested against the full 10-site GT, matching this task's explicit request to test against the harder host's known sites, not just what one particular detection run happened to surface.",
+  "target": "B",
+  "repo_set": "entangled_opsmesh",
+  "host_root": "rule_test/entanglement_experiment/host",
+  "sites": [
+    {"id": "E1", "file": "src/opsmesh/server/base.py", "line": 16, "reason": "References a symbol from the module tree affected by the migration (import statement)."},
+    {"id": "E2", "file": "src/opsmesh/server/base.py", "line": 24, "reason": "References a symbol from the module tree affected by the migration (base class in a class definition)."},
+    {"id": "E3", "file": "src/opsmesh/server/context.py", "line": 12, "reason": "References a symbol from the module tree affected by the migration (import statement)."},
+    {"id": "E4", "file": "src/opsmesh/server/context.py", "line": 13, "reason": "References a symbol from the module tree affected by the migration (import statement)."},
+    {"id": "E5", "file": "src/opsmesh/server/context.py", "line": 20, "reason": "Calls a function from the module tree affected by the migration."},
+    {"id": "E6", "file": "src/opsmesh/client/session_group.py", "line": 38, "reason": "Client-side call whose target method's calling contract is affected by the migration."},
+    {"id": "E7", "file": "src/opsmesh/orchestrator/tool_catalog.py", "line": 46, "reason": "Reads a field, by string name, whose naming convention is affected by the migration."},
+    {"id": "E8", "file": "tests/test_server_base.py", "line": 31, "reason": "A string literal inside test-mock machinery references a dotted path affected by the migration."},
+    {"id": "E9", "file": "tests/test_client_session_group.py", "line": 23, "reason": "Test assertion on the exact call arguments of a call whose target's contract is affected by the migration."},
+    {"id": "E10", "file": "tests/test_orchestrator_agent.py", "line": 18, "reason": "Test fixture sets a field, by keyword name, whose naming convention is affected by the migration."}
+  ]
+}
