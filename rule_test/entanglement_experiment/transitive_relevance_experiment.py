@@ -209,7 +209,7 @@ def main():
     diluted_candidates = json.load(open(os.path.join(BLIND, "candidates_targetB_diluted_blind.json")))
     results.append(measure(
         "diluted host (Django + 5 MCP repos + 4 OpenAI repos)",
-        "/Users/lucasabud/Projects/api-drift/rule_test/scale_experiment/host",
+        os.path.join(os.path.dirname(BASE), "scale_experiment", "host"),
         diluted_candidates, "mcp",
         os.path.join(BLIND, "vocab_targetB_blind.py"),
     ))

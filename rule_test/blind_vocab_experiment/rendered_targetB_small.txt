@@ -51,7 +51,7 @@ TWO MANDATORY, MECHANICAL ROUTING RULES — these override your own confidence. 
 
 These two rules exist because REJECT verdicts on candidates matching them have been wrong, with confident stated reasoning, in prior runs of this study -- the rule replaces self-assessed "am I sure" with a mechanical check you apply the same way every time, regardless of how confident your own reasoning feels.
 
-CANDIDATE LIST (587 items, root: /Users/lucasabud/Projects/api-drift/repos):
+CANDIDATE LIST (587 items, root: <repo-root>/repos):
 
 ```json
 [

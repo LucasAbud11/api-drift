@@ -51,9 +51,9 @@ TWO MANDATORY, MECHANICAL ROUTING RULES — these override your own confidence. 
 
 **RULE 2 (test/mock path floor):** the candidate's file path contains `/tests/`, starts with `tests/`, matches `test_*.py` or `*_test.py`, or contains "mock" or "fixture" in the path/filename. Any such candidate you would otherwise REJECT must go to FLAG-UNCERTAIN instead.
 
-CONSTRAINT: restrict all reads to files under /Users/lucasabud/Projects/api-drift/rule_test/entanglement_experiment/host only -- do not read or reference anything outside it.
+CONSTRAINT: restrict all reads to files under <repo-root>/rule_test/entanglement_experiment/host only -- do not read or reference anything outside it.
 
-CANDIDATE LIST (47 items, root: /Users/lucasabud/Projects/api-drift/rule_test/entanglement_experiment/host):
+CANDIDATE LIST (47 items, root: <repo-root>/rule_test/entanglement_experiment/host):
 
 ```json
 [

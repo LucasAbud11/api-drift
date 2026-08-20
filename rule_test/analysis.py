@@ -1,7 +1,7 @@
 import re, os, json
 from collections import defaultdict
 
-REPO_ROOT = "/Users/lucasabud/Projects/api-drift/repos"
+REPO_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "repos")
 
 # ---------------------------------------------------------------------------
 # GROUND TRUTH  (transcribed verbatim from ground_truth/ground_truth.md)

@@ -36,7 +36,7 @@ actually differed between the original run and every run since. This
 resolved concretely — the original session's full transcript exists on
 disk and was recoverable.
 
-**How it was found and confirmed genuine:** `~/.claude/projects/-Users-lucasabud-Projects-api-drift/804c3d31-60cd-454c-9433-1a6065725f24.jsonl` opens with the literal project-kickoff message ("I'm building a tool that detects breaking changes..."), and the two agent results extracted from it (m0xai: 19 raw findings = 5 real + 14 `ctx: Context`; danilop: 6 raw findings = 3 real + 3 `ctx: Context`) reproduce `results.md`'s exact reported counts. Its last commands are the literal `git commit` for `a940505`. This is not a reconstruction — it is the original run.
+**How it was found and confirmed genuine:** the local Claude Code session transcript (`~/.claude/projects/<project>/<session-id>.jsonl`) opens with the literal project-kickoff message ("I'm building a tool that detects breaking changes..."), and the two agent results extracted from it (m0xai: 19 raw findings = 5 real + 14 `ctx: Context`; danilop: 6 raw findings = 3 real + 3 `ctx: Context`) reproduce `results.md`'s exact reported counts. Its last commands are the literal `git commit` for `a940505`. This is not a reconstruction — it is the original run.
 
 **What was checked, and what it settled:**
 

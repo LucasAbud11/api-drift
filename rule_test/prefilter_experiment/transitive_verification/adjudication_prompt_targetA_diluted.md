@@ -34,7 +34,7 @@ TWO MANDATORY, MECHANICAL ROUTING RULES — these override your own confidence. 
 
 **RULE 2 (test/mock path floor):** the candidate's file path contains `/tests/`, starts with `tests/`, matches `test_*.py` or `*_test.py`, or contains "mock" or "fixture" in the path/filename. Any such candidate you would otherwise REJECT must go to FLAG-UNCERTAIN instead.
 
-CANDIDATE LIST (9 items, root: /Users/lucasabud/Projects/api-drift/rule_test/scale_experiment/host):
+CANDIDATE LIST (9 items, root: <repo-root>/rule_test/scale_experiment/host):
 
 ```json
 [

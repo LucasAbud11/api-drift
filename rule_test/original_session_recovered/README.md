@@ -1,8 +1,8 @@
 # Recovered original session artifacts
 
 The original session that built `ground_truth/ground_truth.md`, `methodology_notes.md`,
-and `results.md` was located on disk: `~/.claude/projects/-Users-lucasabud-Projects-api-drift/
-804c3d31-60cd-454c-9433-1a6065725f24.jsonl` (436 lines). Identity confirmed by:
+and `results.md` was located on disk: a local Claude Code session transcript
+(`~/.claude/projects/<project>/<session-id>.jsonl`, 436 lines). Identity confirmed by:
 - Its first user message is the literal project kickoff ("I'm building a tool that
   detects breaking changes...").
 - The 9 detection-agent findings recorded in it reproduce `results.md`'s exact

@@ -30,15 +30,19 @@ VOCAB_B = load_vocab_regex(os.path.join(BLIND, "vocab_targetB_blind.py"))
 RELEVANCE_A = build_relevance_pattern("openai")
 RELEVANCE_B = build_relevance_pattern("mcp")
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE))
+REPOS_DIR = os.path.join(PROJECT_ROOT, "repos")
+SCALE_HOST_DIR = os.path.join(BASE, "..", "scale_experiment", "host")
+
 SCALES = [
     ("targetA_small", GT_TARGET_A_SMALL, "candidates_targetA_small_blind.json",
-     "/Users/lucasabud/Projects/api-drift/repos", RELEVANCE_A, VOCAB_A),
+     REPOS_DIR, RELEVANCE_A, VOCAB_A),
     ("targetA_diluted", GT_TARGET_A_DILUTED, "candidates_targetA_diluted_blind.json",
-     "/Users/lucasabud/Projects/api-drift/rule_test/scale_experiment/host", RELEVANCE_A, VOCAB_A),
+     SCALE_HOST_DIR, RELEVANCE_A, VOCAB_A),
     ("targetB_small", GT_TARGET_B_SMALL, "candidates_targetB_small_blind.json",
-     "/Users/lucasabud/Projects/api-drift/repos", RELEVANCE_B, VOCAB_B),
+     REPOS_DIR, RELEVANCE_B, VOCAB_B),
     ("targetB_diluted", GT_TARGET_B_DILUTED, "candidates_targetB_diluted_blind.json",
-     "/Users/lucasabud/Projects/api-drift/rule_test/scale_experiment/host", RELEVANCE_B, VOCAB_B),
+     SCALE_HOST_DIR, RELEVANCE_B, VOCAB_B),
 ]
 
 
