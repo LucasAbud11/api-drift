@@ -175,6 +175,35 @@ in one unconstrained pass degraded in a way invisible until the search
 space got large; an agent asked only to judge a list someone else already
 found did not.
 
+**A fourth stage, fix generation, sits downstream of detection and draws
+its own boundary.** Given a confirmed site, it either proposes the exact
+corrected line or declines and flags the site for a human — and the line
+it draws between those two outcomes is the central fact about this stage:
+breaking changes split into **mechanical renames** (an import path moves,
+an identifier is renamed, a field changes case) and **structural
+refactors** (a function is removed with no drop-in replacement, and the
+fix has to change how a call site is shaped, not just what it's called).
+The first category gets an automatic single-line fix. The second gets
+declined outright, not guessed at. This boundary was not asserted — it was
+verified by construction, on a host (`OpsMesh`) built by a separate,
+walled-off agent with no knowledge of this study, then checked by actually
+running that host's real test suite before and after each candidate fix,
+not by reading. Two of its ten confirmed sites reference `mcp.get_context()`,
+a function removed entirely in v2 with no path-only substitute; the
+correct fix touches 6 files and ~15 lines, because the SDK's stated
+replacement is injecting `ctx: Context` as a handler parameter, not
+renaming an import. A pattern-matching fix generator that tried the naive
+single-line edit anyway — tested directly — throws `ImportError` at import
+time. Across 3 independent runs on that host, the stage proposed a
+confident, exactly-correct single-line fix on every site that actually has
+one (18/18 across the 6 such sites) and declined every site that doesn't
+(12/12 across the 4 such sites, 0 wrong guesses) — the auto-fix/flag
+boundary landed in the right place every time it was tested against a host
+built to contain both kinds of change. Full methodology, per-site answer
+key, and mechanically-verified evidence (diffs, negative controls, a real
+pytest run before and after each fix) in
+`rule_test/fix_generation_experiment/report.md` and `report_scale.md`.
+
 ## 5. Results, current architecture, across every host tested
 
 | Host | GT sites | Precision | Recall (surfaced) | Recall (propose-only) | Production misses | Candidate reduction |
@@ -197,7 +226,51 @@ three-stage pipeline: the same prefilter code, the same candidate list
 shown, adjudicated 3 times per host, 15 runs total. No row mixes in a
 result from before this exact pipeline existed.
 
+**Fix-generation results**, run separately on top of each host's confirmed
+detection output, 3 runs per host:
+
+| Host | Sites with one correct fix | Exact-match | Sites with no single-line fix | Legitimate hedge | Locally-plausible-but-globally-wrong |
+|---|---|---|---|---|---|
+| targetB_small, 5 repos | 20 | 100% x3 (60/60) | 0 | n/a | n/a |
+| targetB_diluted | 20 | 100% x3 (60/60) | 0 | n/a | n/a |
+| entangled (this host) | 6 | 100% x3 (18/18) | 4 | 100% x3 (12/12) | 0% x3 (0/12) |
+
+"Locally-plausible-but-globally-wrong" is a confident single-line fix on a
+site that has no correct single-line answer — the failure mode that would
+actually ship a bug, as opposed to a false positive costing a reviewer a
+few seconds. It never fired: on the 4 entangled sites where no such answer
+exists, every run flagged instead of guessing. Every fix proposed anywhere
+in this table was also mechanically verified — parses, the specific
+migrated import resolves against a from-scratch v2 SDK stub, and (where a
+host had a runnable test suite) that suite's pass/fail signature was
+compared before and after the fix — not just scored against the answer key.
+Detail, per-site answer keys, and raw agent output:
+`rule_test/fix_generation_experiment/`.
+
 ## 6. Limitations, stated plainly
+
+**Mechanical verification proves self-consistency, not correctness.**
+Every "verified by running the host" claim for the fix-generation stage
+means the codebase parses, the migrated import resolves against a stub,
+and existing tests still pass after the fix — not that the fix matches
+the real v2 SDK's actual behavior. This gap is not hypothetical: the
+entangled host's `client/session_group.py:38` has two structurally
+different, mutually exclusive edits (pass the removed argument as a
+keyword vs. drop it entirely) that were each applied, together with a
+matching update to the one test that exercises that call, and **both
+passed** the host's real test suite. The suite can only confirm the
+wrapper and its test agree with each other — it tests the wrapper against
+a `MagicMock`, never against the real `ClientSessionGroup`, so it has no
+way to know which interpretation the shipped v2 API actually implements.
+The verification harness inherits the quality of the customer's own
+tests: a repo with strong, non-mocked coverage at the exact boundary a
+migration changed gets a real correctness signal from this stage; a repo
+whose tests mock away that boundary gets none, and "the tests still pass"
+is not, by itself, evidence the fix is right. This is a property of
+testing against mocked wrappers in general, not a defect specific to this
+study's harness — but it means the tool's confidence should never be
+allowed to exceed the confidence already present in the customer's own
+test suite.
 
 **Test/mock coverage is the study's real, recurring weak spot** — four
 independently-discovered mechanisms, not one recurring bug: an agent
@@ -242,14 +315,28 @@ could easily surface another one the same way.
 
 ## 7. What would have to be true for this to be a product
 
-This measures detection accuracy on a fixed, known candidate list against
-a hand-verified answer key. It does not measure: whether a real reviewer
-trusts and acts correctly on a PROPOSE/FLAG-UNCERTAIN/REJECT list in an
-actual workflow; whether grep-vocabulary derivation holds up against
-guides far less complete than these; latency and cost at repository
-sizes larger than anything tested; a real shared-core monorepo, flagged
-above as untested; a second language; a breaking change with no
-grep-able signature at all; or a codebase behind on several overlapping
-migrations at once. Turning this into a product means closing those gaps
-one at a time, in the open, the way each finding here closed the one
-before it — not asserting the final numbers already cover them.
+This measures detection accuracy, and now fix-generation accuracy, on a
+fixed, known candidate list against hand-verified answer keys. It does
+not measure: whether a real reviewer trusts and acts correctly on a
+PROPOSE/FLAG-UNCERTAIN/REJECT (or FIX/FLAG-FOR-HUMAN) list in an actual
+workflow; whether grep-vocabulary derivation holds up against guides far
+less complete than these; latency and cost at repository sizes larger
+than anything tested; a real shared-core monorepo, flagged above as
+untested; a second language; a breaking change with no grep-able
+signature at all; or a codebase behind on several overlapping migrations
+at once.
+
+One gap on an earlier version of this list has since closed, in the open,
+worth naming because it's the pattern the rest of this list is asking for.
+The first fix-generation run observed zero FLAG-FOR-HUMAN hedges across
+60 site-verdicts and could only report that the hedge path was
+unexercised — genuinely unknown whether it was well-calibrated or simply
+never firing. Measured against a host built specifically to contain real
+ambiguity, it turned out to be calibrated in both directions: 0 avoidable
+hedges across 78 site-verdicts that had one correct answer, 12/12
+legitimate hedges across the site-verdicts that didn't. That's a real
+answer to a question this report couldn't answer before, obtained by
+building the host that could answer it rather than asserting the earlier
+silence was fine. Turning the rest of this into a product means closing
+the remaining gaps the same way, one at a time — not asserting the final
+numbers already cover them.

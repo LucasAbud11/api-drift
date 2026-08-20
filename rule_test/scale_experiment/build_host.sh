@@ -7,6 +7,8 @@
 # Django version pinned below: 5.1.16 alpha, commit 84d09a5.
 set -euo pipefail
 cd "$(dirname "$0")"
+SCRIPT_DIR="$(pwd)"
+REPOS_DIR="$(cd "$SCRIPT_DIR/../../repos" && pwd)"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -15,29 +17,29 @@ git clone --quiet https://github.com/django/django.git "$WORK/django_src"
 cd "$WORK/django_src"
 git checkout --quiet 84d09a547fe35e10018ab242602ca76c29ca91a1
 
-rm -rf ../../host
-mkdir -p ../../host/django
+rm -rf "$SCRIPT_DIR/host"
+mkdir -p "$SCRIPT_DIR/host/django"
 
 SRC=django
 for d in core template forms http middleware templatetags test urls utils views apps dispatch; do
-  cp -R "$SRC/$d" "../../host/django/$d"
+  cp -R "$SRC/$d" "$SCRIPT_DIR/host/django/$d"
 done
-mkdir -p ../../host/django/conf
-cp -R "$SRC/conf/locale" ../../host/django/conf/locale
-cp "$SRC/conf/__init__.py" ../../host/django/conf/__init__.py
-cp "$SRC/conf/global_settings.py" ../../host/django/conf/global_settings.py
-mkdir -p ../../host/django/contrib
+mkdir -p "$SCRIPT_DIR/host/django/conf"
+cp -R "$SRC/conf/locale" "$SCRIPT_DIR/host/django/conf/locale"
+cp "$SRC/conf/__init__.py" "$SCRIPT_DIR/host/django/conf/__init__.py"
+cp "$SRC/conf/global_settings.py" "$SCRIPT_DIR/host/django/conf/global_settings.py"
+mkdir -p "$SCRIPT_DIR/host/django/contrib"
 for d in auth contenttypes sessions messages staticfiles; do
-  cp -R "$SRC/contrib/$d" "../../host/django/contrib/$d"
+  cp -R "$SRC/contrib/$d" "$SCRIPT_DIR/host/django/contrib/$d"
 done
-cp "$SRC/__init__.py" ../../host/django/__init__.py
-cp "$SRC/shortcuts.py" ../../host/django/shortcuts.py
-cp "$SRC/__main__.py" ../../host/django/__main__.py
+cp "$SRC/__init__.py" "$SCRIPT_DIR/host/django/__init__.py"
+cp "$SRC/shortcuts.py" "$SCRIPT_DIR/host/django/shortcuts.py"
+cp "$SRC/__main__.py" "$SCRIPT_DIR/host/django/__main__.py"
 
-cd ../../
+cd "$SCRIPT_DIR"
 mkdir -p host/integrations
 for r in tonyzorin_youtrack-mcp QAInsights_jmeter-mcp-server securityfortech_secops-mcp m0xai_trello-mcp-server danilop_MCP2Lambda; do
-  cp -R "../../repos/$r" "host/integrations/$r"
+  cp -R "$REPOS_DIR/$r" "host/integrations/$r"
   rm -rf "host/integrations/$r/.git"
 done
 
@@ -45,7 +47,7 @@ done
 # (rule_test/blind_vocab_experiment/report.md) -- reuses this same host.
 mkdir -p host/integrations_openai
 for r in TomaszRewak_MAGI franalgaba_chatgpt-telegram-bot-serverless batuhantoker_Flask-OpenAI-Chatbot g0ldencybersec_sus_params; do
-  cp -R "../../repos/$r" "host/integrations_openai/$r"
+  cp -R "$REPOS_DIR/$r" "host/integrations_openai/$r"
   rm -rf "host/integrations_openai/$r/.git"
 done
 
