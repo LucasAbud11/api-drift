@@ -62,6 +62,15 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     _write_json(os.path.join(workdir, "vocabulary.json"), vocab)
     print_fn(f"      {len(vocab['patterns'])} patterns")
 
+    vcov = guards.check_vocabulary_coverage(fb, vocab)
+    with open(os.path.join(workdir, "vocabulary_coverage.txt"), "w") as f:
+        f.write(vcov.report)
+    print_fn(vcov.report)
+    if not vcov.ok and not force:
+        raise GuardFailure(vcov.reason, vcov.report)
+    if not vcov.ok:
+        print_fn(f"      GUARD BYPASSED (--force): {vcov.reason}")
+
     print_fn("[3/5] Searching repo...")
     candidates = grep.find_candidates(reader, vocab["patterns"])
     _write_json(os.path.join(workdir, "candidates.json"), candidates)

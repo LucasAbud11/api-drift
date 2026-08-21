@@ -31,6 +31,11 @@ def test_replay_reproduces_recorded_result(tmp_path):
         workdir=workdir,
         client=client,
         chunk_size=40,
+        # This test checks plumbing, not vocabulary completeness -- the
+        # cassette's recorded vocabulary is whatever a real derivation call
+        # happened to produce, so force past a guard stop the same way the
+        # acceptance test this cassette came from does.
+        force=True,
     )
 
     # Plumbing checks: every artifact got written, every bucket key exists,

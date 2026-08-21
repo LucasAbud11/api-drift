@@ -61,7 +61,7 @@ def validate_factblock(data, what="factblock"):
 # re.search, list.count, set.add, json.load, ...). A pattern that reduces
 # to nothing but one of these, bare, matches most of a host codebase
 # rather than the migration -- see _bare_dotted_call_alternatives below.
-_GENERIC_METHOD_NAMES = {
+GENERIC_METHOD_NAMES = {
     "get", "set", "add", "remove", "delete", "update", "list", "count",
     "query", "info", "type", "range", "put", "post", "head", "options",
     "keys", "values", "items", "pop", "copy", "clear", "format", "strip",
@@ -164,7 +164,7 @@ def validate_vocabulary(data, what="vocabulary"):
                 f"such restriction at any nesting position.",
             )
         bare_alternatives = _bare_dotted_call_alternatives(regex)
-        generic_hits = [a for a in bare_alternatives if a.lower() in _GENERIC_METHOD_NAMES]
+        generic_hits = [a for a in bare_alternatives if a.lower() in GENERIC_METHOD_NAMES]
         if generic_hits:
             _fail(
                 what,

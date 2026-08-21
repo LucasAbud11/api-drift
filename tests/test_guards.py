@@ -57,3 +57,44 @@ def test_balanced_vocabulary_passes():
     )
     result = guards.check_vocabulary_yield(patterns, candidates)
     assert result.ok
+
+
+def test_vocabulary_coverage_catches_a_dropped_fact():
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "`widget.Foo` is renamed to `widget.Bar`."},
+            {"number": 2, "text": "`widget.Baz.qux()` gains a required `timeout=` kwarg."},
+        ],
+    }
+    vocabulary = {"patterns": {"p1": r"\bwidget\.Foo\b"}}
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert not result.ok
+    assert "2" in result.reason
+    assert "qux" in result.report
+
+
+def test_vocabulary_coverage_underscore_insensitive_match():
+    # The guide names a wire-style command with no separator; the actual
+    # Python method inserts an underscore in a different place. A plain
+    # \b-bounded match would miss this -- the fix must not regress it.
+    factblock = {
+        "package_name": "widget",
+        "facts": [{"number": 1, "text": "`CLIENT TRACKINGINFO` changes shape."}],
+    }
+    vocabulary = {"patterns": {"p1": r"\.client_tracking_info\s*\("}}
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert result.ok
+
+
+def test_vocabulary_coverage_skips_non_breaking_and_shape_facts():
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "CONFIRMED UNCHANGED: `widget.Foo` is not affected."},
+            {"number": 2, "text": "Shape changes from `(a, b)` to `[a, b]`."},
+            {"number": 3, "text": "No concrete symbol named here, just process notes."},
+        ],
+    }
+    result = guards.check_vocabulary_coverage(factblock, {"patterns": {"p1": r"\bwidget\b"}})
+    assert result.ok
