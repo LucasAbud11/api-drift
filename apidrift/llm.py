@@ -17,6 +17,25 @@ class ReplayMiss(Exception):
     unrelated recorded answer."""
 
 
+class LLMError(Exception):
+    """Base for errors AnthropicLLMClient raises when a call can't be
+    trusted. str(e) is a plain-language line naming the stage -- callers
+    print it and stop, never a raw SDK traceback."""
+
+
+class LLMCallError(LLMError):
+    """The request itself failed: auth, permissions, rate limit, a
+    rejected request (including an out-of-credits account), a server
+    error, or a network failure."""
+
+
+class TruncatedResponseError(LLMError):
+    """The model's response was cut off by the max_tokens ceiling before
+    it finished. This is an incomplete response, not malformed JSON --
+    raising max_tokens (or asking for less in one call) is the fix, not
+    retrying the same call or treating it as a parse error."""
+
+
 def _request_key(system_text, user_text):
     h = hashlib.sha256()
     h.update(system_text.encode("utf-8"))
@@ -54,21 +73,53 @@ class AnthropicLLMClient(LLMClient):
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
                  max_tokens=8000, effort="high"):
+        import anthropic
+
         system = system_text
         if cache_system:
             system = [{"type": "text", "text": system_text,
                        "cache_control": {"type": "ephemeral"}}]
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            system=system,
-            thinking={"type": "adaptive"},
-            output_config={
-                "effort": effort,
-                "format": {"type": "json_schema", "schema": schema},
-            },
-            messages=[{"role": "user", "content": user_text}],
-        )
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                system=system,
+                thinking={"type": "adaptive"},
+                output_config={
+                    "effort": effort,
+                    "format": {"type": "json_schema", "schema": schema},
+                },
+                messages=[{"role": "user", "content": user_text}],
+            )
+        except anthropic.AuthenticationError as e:
+            raise LLMCallError(
+                f"[{stage}] authentication failed -- check that ANTHROPIC_API_KEY (or "
+                f"another credential source) is set and valid: {e.message}"
+            ) from e
+        except anthropic.PermissionDeniedError as e:
+            raise LLMCallError(
+                f"[{stage}] the API key lacks permission for this request: {e.message}"
+            ) from e
+        except anthropic.RateLimitError as e:
+            raise LLMCallError(
+                f"[{stage}] rate limited by the Anthropic API -- wait and retry: {e.message}"
+            ) from e
+        except anthropic.NotFoundError as e:
+            raise LLMCallError(
+                f"[{stage}] the Anthropic API returned 'not found' -- check the --model name: {e.message}"
+            ) from e
+        except anthropic.BadRequestError as e:
+            raise LLMCallError(
+                f"[{stage}] the Anthropic API rejected the request: {e.message} "
+                f"(an account out of API credits shows up as this kind of error)"
+            ) from e
+        except anthropic.APIStatusError as e:
+            raise LLMCallError(
+                f"[{stage}] Anthropic API error (status {e.status_code}): {e.message}"
+            ) from e
+        except anthropic.APIConnectionError as e:
+            raise LLMCallError(f"[{stage}] network error reaching the Anthropic API: {e}") from e
+
         usage = getattr(response, "usage", None)
         call_usage = {
             "input_tokens": getattr(usage, "input_tokens", 0) or 0,
@@ -79,6 +130,14 @@ class AnthropicLLMClient(LLMClient):
         for k, v in call_usage.items():
             self.usage_totals[k] += v
         self.calls.append({"stage": stage, "usage": call_usage})
+
+        if response.stop_reason == "max_tokens":
+            raise TruncatedResponseError(
+                f"[{stage}] the model's response was cut off at the {max_tokens}-token "
+                f"max_tokens limit before it finished -- this is an incomplete response, "
+                f"not malformed JSON. Raise max_tokens for this stage (or reduce what it's "
+                f"asked to produce in one call); retrying the same call will hit the same wall."
+            )
 
         text = next((b.text for b in response.content if b.type == "text"), None)
         if text is None:

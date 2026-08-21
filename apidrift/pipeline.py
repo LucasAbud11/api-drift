@@ -9,8 +9,8 @@ import json
 import os
 import re
 
-from . import guards
-from .reposafe import RepoReader, assert_no_overlap
+from . import guards, preflight
+from .reposafe import RepoReader
 from .stages import adjudicate, factblock, grep, prefilter, report, vocabulary
 
 
@@ -37,7 +37,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     repo access goes exclusively through RepoReader, which has no write
     method. Returns a dict with every intermediate artifact plus the
     expanded, scoreable merged adjudication result."""
-    assert_no_overlap(repo_root, workdir)
+    preflight.check_inputs(repo_root, guide_path, workdir)
     os.makedirs(workdir, exist_ok=True)
     reader = RepoReader(repo_root)
 

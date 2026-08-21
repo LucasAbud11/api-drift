@@ -1,8 +1,8 @@
 import argparse
 import sys
 
-from . import pipeline
-from .llm import AnthropicLLMClient
+from . import pipeline, preflight
+from .llm import AnthropicLLMClient, LLMError
 
 
 def main(argv=None):
@@ -31,8 +31,9 @@ def main(argv=None):
             import datetime
             workdir = f"./.api-drift-run/{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
 
-        client = AnthropicLLMClient(model=args.model)
         try:
+            preflight.check_api_key()
+            client = AnthropicLLMClient(model=args.model)
             pipeline.run(
                 repo_root=args.repo,
                 guide_path=args.guide,
@@ -42,6 +43,12 @@ def main(argv=None):
                 force=args.force,
                 package_name_override=args.package,
             )
+        except preflight.PreflightError as e:
+            print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+            sys.exit(1)
+        except LLMError as e:
+            print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+            sys.exit(1)
         except pipeline.GuardFailure as e:
             print(f"\nSTOPPED: {e.reason}\n", file=sys.stderr)
             print(e.diagnostic_report, file=sys.stderr)
