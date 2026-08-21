@@ -1,3 +1,9 @@
 repos/
 rule_test/scale_experiment/host/
 .claude/
+.venv/
+apidrift.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+.api-drift-run/

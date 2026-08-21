@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apidrift"
+version = "0.1.0"
+description = "Point it at a repo and a migration guide; get back proposed sites and fixes. Proposes only -- never pushes, never opens a PR."
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=1.0.0",
+]
+
+[project.scripts]
+api-drift = "apidrift.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["apidrift*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "acceptance: hits the live Anthropic API, costs money and takes minutes -- run explicitly with -m acceptance",
+]
+addopts = "-m 'not acceptance'"
