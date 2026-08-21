@@ -340,3 +340,175 @@ building the host that could answer it rather than asserting the earlier
 silence was fine. Turning the rest of this into a product means closing
 the remaining gaps the same way, one at a time — not asserting the final
 numbers already cover them.
+
+## 8. From research pipeline to a CLI tool
+
+Everything above measured detection and fix-generation accuracy against a
+fixed candidate list and a hand-verified answer key — the answer key
+existed before the run did. This section covers what happened when the
+same pipeline (fact block → vocabulary → grep → prefilter → chunked
+adjudication, per `DESIGN.md`) got packaged as `api-drift`, an installable
+CLI a user points at an arbitrary repo and guide, with no answer key
+waiting on the other side. That's a materially different artifact, and it
+found problems the study, by construction, never could.
+
+**Packaging surfaced three bugs on first contact with the live API that no
+amount of re-running the study would have found, because a study built by
+construction always exercises the happy path.** The structured-output
+schema for the vocabulary stage used an open `additionalProperties`
+object, which the real API rejects outright (patterns are now returned as
+a `[{name, regex}]` list and converted to the dict every downstream stage
+expects). `RepoReader.list_py_files()` used `os.walk` without
+`followlinks`, silently finding zero files against the acceptance test's
+own symlink-based repo fixture. And fact-block derivation could return
+`package_name` as a prose description instead of a bare import identifier
+— which breaks the prefilter's relevance regex in a way that doesn't
+crash: it drops every single candidate, so the pipeline completes cleanly
+and reports nothing wrong on a codebase that has real, unfixed breaking
+changes. That's the dangerous shape of failure this whole project is
+about avoiding, and it was hiding in the tool's own onboarding step.
+Fixed with a hard-fail structural check (`validate.py`'s
+`validate_factblock`: `package_name` must fullmatch a bare Python
+identifier or the run stops) rather than a tighter prompt alone — per
+`DESIGN.md`'s own "fail rather than guess" rule, this is exactly the kind
+of gap a prompt can regress on any given call, so the check has to live
+in code, not in phrasing.
+
+**Two acceptance cases pin the study's own numbers as regression tests,
+not just a memory of them.** `test_acceptance_targeta.py` and
+`test_acceptance_targetb.py` re-run Target A and Target B through the
+packaged CLI's real code path against the live API and assert the exact
+same bar the study used — 100% surfaced recall, 100% precision — with a
+third, offline replay tier (`test_replay_targetb.py`) that re-plays a
+recorded cassette through the identical pipeline code with no network
+call, to catch a plumbing regression for free between real runs. Current
+recorded cost: Target A, 12 patterns, $0.1639 for 3 API calls; Target B,
+13 patterns, $0.2046 for 3 API calls. Both numbers moved during this
+phase's own work — cassettes had to be re-recorded five separate times as
+the vocabulary-derivation prompt changed — and both landed back at
+100%/100% every time, which is the actual point of having them: a
+regression test that can't be beaten by construction here, because the
+answer key is the same one the study already earned.
+
+**The first cold run against a codebase this pipeline had never been
+shaped around — closeio/tasktiger, migrating to redis-py's Unified
+Responses — found two more failure modes no test path could reach, because
+every existing test already passes a valid input and a working (real or
+mocked) client.** A missing `ANTHROPIC_API_KEY` produced a ~40-line SDK
+traceback ending in a `TypeError` from httpx header encoding, not a
+usable error — fixed by `preflight.py`, which checks the API key and the
+`--repo`/`--guide`/`--workdir` inputs before any network call or repo
+access happens, wired into `pipeline.run()` itself so every caller
+inherits it. Separately, a response truncated by the `max_tokens` ceiling
+was being reported as "not valid JSON" — blaming the model for something
+the token ceiling did. `llm.py` now checks `response.stop_reason` and
+raises a `TruncatedResponseError` naming the real cause before ever
+attempting to parse the (correctly incomplete) text. Neither bug is
+subtle in hindsight; neither was reachable by a test suite where every
+path already has a valid key and a response that finishes.
+
+**That same guide is the first time this pipeline produced a result with
+no answer key to check itself against — the actual product condition, not
+a rehearsal of it.** redis-py's Unified Responses guide runs 67–73 facts
+depending on the exact derivation (guide-ingestion is not perfectly
+deterministic call to call — see below), against a real, unmodified
+library's real test suite and application code. A representative full run:
+67 facts, 34 vocabulary patterns, 71 raw grep candidates, 37 kept after
+prefilter (34 collapsed as duplicates), landing at 21 PROPOSE / 35
+FLAG-UNCERTAIN / 15 REJECT after duplicate expansion. Every PROPOSE site
+was the same shape — a `redis.Redis(...)` construction point needing
+`legacy_responses=False` added — because that's the one place in this
+migration where the fix is textually local to the candidate line; every
+downstream site whose fate depends on how a caller consumes an
+already-returned value is a judgment call this pipeline correctly declines
+to guess at, not a design defect.
+
+**The coverage chain grew a third guard, closing the last unchecked link
+— and by the end of one day's work, two of the three had each caught
+something real.** `check_factblock_coverage` (guide → fact block) and
+`check_vocabulary_yield` (does one grep pattern dominate the candidate
+set) already existed; `check_vocabulary_coverage` (fact block →
+vocabulary — does every fact that names a concrete identifier actually
+have a derived pattern behind it) was added specifically because a
+keyword-argument pattern was observed vanishing between one vocabulary
+derivation and the next with zero signal anywhere in the pipeline.
+`check_vocabulary_yield` fired for real, twice, on legitimate grounds: a
+correctly-scoped `zrange`-family pattern accounted for 39–54% of raw
+candidates across different derivations of the same guide, because
+tasktiger's own test suite calls `zrange(..., withscores=True)` dozens of
+times testing its Lua scripts — real domain-driven volume, not vocabulary
+overmatch, confirmed by inspection before proceeding with `--force` each
+time. `check_vocabulary_coverage` caught something real the day it was
+built — a systematic vocabulary regression, detailed two findings below.
+`check_factblock_coverage` has not yet fired in practice
+in this phase — every guide ingested so far has produced a fact block
+naming enough of the guide's own symbols to clear its floor. That's worth
+stating plainly rather than quietly dropping: one guard in the chain is,
+so far, an unexercised safeguard, not yet a proven one.
+
+**The hedge-rate investigation: a 47% flag rate that was 72% artifact, 26%
+real, and one bad narrowing fix that briefly made the real number worse
+before a guard caught it.** A full tasktiger run initially flagged 66 of
+140 expanded candidates (47%) as FLAG-UNCERTAIN — three times the rate
+either acceptance target showed. Categorizing all 39 pre-expansion
+FLAG-UNCERTAIN verdicts by hand: 28 (72%) were candidates the model itself
+judged confidently irrelevant (a plain `import redis`, a `.get()` call
+governed only by `decode_responses`) that got forced into
+FLAG-UNCERTAIN purely by the mandatory test/mock-path floor rule, because
+they lived in a test file — not because the migration made them
+ambiguous. Only 10 (26%) were genuine shape-consumption ambiguity (a
+`ZRANGE` call whose returned pairs might or might not be compared/indexed
+downstream in a way this pipeline can't see from one line). The dominant
+72% traced to one root cause: a bare, unqualified vocabulary pattern
+(`.get(`, `.range(`, `.search(`) sweeping in irrelevant test-file noise
+that the test-path floor then blanket-hedged regardless of relevance.
+Narrowing the vocabulary — requiring a namespace or dot-anchor qualifier
+instead of a bare generic verb, enforced by a new structural check in
+`validate_vocabulary` — cut the same run's pre-expansion hedge count from
+39 to 13 and shifted the mix to 5 (38%) artifact / 8 (62%) genuine: the
+fix moved the needle in the right direction without weakening the
+test/mock-path floor rule itself. The genuine 26–62% core is a real,
+structural property of response-shape migrations (as opposed to rename
+migrations, where the break is visible at the call site) that no amount
+of prompt work removes — it needs a fundamentally different adjudication
+design, not a bigger vocabulary, to close.
+
+**That same narrowing pass caused a real regression, silently, and the
+guard built the same day caught it before it shipped.** Deriving the
+vocabulary three independent times from the identical redis fact block, all
+three derivations missed the exact same 7 facts — not variance across
+runs, a systematic blind spot. Every one of the 7 named a response
+attribute or dict key (`flags`, `total`, `age-seconds`, `client-info`),
+never a callable command; one derivation covered `warnings` but not the
+adjacent `total` named in the same sentence of the same fact. Confirmed
+coverable, not structural: an earlier, pre-narrowing vocabulary this same
+session had correctly derived patterns for every one of these exact
+tokens. The cause was the narrowing prompt itself — heavy new emphasis on
+never emitting a bare unqualified pattern, with no parallel instruction
+that attribute/dict-key facts are a distinct category needing a different,
+still-non-bare anchor (the dot or the subscript, not a namespace, since
+there is nothing being called). `check_vocabulary_coverage` caught this
+the first day it existed, on one of its first real uses, by disagreeing
+with a plausible-looking 100%/100% acceptance result rather than
+confirming it. Fixed with an explicit rule requiring dot- or
+subscript-anchored patterns for this fact category; re-derivation closed
+6 of the 7 facts, leaving one (`LCS`'s `IDX` keyword argument, a
+call-argument fact rather than an attribute/dict-key one) as a known,
+understood, still-open gap outside this fix's scope.
+
+**Real per-run costs, not estimates.** Cost reporting did not exist in the
+CLI itself for part of this phase — only the test harness could report
+it — so the very first live runs against tasktiger have no recorded
+dollar figure at all, an honest gap rather than a reconstructed one.
+Once wired into `cli.py` (printed on success and on a guard/error stop
+alike, since those calls are billed regardless of outcome): Target A
+acceptance, $0.1639; Target B acceptance, $0.2046; a full tasktiger run
+(fact block + vocabulary + one adjudication chunk of 37 candidates),
+$0.5603. A side investigation into vocabulary-derivation variance — three
+independent derivations from one fact block, to measure run-to-run
+stability — cost $0.5541 for the three vocabulary-only calls alone,
+roughly $0.18 each; that number matters beyond this one experiment,
+because it's what a future union-of-N derivation strategy would cost per
+extra sample, and — per the systematic-regression finding just above — it
+would have bought nothing against the 7-fact gap while only helping with
+genuinely stochastic ones.
