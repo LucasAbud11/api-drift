@@ -18,11 +18,35 @@ Rules:
   UNCHANGED / not breaking / out of scope -- those exist to narrow you,
   not to give you more search terms.
 - Prefer patterns scoped by whatever qualifier the guide's own text gives
-  (a package prefix, a class name, an import path). Only fall back to a
-  bare, unqualified identifier or keyword-argument pattern when the fact
-  itself is stated in bare terms with no qualifier to scope it by -- don't
-  invent a qualifier the guide never states, and don't add a qualifier
-  that would risk missing real matches.
+  (a package prefix, a class name, an import path). When the fact itself
+  is stated in bare terms with no such qualifier to scope it by, do not
+  invent one the guide never states -- but also never fall all the way
+  through to a fully bare `\bword\b` match with no syntactic anchor at
+  all (see the two categories below for what to anchor it to instead).
+  A bare word match matches that word anywhere -- a comment, a string, an
+  unrelated variable name -- not just the place the migration touches.
+- RESPONSE-ATTRIBUTE AND DICT-KEY FACTS ARE THEIR OWN CATEGORY, DISTINCT
+  FROM CALLABLE-COMMAND FACTS: a fact describing what a RETURNED object
+  now exposes, or a key now present/changed in a returned dict/map
+  (`AggregateResult` now exposes `total`; `COMMAND` now returns `flags` as
+  a set; `ACL LOG` now includes `age-seconds`) is never calling anything
+  -- there is no method call, no constructor, nothing to put a namespace
+  accessor in front of. That does NOT make it exempt from anchoring, and
+  it is NOT the "bare, unqualified identifier" case: attribute access
+  already carries its own qualifier -- the dot (or the subscript) -- even
+  with no namespace in front of it. Anchor every such fact to the
+  ACCESS FORM, never the bare word alone:
+    - attribute access: `\.total\b`, `\.flags\b`, `\.warnings\b`
+    - subscript/dict-key access: `\[["\']age-seconds["\']\]` or, looser,
+      a literal-string form like `["\']age-seconds["\']` for a key that
+      might be read via `.get(...)` rather than `[...]`
+  Group several such attributes from the same fact (or sibling facts)
+  into one alternation exactly as callable commands are grouped, e.g.
+  `\.(warnings|total|docs|flags|acl_categories)\b` -- one pattern, several
+  attributes, still dot-anchored, never `\b(warnings|total|...)\b` with
+  the dot dropped. `total`, `flags`, and `age-seconds` are ordinary words
+  that appear constantly in unrelated code; `.total`, `.flags` and
+  `["age-seconds"]` are not.
 - A DOTTED COMMAND NAME IN THE GUIDE IS ALREADY A QUALIFIER -- DON'T DROP
   IT: when the guide states a change using a namespaced/module command
   name (anything with a `.` in it, e.g. `TS.GET`, `JSON.SET`,
