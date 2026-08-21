@@ -47,7 +47,13 @@ def derive(client, guide_text, factblock):
         system_text=SYSTEM_PROMPT,
         user_text=user_text,
         schema=SCHEMA,
-        max_tokens=8000,
+        # Higher than the other stages' default: this stage's output scales
+        # with (fact count x patterns-per-fact x escaped-regex length), not
+        # with fact count alone, so it's the one most likely to need the
+        # room. A large-guide truncation here fails loudly now (llm.py
+        # checks stop_reason) rather than being misreported as bad JSON --
+        # this raised ceiling buys headroom, it doesn't remove that check.
+        max_tokens=16000,
         effort="high",
     )
     patterns_list = result.get("patterns") if isinstance(result, dict) else None

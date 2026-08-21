@@ -3,6 +3,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from apidrift.llm import estimate_cost, format_usage_report
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPOS_DIR = os.path.join(REPO_ROOT, "repos")
 
@@ -47,24 +49,9 @@ def make_targeta_small_repo(tmp_path):
     return _make_small_repo(tmp_path, "targeta_small", TARGET_A_SMALL_REPOS)
 
 
-# claude-opus-5 pricing, $/1M tokens (Anthropic API, cached 2026-06-24):
-# input $5.00, output $25.00, cache write $6.25 (1.25x input), cache read $0.50 (0.1x input)
-_PRICE_PER_MTOK = {
-    "input_tokens": 5.00,
-    "output_tokens": 25.00,
-    "cache_creation_input_tokens": 6.25,
-    "cache_read_input_tokens": 0.50,
-}
-
-
-def report_usage(client):
-    totals = client.usage_totals
-    cost = sum(totals[k] / 1_000_000 * _PRICE_PER_MTOK[k] for k in _PRICE_PER_MTOK)
-    print(f"\ntoken usage: input={totals['input_tokens']} output={totals['output_tokens']} "
-          f"cache_write={totals['cache_creation_input_tokens']} cache_read={totals['cache_read_input_tokens']}")
-    print(f"total tokens: {sum(totals.values())}  estimated cost: ${cost:.4f}  "
-          f"({len(client.calls)} API calls)")
-    return totals, cost
+def report_usage(client, model="claude-opus-5"):
+    print(f"\n{format_usage_report(client, model)}")
+    return client.usage_totals, estimate_cost(client.usage_totals, model)
 
 
 def score_against(expanded, ground_truth):

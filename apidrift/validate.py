@@ -56,6 +56,87 @@ def validate_factblock(data, what="factblock"):
 # Vocabulary
 # ---------------------------------------------------------------------
 
+# Generic verbs/nouns that show up as method or attribute names on all
+# kinds of unrelated Python objects (dict.get, requests.Response.json(),
+# re.search, list.count, set.add, json.load, ...). A pattern that reduces
+# to nothing but one of these, bare, matches most of a host codebase
+# rather than the migration -- see _bare_dotted_call_alternatives below.
+_GENERIC_METHOD_NAMES = {
+    "get", "set", "add", "remove", "delete", "update", "list", "count",
+    "query", "info", "type", "range", "put", "post", "head", "options",
+    "keys", "values", "items", "pop", "copy", "clear", "format", "strip",
+    "split", "join", "replace", "encode", "decode", "index", "extend",
+    "append", "insert", "sort", "reverse", "next", "run", "start", "stop",
+    "execute", "commit", "rollback", "save", "load", "loads", "dump",
+    "dumps", "parse", "match", "search", "group", "groups", "read",
+    "write", "open", "close", "send", "recv", "find", "filter", "map",
+    "reduce", "json",
+}
+
+# Matches a regex source string that is *nothing but* `\.word\(` or
+# `\.(word|word|...)\(`, optionally with `\s*` between the group and the
+# call paren -- i.e. no namespace/class prefix, no required co-occurring
+# token, nothing anchoring the match to this package at all. Deliberately
+# narrow (fullmatch, not search): it only condemns a branch with *zero*
+# other context, never one that adds a qualifier of any kind.
+_BARE_DOTTED_CALL_RE = re.compile(
+    r"\\\.\(?([A-Za-z_]+(?:\|[A-Za-z_]+)*)\)?(?:\\s\*)?\\\("
+)
+
+
+def _split_top_level_alternatives(regex):
+    """Splits on `|` at paren-depth 0 only. A `|` nested inside a group
+    is scoped to that group and can't leak overmatch on its own; a `|` at
+    the top level makes each side an independent whole-pattern
+    alternative -- p35_hybrid's `HybridQuery|...|\\.load\\s*\\(` matches
+    if EITHER side matches, so a bare, generic branch buried among
+    otherwise-fine ones is exactly as overbroad as if it were the whole
+    pattern."""
+    parts, depth, buf, i, n = [], 0, [], 0, len(regex)
+    while i < n:
+        ch = regex[i]
+        if ch == "\\" and i + 1 < n:
+            buf.append(regex[i:i + 2])
+            i += 2
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "|" and depth == 0:
+            parts.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+        i += 1
+    parts.append("".join(buf))
+    return parts
+
+
+def _bare_dotted_call_alternatives(regex):
+    """Returns the generic method names found among any top-level
+    alternative that reduces to a bare dotted call, or [] if none."""
+    hits = []
+    for branch in _split_top_level_alternatives(regex):
+        m = _BARE_DOTTED_CALL_RE.fullmatch(branch.strip())
+        if m:
+            hits.extend(m.group(1).split("|"))
+    return hits
+
+
+# A bare global inline flag -- `(?i)`, `(?m)`, etc, with no `:` -- compiles
+# fine as its own standalone pattern (the flag sits at position 0 of that
+# string), but pipeline.py wraps every pattern in `(?:...)` and joins them
+# all with `|` into one combined search regex; at any position other than
+# the very start of the FULL combined expression, Python 3.11+ rejects a
+# global flag outright ("global flags not at the start of the
+# expression"). A pattern that individually compiles can still break the
+# entire vocabulary this way -- catch it here, before it costs a grep-plus-
+# prefilter run only to crash with a raw traceback in pipeline.py. The
+# scoped form, `(?i:...)`, has none of this restriction and is the fix.
+_BARE_GLOBAL_FLAG_RE = re.compile(r"\(\?[aiLmsux]+\)")
+
+
 def validate_vocabulary(data, what="vocabulary"):
     if not isinstance(data, dict):
         _fail(what, "top level is not a JSON object")
@@ -71,6 +152,44 @@ def validate_vocabulary(data, what="vocabulary"):
             re.compile(regex)
         except re.error as e:
             _fail(what, f"pattern '{name}' does not compile as a regex: {e}\nregex: {regex!r}")
+        if _BARE_GLOBAL_FLAG_RE.search(regex):
+            _fail(
+                what,
+                f"pattern '{name}' ({regex!r}) uses a bare global inline flag (e.g. `(?i)`). "
+                f"It compiles alone, but every pattern gets wrapped in `(?:...)` and joined "
+                f"with the rest of the vocabulary into one combined regex downstream -- at "
+                f"that point a global flag anywhere but position 0 of the WHOLE combined "
+                f"expression is a compile error, not just a warning. Use the scoped form "
+                f"instead, e.g. `(?i:...)` around only the part that needs it -- it has no "
+                f"such restriction at any nesting position.",
+            )
+        bare_alternatives = _bare_dotted_call_alternatives(regex)
+        generic_hits = [a for a in bare_alternatives if a.lower() in _GENERIC_METHOD_NAMES]
+        if generic_hits:
+            _fail(
+                what,
+                f"pattern '{name}' ({regex!r}) is a bare, unqualified method-call match "
+                f"-- {', '.join(sorted(set(generic_hits)))} would match that method name "
+                f"on ANY Python object (dict.get, requests.Response.json(), re.search, "
+                f"list.count, ...), not just this package's calls. This is the exact "
+                f"overmatch failure the vocabulary-derivation prompt is instructed to "
+                f"avoid -- add a namespace/class/import-path qualifier the guide's own "
+                f"command name implies (e.g. `TS.GET` -> `\\.ts\\(\\)\\.get\\(`), or a "
+                f"required co-occurring token from the guide's own example, rather than "
+                f"matching the trailing word alone.",
+            )
+
+    try:
+        re.compile("|".join(f"(?:{p})" for p in patterns.values()))
+    except re.error as e:
+        _fail(
+            what,
+            f"every individual pattern compiles, but the patterns fail to compile as the "
+            f"single combined regex the pipeline actually runs (each pattern wrapped in "
+            f"`(?:...)` and joined with `|`, exactly as pipeline.py does before prefiltering): "
+            f"{e}. This means the per-pattern check above missed a combination-only failure -- "
+            f"treat this as a hard stop, not a warning.",
+        )
     return data
 
 

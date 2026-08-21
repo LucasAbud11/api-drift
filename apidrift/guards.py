@@ -71,13 +71,26 @@ def check_factblock_coverage(guide_text, factblock, min_ratio=0.30):
 
 
 def check_vocabulary_yield(patterns, candidates, max_total=2000,
-                            max_single_pattern_share=0.5, max_single_pattern_floor=100):
+                            max_single_pattern_share=0.35, max_single_pattern_floor=25):
     """Runs after grep. Flags either an absolute candidate-count ceiling
     (matches the volume where the study measured real completion
     failures) or one pattern alone accounting for most of the candidate
     set (the exact failure shape found in blind_vocab_experiment: a bare
     generic identifier like `data=` or `.error(` swamping everything a
-    guide-faithful vocabulary was never trying to overmatch)."""
+    guide-faithful vocabulary was never trying to overmatch).
+
+    max_single_pattern_floor was 100, max_single_pattern_share was 0.5 --
+    both sized to the study's diluted-host worst case (1121 total
+    candidates). At the scale of a normal single-repo run (tens to a few
+    hundred raw candidates), a floor that high means the guard can never
+    fire no matter how lopsided the vocabulary is: it just proved this on
+    a real run (tasktiger/redis) where one bare, unqualified pattern took
+    56/143 candidates (39%) -- exactly the failure shape this guard
+    exists to catch -- and passed silently because 56 < 100. 25/0.35 is
+    low enough to catch that at normal-repo scale, while still tolerating
+    a legitimately dominant pattern in a genuinely small candidate set
+    (e.g. a package's own constructor call at 6/10) without a false
+    alarm."""
     per_pattern = {name: 0 for name in patterns}
     for c in candidates:
         name = c.get("_pattern")

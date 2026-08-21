@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from . import pipeline, preflight
+from . import llm, pipeline, preflight
 from .llm import AnthropicLLMClient, LLMError
 
 
@@ -31,6 +31,7 @@ def main(argv=None):
             import datetime
             workdir = f"./.api-drift-run/{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
 
+        client = None
         try:
             preflight.check_api_key()
             client = AnthropicLLMClient(model=args.model)
@@ -54,6 +55,18 @@ def main(argv=None):
             print(e.diagnostic_report, file=sys.stderr)
             print("\nRe-run with --force to proceed anyway.", file=sys.stderr)
             sys.exit(1)
+        except ValueError as e:
+            # Every artifact-shape and vocabulary-breadth hard-fail in
+            # validate.py raises a plain ValueError -- catch it here so it
+            # prints the same clean, one-line stop everything else in this
+            # CLI gets, never a raw traceback from deep inside a stage.
+            print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+            sys.exit(1)
+        finally:
+            # Printed even on a guard/LLM-error exit -- those calls were
+            # still billed, so a stopped run's cost must not go unreported.
+            if client is not None and client.calls:
+                print(f"\n{llm.format_usage_report(client, args.model)}")
 
 
 if __name__ == "__main__":

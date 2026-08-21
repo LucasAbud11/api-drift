@@ -8,109 +8,277 @@
       "facts": [
         {
           "number": 1,
-          "text": "Module-level client configuration is removed in v1. Bare module-level attribute assignments `openai.api_key = ...`, `openai.api_base = ...`, and `openai.organization = ...` no longer configure the client and must be replaced by constructing an explicit client object, e.g. `client = OpenAI(api_key=...)`."
+          "text": "Module-level client configuration is removed in v1. Bare module-level attribute assignments `openai.api_key = ...`, `openai.api_base = ...`, and `openai.organization = ...` no longer configure the client; they must be replaced by constructing an explicit client object, e.g. `client = OpenAI(api_key=...)`."
         },
         {
           "number": 2,
-          "text": "All module-level namespaced call patterns of the form `openai.<Namespace>.create(...)` are removed in v1, along with the equivalent `.list(...)` and `.retrieve(...)` calls. Named examples: `openai.ChatCompletion.create(...)`, `openai.Completion.create(...)`, `openai.Embedding.create(...)`, `openai.Image.create(...)`, `openai.Moderation.create(...)`. These must migrate to client-based calls, e.g. `client.chat.completions.create(...)`."
+          "text": "All module-level namespaced call patterns of the form `openai.<Namespace>.create(...)`, plus the equivalent `.list(...)` and `.retrieve(...)` calls, are removed in v1. Named examples given: `openai.ChatCompletion.create(...)`, `openai.Completion.create(...)`, `openai.Embedding.create(...)`, `openai.Image.create(...)`, `openai.Moderation.create(...)`. These must migrate to client-based calls, e.g. `client.chat.completions.create(...)`."
         },
         {
           "number": 3,
-          "text": "The `openai.error` submodule is removed. Exception classes that used to live there (`openai.error.RateLimitError`, `openai.error.ServiceUnavailableError`, `openai.error.InvalidRequestError`, `openai.error.AuthenticationError`, etc.) now live at the top level of the `openai` package (e.g. `openai.RateLimitError`). Any reference to `openai.error.*` needs to change."
+          "text": "The `openai.error` submodule is removed in v1. Exception classes that lived there \u2014 e.g. `openai.error.RateLimitError`, `openai.error.ServiceUnavailableError`, `openai.error.InvalidRequestError`, `openai.error.AuthenticationError`, and others \u2014 now live at the top level of the `openai` package (e.g. `openai.RateLimitError`). Any reference to `openai.error.*` must change."
         },
         {
           "number": 4,
-          "text": "EXPLICIT NON-SCOPE: response-object access patterns are unaffected \u2014 whether code reads a response via dict-style (`response['choices']`) or attribute-style (`response.choices`) access, both remain valid and must NOT be flagged as breaking."
+          "text": "EXPLICITLY OUT OF SCOPE / NOT a breaking change: response-object access patterns. Whether code reads a response via dict-style access (`response['choices']`) or attribute-style access (`response.choices`), both remain valid and must not be flagged; this migration does not touch that."
         },
         {
           "number": 5,
-          "text": "The three changes listed (module-level config assignment, module-level namespaced calls, `openai.error` submodule) are the ONLY confirmed breaking changes in this migration; anything not described is unaffected."
+          "text": "The three changes listed (module-level config attributes, module-level namespaced calls, and `openai.error` submodule) are the ONLY confirmed breaking changes in this migration; anything not described is unaffected."
         },
         {
           "number": 6,
-          "text": "Affected sites include those reached indirectly through a repository's own helper functions, so call chains must be traced rather than only inspecting the entry-point file; each affected site should be reported with file path relative to repo root, line number, exact code snippet, and reason."
+          "text": "Affected sites include those reached indirectly through a repository's own helper functions \u2014 call chains must be traced, not just the entry-point file grepped."
         }
       ]
     }
   },
-  "56bf0c9d2b82f94287bd77d6": {
+  "44bd8e8965bd83b303e3b754": {
     "stage": "vocabulary",
     "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
     "user_excerpt": "Primary package: openai\n\nFACT BLOCK:\n1. Module-level client configuration is removed in v1. Bare module-level attribute assignments `openai.api_key = ...`, `openai.api_base = ...`, and `openai.organiz",
     "response": {
       "patterns": [
         {
-          "name": "1_module_config_assign",
-          "regex": "openai\\s*\\.\\s*(api_key|api_base|api_type|api_version|organization|base_url|api_key_path)\\s*="
+          "name": "p1_cfg",
+          "regex": "openai\\s*\\.\\s*(api_key|api_base|api_version|api_type|organization|api_key_path|base_url|proxy)\\s*="
         },
         {
-          "name": "1_bare_config_assign",
+          "name": "p2_cfgattr",
+          "regex": "openai\\s*\\.\\s*(api_key|api_base|organization)\\b"
+        },
+        {
+          "name": "p3_bareapikey",
           "regex": "^\\s*(api_key|api_base|organization)\\s*="
         },
         {
-          "name": "1_setattr_openai_config",
-          "regex": "setattr\\s*\\(\\s*openai\\s*,\\s*[\"'](api_key|api_base|organization)[\"']"
+          "name": "p4_ns",
+          "regex": "openai\\s*\\.\\s*[A-Z][A-Za-z0-9_]*\\s*\\.\\s*(create|acreate|list|alist|retrieve|aretrieve|delete|adelete|download|create_variation|create_edit)"
         },
         {
-          "name": "1_client_construction",
-          "regex": "\\b(OpenAI|AzureOpenAI|AsyncOpenAI)\\s*\\("
+          "name": "p5_nsattr",
+          "regex": "openai\\s*\\.\\s*[A-Z][A-Za-z0-9_]*\\b"
         },
         {
-          "name": "1_import_openai_config_names",
-          "regex": "from\\s+openai\\s+import\\s+[^\\n]*\\b(api_key|api_base|organization)\\b"
+          "name": "p6_names",
+          "regex": "\\b(ChatCompletion|Completion|Embedding|Image|Moderation|Audio|Transcription|Translation|File|FineTune|FineTuningJob|Model|Edit|Engine|Answer|Deployment)\\s*\\.\\s*(create|acreate|list|alist|retrieve|aretrieve|delete|adelete)"
         },
         {
-          "name": "2_openai_namespaced_call",
-          "regex": "openai\\s*\\.\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\.\\s*(create|acreate|list|alist|retrieve|aretrieve|delete|adelete|download|create_variation|create_edit)\\s*\\("
+          "name": "p7_import",
+          "regex": "^\\s*(import\\s+openai|from\\s+openai(\\.[A-Za-z_.]+)?\\s+import)"
         },
         {
-          "name": "2_openai_namespace_attr",
-          "regex": "openai\\s*\\.\\s*(ChatCompletion|Completion|Embedding|Embeddings|Image|Moderation|Audio|File|FineTune|FineTuningJob|Model|Engine|Edit|Answer|Deployment)\\b"
-        },
-        {
-          "name": "2_namespace_bare_call",
-          "regex": "\\b(ChatCompletion|Completion|Embedding|Image|Moderation|FineTune|FineTuningJob|Model|Audio)\\s*\\.\\s*(create|acreate|list|alist|retrieve|aretrieve)\\s*\\("
-        },
-        {
-          "name": "2_import_namespace_names",
-          "regex": "from\\s+openai\\s+import\\s+[^\\n]*\\b(ChatCompletion|Completion|Embedding|Image|Moderation|FineTune|FineTuningJob|Model|Audio|File)\\b"
-        },
-        {
-          "name": "2_client_based_call",
-          "regex": "\\.\\s*(chat\\s*\\.\\s*completions|completions|embeddings|images|moderations)\\s*\\.\\s*(create|list|retrieve)\\s*\\("
-        },
-        {
-          "name": "3_openai_error_attr",
+          "name": "p8_errmod",
           "regex": "openai\\s*\\.\\s*error\\b"
         },
         {
-          "name": "3_import_openai_error",
-          "regex": "from\\s+openai(\\.error)?\\s+import\\s+[^\\n]*(error|Error|Timeout)"
+          "name": "p9_errimp",
+          "regex": "(from\\s+openai\\.error\\s+import|import\\s+openai\\.error)"
         },
         {
-          "name": "3_import_error_module",
-          "regex": "import\\s+openai\\.error\\b"
+          "name": "p10_errnames",
+          "regex": "\\b(OpenAIError|RateLimitError|ServiceUnavailableError|InvalidRequestError|AuthenticationError|PermissionError|APIConnectionError|APIError|TryAgain|Timeout|InvalidAPIType|SignatureVerificationError)\\b"
         },
         {
-          "name": "3_error_class_names",
-          "regex": "\\b(RateLimitError|ServiceUnavailableError|InvalidRequestError|AuthenticationError|APIError|APIConnectionError|PermissionError|TryAgain|InvalidAPIType|SignatureVerificationError|OpenAIError|Timeout)\\b"
+          "name": "p11_except",
+          "regex": "except\\s+[^:]*\\b(openai|Error|Timeout)\\b"
         },
         {
-          "name": "3_except_openai_error",
-          "regex": "except\\s+[^\\n]*openai[^\\n]*"
+          "name": "p12_openai",
+          "regex": "\\bopenai\\b"
         },
         {
-          "name": "6_import_openai",
-          "regex": "^\\s*(import\\s+openai|from\\s+openai\\b)"
+          "name": "p13_client",
+          "regex": "\\bOpenAI\\s*\\(|\\bAsyncOpenAI\\s*\\("
         },
         {
-          "name": "6_openai_any_attr",
-          "regex": "\\bopenai\\s*\\."
+          "name": "p14_kwapi",
+          "regex": "\\bapi_key\\s*=|\\bapi_base\\s*=|\\borganization\\s*="
+        },
+        {
+          "name": "p15_chaincall",
+          "regex": "\\.\\s*(chat\\s*\\.\\s*completions|completions|embeddings|moderations|images)\\s*\\.\\s*create"
+        },
+        {
+          "name": "p16_envkey",
+          "regex": "OPENAI_(API_KEY|API_BASE|ORGANIZATION|ORG_ID|BASE_URL)"
         }
       ]
     }
   },
-  "09987d65a3612af12c08e300": {
+  "67f6d0bca00f96f96f267a49": {
+    "stage": "adjudicate_chunk_000",
+    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
+    "user_excerpt": "CANDIDATE LIST (15 items):\n\n```json\n[\n  {\n    \"file\": \"TomaszRewak_MAGI/ai.py\",\n    \"line\": 1,\n    \"snippet\": \"import openai\"\n  },\n  {\n    \"file\": \"TomaszRewak_MAGI/ai.py\",\n    \"line\": 6,\n    \"snippet",
+    "response": {
+      "proposed_sites": [
+        {
+          "file": "TomaszRewak_MAGI/ai.py",
+          "line": 6,
+          "snippet": "    openai.api_key = key",
+          "pattern": "1",
+          "reason": "Module-level client configuration `openai.api_key = ...` is removed in v1; must be replaced with an explicit client construction. Applies to all duplicate lines 6, 51, 64."
+        },
+        {
+          "file": "TomaszRewak_MAGI/ai.py",
+          "line": 7,
+          "snippet": "    response = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "Module-level namespaced call `openai.ChatCompletion.create(...)` removed in v1; must become `client.chat.completions.create(...)`. Applies to duplicate lines 7, 52, 65."
+        },
+        {
+          "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
+          "line": 8,
+          "snippet": "openai.api_key = \"OPENAI_API\"",
+          "pattern": "1",
+          "reason": "Bare module-level `openai.api_key` assignment no longer configures the client in v1."
+        },
+        {
+          "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
+          "line": 48,
+          "snippet": "    output = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "Removed module-level namespaced call pattern; must migrate to client-based `client.chat.completions.create(...)`."
+        },
+        {
+          "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
+          "line": 41,
+          "snippet": "    message = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "Removed module-level namespaced call pattern; must migrate to client-based call."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 7,
+          "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")",
+          "pattern": "1",
+          "reason": "Module-level `openai.api_key` assignment removed in v1; must construct a client with api_key instead."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 11,
+          "snippet": "    response = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "Removed module-level namespaced call pattern; must migrate to client-based call."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 192,
+          "snippet": "        except openai.error.RateLimitError as e:",
+          "pattern": "3",
+          "reason": "`openai.error` submodule removed; exception now lives at `openai.RateLimitError`."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 201,
+          "snippet": "        except openai.error.ServiceUnavailableError as e:",
+          "pattern": "3",
+          "reason": "`openai.error` submodule removed; exception must be referenced at top level of `openai`."
+        }
+      ],
+      "flag_uncertain": [],
+      "considered_and_rejected": [
+        {
+          "file": "TomaszRewak_MAGI/ai.py",
+          "line": 1,
+          "snippet": "import openai",
+          "reason": "The `import openai` statement itself remains valid in v1; only the config/call/error-submodule sites change (facts 1-3, 5)."
+        },
+        {
+          "file": "TomaszRewak_MAGI/main.py",
+          "line": 43,
+          "snippet": "            dcc.Input(id='key', autoComplete='off', type='password', value=os.getenv('OPENAI_API_KEY', '')),",
+          "reason": "Merely reads an environment variable for a UI input; not a module-level config assignment, namespaced call, or openai.error reference (fact 5)."
+        },
+        {
+          "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
+          "line": 3,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; not one of the three breaking changes (fact 5)."
+        },
+        {
+          "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
+          "line": 5,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; not a breaking change (fact 5)."
+        },
+        {
+          "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
+          "line": 21,
+          "snippet": "OPENAI_API_KEY = os.environ[\"OPENAI_API_KEY\"]",
+          "reason": "Local variable reading an env var; not an `openai.api_key` module attribute assignment or other breaking pattern (facts 1, 5)."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 1,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; not one of the three breaking changes (fact 5)."
+        }
+      ]
+    }
+  },
+  "688b5b7b500e5fb9c35a09ad": {
+    "stage": "vocabulary",
+    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
+    "user_excerpt": "Primary package: openai\n\nFACT BLOCK:\n1. Module-level client configuration is removed in v1. Bare module-level attribute assignments `openai.api_key = ...`, `openai.api_base = ...`, and `openai.organiz",
+    "response": {
+      "patterns": [
+        {
+          "name": "p1_cfg",
+          "regex": "openai\\s*\\.\\s*(api_key|api_base|organization|api_type|api_version|api_key_path)\\b"
+        },
+        {
+          "name": "p2_cfgbare",
+          "regex": "^\\s*(api_key|api_base|organization)\\s*=\\s*"
+        },
+        {
+          "name": "p3_ns_call",
+          "regex": "openai\\s*\\.\\s*[A-Z][A-Za-z_]*\\s*\\.\\s*a?(create|list|retrieve|delete|acreate|alist|aretrieve)\\s*\\("
+        },
+        {
+          "name": "p4_ns_attr",
+          "regex": "openai\\s*\\.\\s*(ChatCompletion|Completion|Embedding|Embeddings|Image|Moderation|Audio|File|Files|FineTune|FineTuning|Model|Engine|Edit|Answer|Classification|Deployment)\\b"
+        },
+        {
+          "name": "p5_ns_imp",
+          "regex": "from\\s+openai\\s+import\\s+.*\\b(ChatCompletion|Completion|Embedding|Image|Moderation|Audio|File|FineTune|FineTuning|Model|Engine|Edit)\\b"
+        },
+        {
+          "name": "p6_ns_bare",
+          "regex": "\\b(ChatCompletion|Completion|Embedding|Moderation|FineTune|FineTuning)\\s*\\.\\s*a?(create|list|retrieve)\\s*\\("
+        },
+        {
+          "name": "p7_error",
+          "regex": "openai\\s*\\.\\s*error\\b"
+        },
+        {
+          "name": "p8_errimp",
+          "regex": "from\\s+openai(\\.error)?\\s+import\\s+.*(error|Error|Timeout|TryAgain)"
+        },
+        {
+          "name": "p9_errimp2",
+          "regex": "import\\s+openai\\.error\\b"
+        },
+        {
+          "name": "p10_errcls",
+          "regex": "\\b(RateLimitError|ServiceUnavailableError|InvalidRequestError|AuthenticationError|APIConnectionError|APIError|PermissionError|InvalidAPIType|SignatureVerificationError|OpenAIError|TryAgain|Timeout)\\b"
+        },
+        {
+          "name": "p11_imp",
+          "regex": "^\\s*(import\\s+openai|from\\s+openai\\s+import|import\\s+openai\\s+as)\\b"
+        },
+        {
+          "name": "p12_openai",
+          "regex": "\\bopenai\\s*\\."
+        },
+        {
+          "name": "p13_client",
+          "regex": "\\bOpenAI\\s*\\(|\\bAsyncOpenAI\\s*\\("
+        }
+      ]
+    }
+  },
+  "81e11b24b752ff6931bee589": {
     "stage": "adjudicate_chunk_000",
     "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
     "user_excerpt": "CANDIDATE LIST (13 items):\n\n```json\n[\n  {\n    \"file\": \"TomaszRewak_MAGI/ai.py\",\n    \"line\": 1,\n    \"snippet\": \"import openai\"\n  },\n  {\n    \"file\": \"TomaszRewak_MAGI/ai.py\",\n    \"line\": 6,\n    \"snippet",
@@ -121,63 +289,63 @@
           "line": 6,
           "snippet": "    openai.api_key = key",
           "pattern": "1",
-          "reason": "Module-level config assignment `openai.api_key = ...` is removed in v1; must construct an explicit client instead. Applies to duplicate lines 6, 51, 64."
+          "reason": "Module-level client configuration `openai.api_key = ...` is removed in v1; must be replaced by constructing an explicit client. Applies to duplicate lines 6, 51, 64."
         },
         {
           "file": "TomaszRewak_MAGI/ai.py",
           "line": 7,
           "snippet": "    response = openai.ChatCompletion.create(",
           "pattern": "2",
-          "reason": "Module-level namespaced call `openai.ChatCompletion.create(...)` is removed; must become `client.chat.completions.create(...)`. Applies to duplicate lines 7, 52, 65."
+          "reason": "Module-level namespaced call `openai.ChatCompletion.create(...)` is removed in v1; must become `client.chat.completions.create(...)`. Applies to duplicate lines 7, 52, 65."
         },
         {
           "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
           "line": 8,
           "snippet": "openai.api_key = \"OPENAI_API\"",
           "pattern": "1",
-          "reason": "Module-level `openai.api_key` assignment no longer configures the client in v1."
+          "reason": "Bare module-level `openai.api_key` assignment no longer configures the client in v1; must be replaced with explicit client construction."
         },
         {
           "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
           "line": 48,
           "snippet": "    output = openai.ChatCompletion.create(",
           "pattern": "2",
-          "reason": "`openai.ChatCompletion.create` removed in v1; must use client-based `client.chat.completions.create`."
+          "reason": "`openai.ChatCompletion.create(...)` removed in v1; must migrate to client-based `client.chat.completions.create(...)`."
         },
         {
           "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
           "line": 41,
           "snippet": "    message = openai.ChatCompletion.create(",
           "pattern": "2",
-          "reason": "`openai.ChatCompletion.create` removed in v1; must use client-based call."
+          "reason": "`openai.ChatCompletion.create(...)` removed in v1; must migrate to client-based call."
         },
         {
           "file": "g0ldencybersec_sus_params/PoC.py",
           "line": 7,
           "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")",
           "pattern": "1",
-          "reason": "Module-level `openai.api_key` assignment removed in v1; requires explicit client construction."
+          "reason": "Module-level `openai.api_key` configuration removed in v1; must construct `OpenAI(api_key=...)` client instead."
         },
         {
           "file": "g0ldencybersec_sus_params/PoC.py",
           "line": 11,
           "snippet": "    response = openai.ChatCompletion.create(",
           "pattern": "2",
-          "reason": "`openai.ChatCompletion.create` removed in v1; must migrate to client.chat.completions.create."
+          "reason": "`openai.ChatCompletion.create(...)` removed in v1; must migrate to `client.chat.completions.create(...)`."
         },
         {
           "file": "g0ldencybersec_sus_params/PoC.py",
           "line": 192,
           "snippet": "        except openai.error.RateLimitError as e:",
           "pattern": "3",
-          "reason": "`openai.error` submodule removed; exception now at `openai.RateLimitError`."
+          "reason": "`openai.error` submodule removed; exception now at `openai.RateLimitError`, so this line's own text must change."
         },
         {
           "file": "g0ldencybersec_sus_params/PoC.py",
           "line": 201,
           "snippet": "        except openai.error.ServiceUnavailableError as e:",
           "pattern": "3",
-          "reason": "`openai.error` submodule removed; exception now at top level of `openai`."
+          "reason": "`openai.error` submodule removed; `ServiceUnavailableError` now lives at the top level of the `openai` package, so this reference must change."
         }
       ],
       "flag_uncertain": [],
@@ -186,25 +354,189 @@
           "file": "TomaszRewak_MAGI/ai.py",
           "line": 1,
           "snippet": "import openai",
-          "reason": "Plain package import remains valid in v1; none of the three breaking changes (facts 1-3) affect the import statement's own text."
+          "reason": "The `import openai` statement itself remains valid in v1; only the config attributes, namespaced calls, and `openai.error` references are breaking (facts 1-3, 5). The client would typically be constructed via a new line, but this line's own text need not change."
         },
         {
           "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
           "line": 3,
           "snippet": "import openai",
-          "reason": "Plain `import openai` is still valid in v1; no text change required (facts 1-3, 5)."
+          "reason": "Plain package import is still valid in v1; none of the three confirmed breaking changes (facts 1-3, 5) require editing this line."
         },
         {
           "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
           "line": 5,
           "snippet": "import openai",
-          "reason": "Plain `import openai` remains valid; only config assignments, namespaced calls, and openai.error references are breaking (fact 5)."
+          "reason": "Plain package import remains valid; not one of the confirmed breaking changes (fact 5)."
         },
         {
           "file": "g0ldencybersec_sus_params/PoC.py",
           "line": 1,
           "snippet": "import openai",
-          "reason": "Plain `import openai` is unaffected by the migration; the package name is unchanged (fact 5)."
+          "reason": "`import openai` is unaffected by the migration; only module-level config, namespaced calls, and `openai.error` references break (facts 1-3, 5)."
+        }
+      ]
+    }
+  },
+  "bd0d1b99c7308fc458be2fc7": {
+    "stage": "vocabulary",
+    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
+    "user_excerpt": "Primary package: openai\n\nFACT BLOCK:\n1. Module-level client configuration is removed in v1. Bare module-level attribute assignments `openai.api_key = ...`, `openai.api_base = ...`, and `openai.organiz",
+    "response": {
+      "patterns": [
+        {
+          "name": "p1_cfg",
+          "regex": "openai\\s*\\.\\s*(api_key|api_base|organization|api_key_path)\\s*="
+        },
+        {
+          "name": "p1_cfgref",
+          "regex": "openai\\s*\\.\\s*(api_key|api_base|organization)\\b"
+        },
+        {
+          "name": "p1_client",
+          "regex": "\\b(OpenAI|AsyncOpenAI|AzureOpenAI|AsyncAzureOpenAI)\\s*\\("
+        },
+        {
+          "name": "p2_ns",
+          "regex": "openai\\s*\\.\\s*[A-Z][A-Za-z0-9_]*\\s*\\.\\s*(create|list|retrieve|acreate|alist|aretrieve|delete|adelete|create_edit|create_variation|download|cancel)\\s*\\("
+        },
+        {
+          "name": "p2_nsattr",
+          "regex": "openai\\s*\\.\\s*[A-Z][A-Za-z0-9_]*\\b"
+        },
+        {
+          "name": "p2_imp",
+          "regex": "from\\s+openai\\s+import\\s+[^\\n]*\\b(ChatCompletion|Completion|Embedding|Image|Moderation|Audio|File|FineTune|FineTuningJob|Model|Edit|Engine)\\b"
+        },
+        {
+          "name": "p2_bare",
+          "regex": "\\b(ChatCompletion|Completion|Embedding|Image|Moderation|Audio|FineTune|FineTuningJob)\\s*\\.\\s*(create|list|retrieve|acreate|alist|aretrieve)\\s*\\("
+        },
+        {
+          "name": "p2_cli",
+          "regex": "\\.\\s*chat\\s*\\.\\s*completions\\s*\\.\\s*create\\s*\\("
+        },
+        {
+          "name": "p3_err",
+          "regex": "openai\\s*\\.\\s*error\\b"
+        },
+        {
+          "name": "p3_errimp",
+          "regex": "from\\s+openai(\\.error)?\\s+import\\s+[^\\n]*Error"
+        },
+        {
+          "name": "p3_errcls",
+          "regex": "\\b(RateLimitError|ServiceUnavailableError|InvalidRequestError|AuthenticationError|APIConnectionError|APIError|PermissionError|TryAgain|Timeout|InvalidAPIType|SignatureVerificationError|OpenAIError)\\b"
+        },
+        {
+          "name": "p3_except",
+          "regex": "except\\s+\\(?[^\\n:]*\\b(openai\\.[A-Za-z_]*Error|[A-Za-z_]*Error)\\b[^\\n:]*\\)?\\s*(as\\s+\\w+)?\\s*:"
+        },
+        {
+          "name": "p6_imp",
+          "regex": "^\\s*(import\\s+openai|from\\s+openai(\\.[A-Za-z_.]+)?\\s+import)\\b"
+        },
+        {
+          "name": "p6_any",
+          "regex": "\\bopenai\\s*\\."
+        }
+      ]
+    }
+  },
+  "1c415dce12776cbd5e983cd7": {
+    "stage": "adjudicate_chunk_000",
+    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
+    "user_excerpt": "CANDIDATE LIST (13 items):\n\n```json\n[\n  {\n    \"file\": \"TomaszRewak_MAGI/ai.py\",\n    \"line\": 1,\n    \"snippet\": \"import openai\"\n  },\n  {\n    \"file\": \"TomaszRewak_MAGI/ai.py\",\n    \"line\": 6,\n    \"snippet",
+    "response": {
+      "proposed_sites": [
+        {
+          "file": "TomaszRewak_MAGI/ai.py",
+          "line": 6,
+          "snippet": "    openai.api_key = key",
+          "pattern": "1",
+          "reason": "Module-level client configuration attribute assignment openai.api_key is removed in v1; must be replaced with an explicit client construction. Applies to duplicate lines 6, 51, 64."
+        },
+        {
+          "file": "TomaszRewak_MAGI/ai.py",
+          "line": 7,
+          "snippet": "    response = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "Module-level namespaced call openai.ChatCompletion.create(...) is removed in v1; must become client.chat.completions.create(...). Applies to duplicate lines 7, 52, 65."
+        },
+        {
+          "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
+          "line": 8,
+          "snippet": "openai.api_key = \"OPENAI_API\"",
+          "pattern": "1",
+          "reason": "Module-level openai.api_key assignment no longer configures the client in v1; must be replaced by constructing an OpenAI client."
+        },
+        {
+          "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
+          "line": 48,
+          "snippet": "    output = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "openai.ChatCompletion.create is removed in v1 and must be migrated to client.chat.completions.create."
+        },
+        {
+          "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
+          "line": 41,
+          "snippet": "    message = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "openai.ChatCompletion.create is removed in v1 and must be migrated to client.chat.completions.create."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 7,
+          "snippet": "openai.api_key = os.getenv(\"OPENAI_API_KEY\")",
+          "pattern": "1",
+          "reason": "Module-level openai.api_key assignment is removed in v1; must be replaced by an explicit client constructed with api_key=..."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 11,
+          "snippet": "    response = openai.ChatCompletion.create(",
+          "pattern": "2",
+          "reason": "openai.ChatCompletion.create is removed in v1 and must be migrated to client.chat.completions.create."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 192,
+          "snippet": "        except openai.error.RateLimitError as e:",
+          "pattern": "3",
+          "reason": "The openai.error submodule is removed; the exception class now lives at openai.RateLimitError, so this line's text must change."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 201,
+          "snippet": "        except openai.error.ServiceUnavailableError as e:",
+          "pattern": "3",
+          "reason": "The openai.error submodule is removed; the exception class now lives at the top level of the openai package, so this line's text must change."
+        }
+      ],
+      "flag_uncertain": [],
+      "considered_and_rejected": [
+        {
+          "file": "TomaszRewak_MAGI/ai.py",
+          "line": 1,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; per fact 5 only config attributes, namespaced calls, and openai.error changed. The import line's own text need not change."
+        },
+        {
+          "file": "batuhantoker_Flask-OpenAI-Chatbot/app.py",
+          "line": 3,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; none of the three confirmed breaking changes (facts 1-3, 5) require editing this line."
+        },
+        {
+          "file": "franalgaba_chatgpt-telegram-bot-serverless/app.py",
+          "line": 5,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; none of the three confirmed breaking changes require editing this line."
+        },
+        {
+          "file": "g0ldencybersec_sus_params/PoC.py",
+          "line": 1,
+          "snippet": "import openai",
+          "reason": "Plain package import remains valid in v1; the migration (facts 1-3, 5) does not alter the `import openai` statement itself."
         }
       ]
     }

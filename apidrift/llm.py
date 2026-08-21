@@ -36,6 +36,50 @@ class TruncatedResponseError(LLMError):
     retrying the same call or treating it as a parse error."""
 
 
+# $/1M tokens, Anthropic API, cached 2026-06-24. Keyed by model name so a
+# run against a model this table doesn't know about degrades to reporting
+# raw token counts rather than a wrong dollar figure.
+PRICE_PER_MTOK = {
+    "claude-opus-5": {
+        "input_tokens": 5.00,
+        "output_tokens": 25.00,
+        "cache_creation_input_tokens": 6.25,
+        "cache_read_input_tokens": 0.50,
+    },
+}
+
+
+def estimate_cost(usage_totals, model):
+    """Returns a dollar estimate, or None if `model` has no entry in
+    PRICE_PER_MTOK -- callers must handle that by reporting token counts
+    without a cost figure, not by guessing with a different model's price."""
+    prices = PRICE_PER_MTOK.get(model)
+    if prices is None:
+        return None
+    return sum(usage_totals[k] / 1_000_000 * prices[k] for k in prices)
+
+
+def format_usage_report(client, model):
+    """One human-readable block covering every call `client` made so far
+    (partial usage on a failed/guard-stopped run included, since those
+    calls were still billed) -- the same shape cli.py and the acceptance
+    tests print, so a run's cost is never invisible."""
+    totals = client.usage_totals
+    total_tokens = sum(totals.values())
+    lines = [
+        f"token usage: input={totals['input_tokens']} output={totals['output_tokens']} "
+        f"cache_write={totals['cache_creation_input_tokens']} cache_read={totals['cache_read_input_tokens']}",
+    ]
+    cost = estimate_cost(totals, model)
+    if cost is not None:
+        lines.append(f"total tokens: {total_tokens}  estimated cost: ${cost:.4f}  "
+                      f"({len(client.calls)} API calls)")
+    else:
+        lines.append(f"total tokens: {total_tokens}  ({len(client.calls)} API calls)  "
+                      f"-- no pricing data for model {model!r}, cost not estimated")
+    return "\n".join(lines)
+
+
 def _request_key(system_text, user_text):
     h = hashlib.sha256()
     h.update(system_text.encode("utf-8"))
