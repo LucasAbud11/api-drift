@@ -38,16 +38,28 @@ Three stages: grep searches exhaustively, limited only by its
 vocabulary; a deterministic, LLM-free prefilter cuts candidates, only on
 structural proof of irrelevance; only then does an LLM adjudicate the
 fixed list, one verdict each. A fourth stage turns each confirmed site
-into an exact fix or a decline, verified against each host's tests.
+into an exact fix or a decline, mechanically checked (parses, the
+claimed original line matches real source, and — when the target
+package installs cleanly — the touched import resolves against the real
+new API) rather than merely trusted.
+
+## The packaged tool
+
+The pipeline above now ships as `api-drift`, an installable CLI
+(`apidrift/`) that points at an arbitrary local repo and migration guide
+— detection and fix generation both run, end to end, with no answer key
+waiting on the other side. `api-drift run --repo <path> --guide <path>`;
+see `DESIGN.md` for the full interface and failure-mode handling.
 
 ## What this is not
 
-Research apparatus, not a runnable tool — no CLI, no packaging; nothing
-to reproduce a result but reading the scripts. Two migrations, one SDK
-family each, one language. Test/mock code is the recurring weak spot —
-where the 90–100% recall range comes from: failure mechanisms
-concentrate there, out of proportion to their share of ground truth,
-pulling the worst case to 90% on the hardest host.
+Two migrations studied in depth, one SDK family each, one language, plus
+a third-party guide (redis-py) exercised as the tool's first cold run.
+Test/mock code is the recurring weak spot — where the 90–100% recall
+range comes from: failure mechanisms concentrate there, out of
+proportion to their share of ground truth, pulling the worst case to
+90% on the hardest host. A shared-core monorepo, a second language, and
+a behavior-only breaking change (no textual signature) are all untested.
 
 Full methodology: **[REPORT.md](REPORT.md)**. For raw per-run output,
 browse `rule_test/`.

@@ -249,3 +249,59 @@ def validate_adjudication_file(path):
     except json.JSONDecodeError as e:
         _fail(path, f"not valid JSON ({e})")
     return validate_adjudication_dict(data, what=path)
+
+
+# ---------------------------------------------------------------------
+# Fix generation two-bucket contract -- DESIGN.md's "two-bucket analogue"
+# to the adjudication three-bucket contract: FIX / FLAG-FOR-HUMAN. Same
+# discipline -- a missing bucket key is fatal, never defaulted to [].
+# ---------------------------------------------------------------------
+
+FIXGEN_BUCKET_KEYS = ["fixes", "flagged_for_human"]
+FIXGEN_COMMON_FIELDS = ["file", "line", "reason"]
+FIXGEN_FIX_EXTRA_FIELDS = ["original_line", "proposed_line"]
+
+
+def validate_fixgen_dict(data, what="fixgen result"):
+    if not isinstance(data, dict):
+        _fail(what, "top level is not a JSON object")
+
+    for key in FIXGEN_BUCKET_KEYS:
+        if key not in data:
+            _fail(what, f"missing required top-level key '{key}' (a result must declare "
+                         f"both buckets even if one is empty)")
+
+    for bucket in FIXGEN_BUCKET_KEYS:
+        items = data[bucket]
+        if not isinstance(items, list):
+            _fail(what, f"'{bucket}' must be a list, got {type(items).__name__}")
+        for idx, item in enumerate(items):
+            if not isinstance(item, dict):
+                _fail(what, f"'{bucket}[{idx}]' is not an object")
+            for field in FIXGEN_COMMON_FIELDS:
+                if field not in item:
+                    _fail(what, f"'{bucket}[{idx}]' missing required field '{field}'")
+                if field == "line":
+                    if not isinstance(item["line"], int):
+                        _fail(what, f"'{bucket}[{idx}].line' must be an int, got "
+                                     f"{type(item['line']).__name__}")
+                elif _is_blank(item[field]):
+                    _fail(what, f"'{bucket}[{idx}].{field}' is missing, null, or blank")
+            if bucket == "fixes":
+                for field in FIXGEN_FIX_EXTRA_FIELDS:
+                    if field not in item or _is_blank(item[field]):
+                        _fail(what, f"'{bucket}[{idx}].{field}' is missing, null, or blank "
+                                     f"(required for fixes specifically)")
+    return data
+
+
+def validate_fixgen_file(path):
+    with open(path) as f:
+        raw = f.read()
+    if raw.strip() == "":
+        _fail(path, "file is empty")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        _fail(path, f"not valid JSON ({e})")
+    return validate_fixgen_dict(data, what=path)

@@ -51,6 +51,11 @@ def test_targeta_small_reproduces_study_numbers(tmp_path):
         # guard stop so a real but non-fatal gap doesn't fail a test whose
         # actual pass criterion already accounts for it.
         force=True,
+        # This test's bar is detection recall/precision only -- fix
+        # generation is a separate, unmeasured stage here (own tests live in
+        # test_fixgen.py) and would add real API cost with nothing this
+        # test's assertions check.
+        skip_fix_generation=True,
     )
 
     surfaced_recall, precision, missed, false_positives = score_against(result["expanded"], GT_TARGET_A_SMALL)

@@ -3,6 +3,7 @@ import sys
 
 from . import llm, pipeline, preflight
 from .llm import AnthropicLLMClient, LLMError
+from .stages import fixgen
 
 
 def main(argv=None):
@@ -22,6 +23,19 @@ def main(argv=None):
     run_p.add_argument("--force", action="store_true",
                         help="Proceed past a guard failure anyway (still prints the diagnostic).")
     run_p.add_argument("--model", default="claude-opus-5")
+    run_p.add_argument("--skip-fix-generation", action="store_true",
+                        help="Stop after detection; do not generate fixes.")
+    run_p.add_argument("--fixgen-chunk-size", type=int, default=None,
+                        help="Sites per fix-generation call. Default: a smaller size than "
+                             "--chunk-size, since each site carries surrounding source context.")
+    run_p.add_argument("--no-verify-install", dest="verify_install", action="store_false",
+                        help="Skip tier-2 fix verification (pip-installing the target package "
+                             "into an isolated venv under --workdir and checking touched "
+                             "imports resolve against it). Tier-1 verification (parse + "
+                             "claimed-original-line match) always runs regardless.")
+    run_p.add_argument("--package-version", default=None,
+                        help="Pin the exact version to install for tier-2 fix verification. "
+                             "Default: pip installs the latest release of the inferred package.")
 
     args = parser.parse_args(argv)
 
@@ -43,6 +57,10 @@ def main(argv=None):
                 chunk_size=args.chunk_size,
                 force=args.force,
                 package_name_override=args.package,
+                skip_fix_generation=args.skip_fix_generation,
+                fixgen_chunk_size=args.fixgen_chunk_size or fixgen.DEFAULT_CHUNK_SIZE,
+                verify_install=args.verify_install,
+                package_version_override=args.package_version,
             )
         except preflight.PreflightError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)

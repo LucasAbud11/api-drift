@@ -36,6 +36,10 @@ def test_replay_reproduces_recorded_result(tmp_path):
         # happened to produce, so force past a guard stop the same way the
         # acceptance test this cassette came from does.
         force=True,
+        # The recorded cassette has no fixgen calls in it (recorded before
+        # this stage existed) -- skip it here so this stays a replay of
+        # exactly what was recorded, not a ReplayMiss on an unrecorded stage.
+        skip_fix_generation=True,
     )
 
     # Plumbing checks: every artifact got written, every bucket key exists,
