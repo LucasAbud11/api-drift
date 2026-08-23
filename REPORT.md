@@ -512,3 +512,141 @@ because it's what a future union-of-N derivation strategy would cost per
 extra sample, and — per the systematic-regression finding just above — it
 would have bought nothing against the 7-fact gap while only helping with
 genuinely stochastic ones.
+
+## 9. Fix generation joins the CLI
+
+Section 8 covered detection reaching the packaged tool. This section
+covers the other half `DESIGN.md` deferred: a sixth pipeline stage,
+`apidrift/stages/fixgen.py`, that takes detection's confirmed sites and
+either proposes an exact one-line fix or declines and flags the site for a
+human — plus the mechanical checks meant to back that decision, and what a
+real, independently-built answer key found wrong with the first version.
+
+**The stage.** Chunked LLM calls, the same idempotent-per-chunk-file design
+`adjudicate.py` already used (one validated file per chunk, so a partial
+failure costs only the chunks that failed), consuming detection's
+`proposed_sites` — never `flag_uncertain`, since nothing has confirmed
+those yet. The output contract is a two-bucket analogue of adjudication's
+three-bucket one, `fixes` / `flagged_for_human`, hard-failed on a missing
+key exactly like every other artifact this pipeline produces
+(`validate.validate_fixgen_dict`). `fixgen_system.md` states the same
+boundary `DESIGN.md` §4 specifies in prose — a **mechanical rename**
+(import path moved, identifier renamed, field case changed) gets a
+confident single-line **fix**; a **structural refactor** (no drop-in
+replacement at that exact spot, a fix that would touch more than one line,
+a genuine judgment call the facts don't settle) gets **flagged for a
+human**, not a guess — and tells the model explicitly that a confident
+wrong fix is worse than an honest hedge.
+
+**Verification, stated as honestly as `DESIGN.md` states the target: two
+of the three tiers it specifies, not three.** Tier 1 (`apidrift/verify.py`,
+always runs, no dependency) applies every fix for a file together and
+`ast.parse()`s the result, and separately confirms each fix's claimed
+`original_line` actually matches the real source at that file:line — a
+guard against a hallucinated target line, not just a broken replacement.
+Tier 2 (best-effort, on by default, `--no-verify-install` to skip)
+pip-installs the migration's target package into an isolated venv under
+`--workdir` and execs every import-shaped `proposed_line` against it,
+confirming the named symbol resolves to a real class in the real installed
+package — this is `DESIGN.md`'s "real install, default tier," and it
+degrades to `available: False` with the reason recorded on any failure (no
+network, no matching version, an unbuildable extension) rather than
+crashing the run or being silently presented with tier-2 confidence when
+it didn't actually run. **`DESIGN.md`'s tier 3 — running the repo's own
+test suite before and after each fix and comparing the failing-test set —
+is not implemented.** That's the tier that actually caught something in
+the original study: the entangled host's `session_group.py:38` case, two
+structurally different, mutually exclusive edits that both parsed, both
+resolved their imports, and both passed the suite, distinguishable only by
+running the tests (§6). Its absence here means the CLI's fix-generation
+stage verifies less than the study that validated the same design did —
+a real, current gap, not a hypothetical one, and it is the direct reason
+the "zero wrong fixes" numbers below need the qualification given after
+them, not just the headline.
+
+**Acceptance results, both targets, before and after one prompt fix.**
+`test_acceptance_fixgen_targetb.py` and `test_acceptance_fixgen_targeta.py`
+run the full pipeline for real (detection, then fix generation) and score
+every fix the model actually returned against a hand-derived answer key,
+using the same categories the original fix-generation experiment used
+(§4, `rule_test/fix_generation_experiment/report.md`) — exact-match,
+semantic-equivalent-but-different, and what that report called "locally-
+plausible-but-globally-wrong": a confident fix that doesn't match the
+answer key, the failure mode that would actually ship a bug, as opposed to
+an avoidable hedge that only costs a reviewer a look. Target B's answer key
+(`fix_ground_truth.md`) is the one the original fix-generation study built.
+Target A had none — `fix_ground_truth_targetA.md` was derived for this
+work by a fresh, walled-off agent given only the real OpenAI migration
+guide and read access to the four repos, no access to `apidrift/` or the
+fixgen prompt being graded, the same isolated-construction discipline this
+project applies to anything that would otherwise grade a detector against
+its own construction.
+
+| Host | exact-match | semantic-equivalent | avoidable-hedge | locally-plausible-but-globally-wrong |
+|---|---|---|---|---|
+| targetB_small, 20 sites (both runs) | 20/20 | 0 | 0 | 0 |
+| targetA_small, 13 sites — before the fix | 2/13 | 0 | 11/13 | 0 |
+| targetA_small, 13 sites — after the fix | 12/13 | 0 | 1/13 | 0 |
+
+(Landing on a clean targetB_small run took three real attempts — the first
+two hit detection-stage vocabulary variance already documented in §8,
+missing the `test_jmeter_server.py` name-impersonation trap site once and
+re-tripping the `class FastMCP:` local-class trap once, neither a
+fix-generation problem. Their cost went unlogged by a test-ordering bug,
+fixed the same session so a failing run can no longer lose its cost
+report.)
+
+**The over-decline is the finding here, not a footnote — an
+independently-built answer key caught a limitation the tool could not see
+in itself, and that is exactly what made the fix precise instead of a
+guess.** Target A's first real run hedged 11 of 13 sites. Reading the
+actual output: the model, asked to migrate a module-level
+`openai.api_key = ...` assignment and its paired `openai.ChatCompletion
+.create(...)` call site into a client object, assumed doing so required
+adding a new `from openai import OpenAI` line — and, having assumed that,
+correctly (given its own false premise) concluded the fix wasn't
+self-contained to the one line it was given, and declined. It never
+considered the alternative the answer key actually uses: every one of
+these files already has a bare `import openai`, so `openai.OpenAI(...)`,
+fully qualified through the module already in scope, reaches the same
+class on the same one line with no new import at all. Nothing in the
+pipeline's own output — no validator, no guard, no verification tier —
+flagged this; a confident, well-reasoned hedge looks the same on disk as a
+correct one. Only grading against an answer key built independently, by an
+agent that never saw the fixgen prompt or code, surfaced that the hedges
+were avoidable. The fix was one instruction block in `fixgen_system.md`:
+check what's already imported (including another confirmed site's own
+context, when several share a file in the same batch) before declining for
+"needs an import"; reaching a symbol through an already-imported module,
+fully qualified, counts as self-contained; adding an actual new import
+line still disqualifies a fix, exactly as before. Re-run for real after
+the change: targetA_small's exact-match rate went from 2/13 to 12/13 with
+zero new wrong fixes, and targetB_small's 20/20 was unchanged, confirming
+the mechanical-rename boundary the fix was scoped not to touch actually
+held. The one remaining hedge (`franalgaba_chatgpt-telegram-bot-serverless
+/app.py:41`) is the answer key's own hardest site, flagged in its own notes
+as a genuine wrinkle: no client-construction site exists anywhere in that
+file to qualify through, so declining there is a legitimate hedge, not a
+miss.
+
+**Zero wrong fixes across all 33 known sites, both targets, both before
+and after the fix, is reassuring — and is not proof the verification tiers
+are strong enough to have caught a real error on their own.** Tier 2 (real
+install) only had signal on import-shaped `proposed_line`s: 9 of Target
+B's 20 fixes, 0 of Target A's 13 — none of Target A's confirmed sites are
+themselves import statements; they're client constructions, call-site
+migrations, and exception-name renames, shapes tier 2 as built cannot
+check at all. That means 24 of the 33 fixes scored across both targets
+were verified at tier 1 only: the file still parses, and the line the
+model claims it started from matches real source. Neither check inspects
+whether the *content* of the replacement is actually correct — tier 1
+would pass a confident, well-formed, wrong rename exactly as readily as a
+right one. The requested cross-check — a site where verification passed
+but the fix disagreed with the answer key — found nothing to flag in
+either run, but with 24 of 33 fixes never reaching a tier that checks
+content at all, that absence is a property of this run, not a property
+established about the verification tiers in general. This is exactly the
+gap `DESIGN.md`'s tier 3 (real test-suite diffing) exists to close, and
+it remains the honest reading of these results: the headline number is
+clean, the verification behind it is real but partial, and dropping the
+test-suite tier is a known, named risk, not a solved problem.
