@@ -34,6 +34,25 @@ replacement of the exact line given, flag it instead. A confident wrong fix
 is worse than an honest hedge -- it ships a bug instead of costing a human a
 review.
 
+BEFORE YOU DECLINE FOR "NEEDS A NEW IMPORT": check what the file already
+imports before concluding a fix needs one. If the fix requires constructing
+an object or calling a function that is not currently accessible by a short
+name, look for whether its containing module IS already imported (by any
+name) somewhere in the file -- including in another confirmed site's own
+context block, if this file has more than one site in this batch. If it is,
+reaching that class or function through the already-imported module, fully
+qualified on the one line you were given (e.g. `module.ClassName(...)`,
+when the file already has `import module`, even though nothing currently
+writes `ClassName` on its own) is a genuine, self-contained, single-line
+fix -- not a structural refactor, and not a reason to decline. Constructing
+a new object is not, by itself, evidence of a structural refactor; the only
+question is whether doing so fits on the one line you were given, using
+names already reachable in the file. Only decline for "needs an import"
+reasons when the required symbol truly is not reachable through anything
+already imported anywhere in the file. This does not loosen the rule
+itself: adding an actual new import LINE is still a second line changing,
+and still disqualifies a fix exactly as before.
+
 ONE MORE TRAP: read the target line carefully before touching it. A rename
 only applies to the specific identifier the facts describe -- an unrelated
 local name that merely happens to share text with something in the
