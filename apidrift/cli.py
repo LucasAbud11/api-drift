@@ -3,7 +3,7 @@ import sys
 
 from . import llm, pipeline, preflight, validate, writer
 from .llm import AnthropicLLMClient, LLMError
-from .stages import fixgen
+from .stages import factblock, fixgen
 
 
 def main(argv=None):
@@ -44,6 +44,14 @@ def main(argv=None):
                         help="Load a previously derived vocabulary instead of deriving one -- "
                              "skips stage 2. Still validated and guard-checked exactly like a "
                              "freshly derived vocabulary.")
+    run_p.add_argument("--factblock-chunk-size", type=int, default=None,
+                        help="Approx. input-token budget per fact-block chunk -- a `##` guide "
+                             "section over this budget is split further on its own `###` "
+                             f"subheadings. Default: {factblock.DEFAULT_CHUNK_SIZE}.")
+    run_p.add_argument("--dry-run", action="store_true",
+                        help="Print the planned fact-block chunk list (guide section, approx "
+                             "input tokens) and an estimated cost, then exit without making "
+                             "any API call.")
 
     apply_p = sub.add_parser(
         "apply", help="Write a run's FIX bucket into a separate working copy of the repo.")
@@ -61,6 +69,31 @@ def main(argv=None):
         if workdir is None:
             import datetime
             workdir = f"./.api-drift-run/{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
+
+        factblock_chunk_size = args.factblock_chunk_size or factblock.DEFAULT_CHUNK_SIZE
+
+        if args.dry_run:
+            # No client is ever constructed on this path -- not just
+            # "doesn't call complete()" but no ANTHROPIC_API_KEY check,
+            # no anthropic.Anthropic() construction, nothing that could
+            # touch the network, matching "exits WITHOUT making any API
+            # call" literally.
+            try:
+                preflight.check_guide(args.guide)
+                if args.factblock:
+                    print(f"--dry-run: --factblock={args.factblock!r} is set -- stage 1 "
+                          f"would be loaded from disk, not derived, so there is no chunk "
+                          f"plan or cost to estimate. Nothing to do.")
+                    return
+                with open(args.guide, encoding="utf-8") as f:
+                    guide_text = f.read()
+            except preflight.PreflightError as e:
+                print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+                sys.exit(1)
+            for line in factblock.format_dry_run_report(guide_text, factblock_chunk_size,
+                                                          model=args.model):
+                print(line)
+            return
 
         client = None
         try:
@@ -80,6 +113,8 @@ def main(argv=None):
                 package_version_override=args.package_version,
                 factblock_path=args.factblock,
                 vocabulary_path=args.vocabulary,
+                factblock_chunk_size=factblock_chunk_size,
+                model=args.model,
             )
         except preflight.PreflightError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)

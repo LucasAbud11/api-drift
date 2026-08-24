@@ -35,7 +35,8 @@ def _write_json(path, data):
 def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         package_name_override=None, print_fn=print, skip_fix_generation=False,
         fixgen_chunk_size=fixgen.DEFAULT_CHUNK_SIZE, verify_install=True,
-        package_version_override=None, factblock_path=None, vocabulary_path=None):
+        package_version_override=None, factblock_path=None, vocabulary_path=None,
+        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None):
     """Runs the full pipeline. Never writes anything outside `workdir` --
     repo access goes exclusively through RepoReader, which has no write
     method. Returns a dict with every intermediate artifact plus the
@@ -56,7 +57,14 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     sampling-variance drift between them. A loaded artifact still goes
     through the exact same validate_factblock/validate_vocabulary check
     and check_factblock_coverage/check_vocabulary_coverage guard a freshly
-    derived one gets -- loading is never a way to skip either."""
+    derived one gets -- loading is never a way to skip either.
+
+    `factblock_chunk_size`/`model`: stage 1 is chunked by guide section
+    (see stages/factblock.py) -- `factblock_chunk_size` is the approx.
+    input-token budget per chunk, and `model` (a plain string, not read
+    off `client`, since not every LLMClient implementation carries one)
+    is used only to print a per-chunk cost estimate as each chunk
+    completes; omitted entirely (no cost line) if None."""
     preflight.check_inputs(repo_root, guide_path, workdir,
                             factblock_path=factblock_path, vocabulary_path=vocabulary_path)
     os.makedirs(workdir, exist_ok=True)
@@ -93,8 +101,10 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
             fb["package_name"] = package_name_override
         manifest["factblock_source"] = f"loaded:{os.path.abspath(factblock_path)}"
     else:
-        print_fn(f"[1/{total_stages}] Deriving fact block from guide...")
-        fb = factblock.derive(client, guide_text)
+        print_fn(f"[1/{total_stages}] Deriving fact block from guide "
+                  f"(chunk budget: ~{factblock_chunk_size} input tokens)...")
+        fb = factblock.run(client, guide_text, workdir, chunk_token_budget=factblock_chunk_size,
+                            model=model, print_fn=print_fn)
         if package_name_override:
             fb["package_name"] = package_name_override
         fb["guide_sha256"] = guide_sha256

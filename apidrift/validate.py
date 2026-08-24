@@ -22,6 +22,22 @@ def _is_blank(v):
 # Fact block
 # ---------------------------------------------------------------------
 
+def _validate_facts_list(facts, what, allow_empty):
+    if not isinstance(facts, list):
+        _fail(what, f"'facts' must be a list, got {type(facts).__name__}")
+    if not allow_empty and len(facts) == 0:
+        _fail(what, "'facts' must be a non-empty list -- an empty fact block means "
+                     "derivation produced nothing usable, which must stop the run, not "
+                     "proceed with an empty spec")
+    for idx, fact in enumerate(facts):
+        if not isinstance(fact, dict):
+            _fail(what, f"'facts[{idx}]' is not an object")
+        if "number" not in fact or not isinstance(fact["number"], int):
+            _fail(what, f"'facts[{idx}].number' missing or not an int")
+        if _is_blank(fact.get("text")):
+            _fail(what, f"'facts[{idx}].text' is missing or blank")
+
+
 def validate_factblock(data, what="factblock"):
     if not isinstance(data, dict):
         _fail(what, "top level is not a JSON object")
@@ -37,18 +53,39 @@ def validate_factblock(data, what="factblock"):
                      f"pass a name the prefilter's relevance pattern can never match")
     if "facts" not in data:
         _fail(what, "missing required top-level key 'facts'")
-    facts = data["facts"]
-    if not isinstance(facts, list) or len(facts) == 0:
-        _fail(what, "'facts' must be a non-empty list -- an empty fact block means "
-                     "derivation produced nothing usable, which must stop the run, not "
-                     "proceed with an empty spec")
-    for idx, fact in enumerate(facts):
-        if not isinstance(fact, dict):
-            _fail(what, f"'facts[{idx}]' is not an object")
-        if "number" not in fact or not isinstance(fact["number"], int):
-            _fail(what, f"'facts[{idx}].number' missing or not an int")
-        if _is_blank(fact.get("text")):
-            _fail(what, f"'facts[{idx}].text' is missing or blank")
+    _validate_facts_list(data["facts"], what, allow_empty=False)
+    return data
+
+
+def validate_factblock_chunk(data, what="factblock chunk"):
+    """Same structural checks as validate_factblock, relaxed for a single
+    guide-SECTION chunk rather than the whole fact block: a section may
+    legitimately state zero breaking-change facts (pure prose/overview/
+    appendix content, no different from a whole guide having a real fact
+    a human would recognize as "nothing to report here"), and most
+    individual sections won't restate the guide's overall package name.
+    Both are deferred to merge time -- an empty facts list contributes
+    nothing and is fine; a blank package_name is excluded from the
+    cross-chunk consensus in factblock.py, not itself a failure. What
+    still hard-fails here exactly as it does in validate_factblock: a
+    non-blank package_name that isn't a valid bare identifier (prose or
+    a description, not silently accepted), and any malformed fact that
+    IS present. The merged result coming out of that consensus still
+    goes through validate_factblock unchanged, so the full fact block's
+    contract (non-empty facts, non-blank package_name) is enforced
+    exactly as before -- this relaxation applies only to one chunk's
+    partial view."""
+    if not isinstance(data, dict):
+        _fail(what, "top level is not a JSON object")
+    if "package_name" not in data:
+        _fail(what, "missing required top-level key 'package_name'")
+    if not _is_blank(data["package_name"]) and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", data["package_name"]):
+        _fail(what, f"'package_name' must be blank or a single bare Python import "
+                     f"identifier, got {data['package_name']!r} -- this is prose/a "
+                     f"description, not an importable name")
+    if "facts" not in data:
+        _fail(what, "missing required top-level key 'facts'")
+    _validate_facts_list(data["facts"], what, allow_empty=True)
     return data
 
 

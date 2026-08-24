@@ -44,15 +44,22 @@ def _check_optional_json_input(flag, path):
         raise PreflightError(f"{flag} is empty: {path}")
 
 
-def check_inputs(repo_root, guide_path, workdir, factblock_path=None, vocabulary_path=None):
-    if not os.path.isdir(repo_root):
-        raise PreflightError(f"--repo does not exist or is not a directory: {repo_root}")
+def check_guide(guide_path):
+    """--guide's own existence/readability/non-empty check, split out from
+    check_inputs so --dry-run (which needs the guide but not --repo or
+    --workdir -- it never touches either) can run this one check alone."""
     if not os.path.isfile(guide_path):
         raise PreflightError(f"--guide does not exist or is not a file: {guide_path}")
     if not os.access(guide_path, os.R_OK):
         raise PreflightError(f"--guide is not readable: {guide_path}")
     if os.path.getsize(guide_path) == 0:
         raise PreflightError(f"--guide is empty: {guide_path}")
+
+
+def check_inputs(repo_root, guide_path, workdir, factblock_path=None, vocabulary_path=None):
+    if not os.path.isdir(repo_root):
+        raise PreflightError(f"--repo does not exist or is not a directory: {repo_root}")
+    check_guide(guide_path)
     _check_optional_json_input("--factblock", factblock_path)
     _check_optional_json_input("--vocabulary", vocabulary_path)
     try:

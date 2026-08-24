@@ -64,15 +64,15 @@ def _guide(tmp_path, text=GUIDE_TEXT):
 # the task raised, catch a silent revert of either)
 # ---------------------------------------------------------------------
 
-def test_factblock_stage_requests_32000_max_tokens():
+def test_factblock_stage_requests_32000_max_tokens(tmp_path):
     client = ScriptedLLMClient(_script())
-    factblock.derive(client, GUIDE_TEXT)
+    factblock.run(client, GUIDE_TEXT, str(tmp_path / "workdir"))
     assert client.calls[0]["max_tokens"] == 32000
 
 
-def test_vocabulary_stage_requests_16000_max_tokens():
+def test_vocabulary_stage_requests_16000_max_tokens(tmp_path):
     client = ScriptedLLMClient(_script())
-    fb = factblock.derive(client, GUIDE_TEXT)
+    fb = factblock.run(client, GUIDE_TEXT, str(tmp_path / "workdir"))
     vocabulary.derive(client, GUIDE_TEXT, fb)
     assert client.calls[-1]["max_tokens"] == 16000
 
