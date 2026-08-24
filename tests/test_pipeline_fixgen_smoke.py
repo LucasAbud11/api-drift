@@ -86,6 +86,9 @@ def test_pipeline_runs_fix_generation_end_to_end(tmp_path):
     with open(os.path.join(workdir, "fixes.json")) as f:
         fixes_on_disk = json.load(f)
     assert fixes_on_disk["fixes"][0]["file"] == "mod.py"
+    # api-drift apply's check_not_analysis_repo depends on this field being
+    # present -- see writer.py and test_writer.py.
+    assert fixes_on_disk["repo_root"] == os.path.abspath(str(repo_root))
 
     assert os.path.isfile(os.path.join(workdir, "verification.json"))
 

@@ -139,6 +139,10 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
                          else f"unavailable ({install['reason']})")
         print_fn(f"      Verification: parse+line-match {'OK' if parse_ok else 'FAILED'}, "
                   f"install-tier {install_note}")
+        # repo_root lets `api-drift apply` refuse to write fixes back into
+        # the exact repo this run read from -- writer.py's
+        # check_not_analysis_repo compares --into against this field.
+        fixgen_expanded["repo_root"] = reader.repo_root
         _write_json(os.path.join(workdir, "fixes.json"), fixgen_expanded)
 
     report_path = report.write(workdir, expanded, stats, fb, vocab,

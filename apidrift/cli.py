@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from . import llm, pipeline, preflight
+from . import llm, pipeline, preflight, validate, writer
 from .llm import AnthropicLLMClient, LLMError
 from .stages import fixgen
 
@@ -36,6 +36,15 @@ def main(argv=None):
     run_p.add_argument("--package-version", default=None,
                         help="Pin the exact version to install for tier-2 fix verification. "
                              "Default: pip installs the latest release of the inferred package.")
+
+    apply_p = sub.add_parser(
+        "apply", help="Write a run's FIX bucket into a separate working copy of the repo.")
+    apply_p.add_argument("--fixes", required=True, help="Path to a fixes.json produced by a run.")
+    apply_p.add_argument("--into", required=True,
+                          help="Path to a separate git clone to write fixes into -- never the "
+                               "repo the run analysed.")
+    apply_p.add_argument("--dry-run", action="store_true",
+                          help="Run every safety check and print the diff, but write nothing.")
 
     args = parser.parse_args(argv)
 
@@ -85,6 +94,36 @@ def main(argv=None):
             # still billed, so a stopped run's cost must not go unreported.
             if client is not None and client.calls:
                 print(f"\n{llm.format_usage_report(client, args.model)}")
+
+    elif args.command == "apply":
+        try:
+            data = validate.validate_fixgen_file(args.fixes)
+        except ValueError as e:
+            print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+            sys.exit(1)
+
+        try:
+            writer.check_git_repo(args.into)
+            writer.check_clean_worktree(args.into)
+            writer.check_not_analysis_repo(args.into, data.get("repo_root"))
+            result = writer.apply_fixes(args.into, data["fixes"], dry_run=args.dry_run)
+        except writer.ApplyError as e:
+            print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+            sys.exit(1)
+
+        for diff_text in result["diffs"]:
+            print(diff_text)
+
+        flagged = data["flagged_for_human"]
+        if flagged:
+            print("Skipped (FLAG-FOR-HUMAN):")
+            for item in sorted(flagged, key=lambda x: (x["file"], x["line"])):
+                print(f"  {item['file']}:{item['line']} -- {item['reason']}")
+            print()
+
+        verb = "Would apply" if args.dry_run else "Applied"
+        print(f"{verb} {result['n_fixes']} fix(es) across {len(result['files_modified'])} "
+              f"file(s), {len(flagged)} skipped as FLAG-FOR-HUMAN.")
 
 
 if __name__ == "__main__":
