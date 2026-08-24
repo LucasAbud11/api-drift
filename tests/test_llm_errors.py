@@ -18,24 +18,57 @@ def _sdk_error(cls, message, status_code=400):
     return cls(message, response=resp, body=None)
 
 
-class _FakeMessages:
-    def __init__(self, raises=None, response=None):
-        self._raises = raises
-        self._response = response
+class _FakeStreamContext:
+    """Stands in for the real MessageStreamManager: entering the `with`
+    block is where a connection-time error (auth, rate limit, bad
+    request...) surfaces in the real SDK, and get_final_message() is where
+    a mid-stream failure (the connection dropping partway through reading
+    the body) surfaces instead -- these are two different points in real
+    usage, so the fake keeps them distinct rather than raising everything
+    from one place."""
 
-    def create(self, **kwargs):
-        if self._raises is not None:
-            raise self._raises
+    def __init__(self, response=None, raises_on_enter=None, raises_on_final=None):
+        self._response = response
+        self._raises_on_enter = raises_on_enter
+        self._raises_on_final = raises_on_final
+
+    def __enter__(self):
+        if self._raises_on_enter is not None:
+            raise self._raises_on_enter
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def get_final_message(self):
+        if self._raises_on_final is not None:
+            raise self._raises_on_final
         return self._response
 
 
+class _FakeMessages:
+    def __init__(self, raises=None, response=None, raises_mid_stream=None):
+        self._raises = raises
+        self._response = response
+        self._raises_mid_stream = raises_mid_stream
+
+    def stream(self, **kwargs):
+        return _FakeStreamContext(
+            response=self._response,
+            raises_on_enter=self._raises,
+            raises_on_final=self._raises_mid_stream,
+        )
+
+
 class _FakeAnthropicClient:
-    def __init__(self, raises=None, response=None):
-        self.messages = _FakeMessages(raises, response)
+    def __init__(self, raises=None, response=None, raises_mid_stream=None):
+        self.messages = _FakeMessages(raises, response, raises_mid_stream)
 
 
-def _client(raises=None, response=None):
-    return AnthropicLLMClient(anthropic_client=_FakeAnthropicClient(raises, response))
+def _client(raises=None, response=None, raises_mid_stream=None):
+    return AnthropicLLMClient(
+        anthropic_client=_FakeAnthropicClient(raises, response, raises_mid_stream)
+    )
 
 
 def _fake_response(stop_reason="end_turn", text='{"ok": true}'):
@@ -84,3 +117,18 @@ def test_normal_completion_still_works():
     client = _client(response=_fake_response(stop_reason="end_turn", text='{"ok": true}'))
     result = client.complete("factblock", "sys", "user", SCHEMA)
     assert result == {"ok": True}
+
+
+@pytest.mark.parametrize("exc", [
+    httpx2.ReadError("connection dropped mid-read"),
+    httpx2.RemoteProtocolError("peer closed connection without complete response"),
+])
+def test_mid_stream_network_failure_becomes_plain_language_llm_call_error(exc):
+    """A new error path streaming introduces: the connection can drop after
+    it's already open and tokens have been billed, distinct from a
+    connection-establishment failure (covered by the parametrized SDK-error
+    cases above) -- this must still surface as a clean LLMCallError, not a
+    raw httpx2 traceback."""
+    client = _client(raises_mid_stream=exc)
+    with pytest.raises(LLMCallError, match="interrupted while streaming"):
+        client.complete("some_stage", "sys", "user", SCHEMA)

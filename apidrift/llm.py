@@ -118,13 +118,23 @@ class AnthropicLLMClient(LLMClient):
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
                  max_tokens=8000, effort="high"):
         import anthropic
+        import httpx2
 
         system = system_text
         if cache_system:
             system = [{"type": "text", "text": system_text,
                        "cache_control": {"type": "ephemeral"}}]
         try:
-            response = self.client.messages.create(
+            # The Anthropic API requires streaming for requests that may run
+            # past 10 minutes -- a large max_tokens (factblock's 32000,
+            # vocabulary's 16000) can cross that threshold, so every call
+            # goes through messages.stream() rather than messages.create().
+            # get_final_message() blocks until the stream is fully consumed
+            # and hands back the same accumulated Message shape
+            # messages.create() used to return directly (content, usage,
+            # stop_reason all present the same way) -- everything below this
+            # try/except is unchanged from the non-streaming version.
+            with self.client.messages.stream(
                 model=self.model,
                 max_tokens=max_tokens,
                 system=system,
@@ -134,7 +144,8 @@ class AnthropicLLMClient(LLMClient):
                     "format": {"type": "json_schema", "schema": schema},
                 },
                 messages=[{"role": "user", "content": user_text}],
-            )
+            ) as stream:
+                response = stream.get_final_message()
         except anthropic.AuthenticationError as e:
             raise LLMCallError(
                 f"[{stage}] authentication failed -- check that ANTHROPIC_API_KEY (or "
@@ -163,6 +174,21 @@ class AnthropicLLMClient(LLMClient):
             ) from e
         except anthropic.APIConnectionError as e:
             raise LLMCallError(f"[{stage}] network error reaching the Anthropic API: {e}") from e
+        except httpx2.HTTPError as e:
+            # A new error path streaming introduces: APIConnectionError above
+            # only wraps a failure sending the initial request (see
+            # anthropic's _base_client._request, which catches around
+            # client.send() alone) -- once the connection is open, reading
+            # the response body happens later, inside get_final_message(),
+            # and a drop partway through that read raises a raw httpx2
+            # error, not an anthropic-typed one. A non-streaming call either
+            # fully succeeds or fails before producing any output; a stream
+            # can be cut off after tokens (and billing) have already
+            # happened, which is exactly why this needs its own message.
+            raise LLMCallError(
+                f"[{stage}] the connection was interrupted while streaming the response "
+                f"from the Anthropic API (the call may have been partially billed): {e}"
+            ) from e
 
         usage = getattr(response, "usage", None)
         call_usage = {
