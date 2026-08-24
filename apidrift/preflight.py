@@ -28,7 +28,23 @@ def _nearest_existing_dir(path):
     return path
 
 
-def check_inputs(repo_root, guide_path, workdir):
+def _check_optional_json_input(flag, path):
+    """Shared existence/readability check for --factblock and --vocabulary
+    -- both optional, both must fail here (before any network call) rather
+    than surface as a raw traceback from deep inside pipeline.run() if
+    given a bad path. Shape/content validation (is this actually a valid
+    fact block or vocabulary) is validate.py's job, not this one's."""
+    if path is None:
+        return
+    if not os.path.isfile(path):
+        raise PreflightError(f"{flag} does not exist or is not a file: {path}")
+    if not os.access(path, os.R_OK):
+        raise PreflightError(f"{flag} is not readable: {path}")
+    if os.path.getsize(path) == 0:
+        raise PreflightError(f"{flag} is empty: {path}")
+
+
+def check_inputs(repo_root, guide_path, workdir, factblock_path=None, vocabulary_path=None):
     if not os.path.isdir(repo_root):
         raise PreflightError(f"--repo does not exist or is not a directory: {repo_root}")
     if not os.path.isfile(guide_path):
@@ -37,6 +53,8 @@ def check_inputs(repo_root, guide_path, workdir):
         raise PreflightError(f"--guide is not readable: {guide_path}")
     if os.path.getsize(guide_path) == 0:
         raise PreflightError(f"--guide is empty: {guide_path}")
+    _check_optional_json_input("--factblock", factblock_path)
+    _check_optional_json_input("--vocabulary", vocabulary_path)
     try:
         assert_no_overlap(repo_root, workdir)
     except ValueError as e:

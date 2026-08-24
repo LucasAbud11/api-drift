@@ -5,11 +5,12 @@ packaged tool reproduce the study's numbers" and "does the plumbing still
 work" are both exercised through the exact same code path a real run
 takes, never a special test-only shortcut.
 """
+import hashlib
 import json
 import os
 import re
 
-from . import guards, preflight, verify as verify_module
+from . import guards, preflight, validate, verify as verify_module
 from .reposafe import RepoReader
 from .stages import adjudicate, factblock, fixgen, grep, prefilter, report, vocabulary
 
@@ -34,7 +35,7 @@ def _write_json(path, data):
 def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         package_name_override=None, print_fn=print, skip_fix_generation=False,
         fixgen_chunk_size=fixgen.DEFAULT_CHUNK_SIZE, verify_install=True,
-        package_version_override=None):
+        package_version_override=None, factblock_path=None, vocabulary_path=None):
     """Runs the full pipeline. Never writes anything outside `workdir` --
     repo access goes exclusively through RepoReader, which has no write
     method. Returns a dict with every intermediate artifact plus the
@@ -46,20 +47,58 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     that want detection-only behavior -- the acceptance/replay tests, which
     pin their assertions and cassettes to the detection stages only -- pass
     it explicitly, the same way they already pass `force=True` explicitly
-    rather than relying on a hidden default."""
-    preflight.check_inputs(repo_root, guide_path, workdir)
+    rather than relying on a hidden default.
+
+    `factblock_path`/`vocabulary_path`: stages 1/2 depend only on --guide,
+    never on --repo, so a fact block or vocabulary already derived against
+    this exact guide can be loaded instead of re-derived -- same guide,
+    several repos, one derivation instead of one per repo, and no
+    sampling-variance drift between them. A loaded artifact still goes
+    through the exact same validate_factblock/validate_vocabulary check
+    and check_factblock_coverage/check_vocabulary_coverage guard a freshly
+    derived one gets -- loading is never a way to skip either."""
+    preflight.check_inputs(repo_root, guide_path, workdir,
+                            factblock_path=factblock_path, vocabulary_path=vocabulary_path)
     os.makedirs(workdir, exist_ok=True)
     reader = RepoReader(repo_root)
 
     with open(guide_path, encoding="utf-8") as f:
         guide_text = f.read()
+    guide_sha256 = hashlib.sha256(guide_text.encode("utf-8")).hexdigest()
+
+    manifest = {
+        "guide_path": os.path.abspath(guide_path),
+        "guide_sha256": guide_sha256,
+        "repo_root": reader.repo_root,
+        "factblock_source": None,
+        "vocabulary_source": None,
+    }
 
     total_stages = 5 if skip_fix_generation else 6
 
-    print_fn(f"[1/{total_stages}] Deriving fact block from guide...")
-    fb = factblock.derive(client, guide_text)
-    if package_name_override:
-        fb["package_name"] = package_name_override
+    def _warn_on_guide_mismatch(kind, loaded_sha):
+        if loaded_sha is None:
+            print_fn(f"      WARNING: loaded {kind} has no recorded guide_sha256 -- cannot "
+                      f"verify it came from --guide.")
+        elif loaded_sha != guide_sha256:
+            print_fn(f"      WARNING: loaded {kind}'s guide_sha256 ({loaded_sha[:12]}...) does "
+                      f"not match --guide's sha256 ({guide_sha256[:12]}...) -- this {kind} may "
+                      f"have been derived from a different guide.")
+
+    if factblock_path:
+        print_fn(f"[1/{total_stages}] Loading fact block from {factblock_path}...")
+        fb = validate.validate_factblock_file(factblock_path)
+        _warn_on_guide_mismatch("fact block", fb.get("guide_sha256"))
+        if package_name_override:
+            fb["package_name"] = package_name_override
+        manifest["factblock_source"] = f"loaded:{os.path.abspath(factblock_path)}"
+    else:
+        print_fn(f"[1/{total_stages}] Deriving fact block from guide...")
+        fb = factblock.derive(client, guide_text)
+        if package_name_override:
+            fb["package_name"] = package_name_override
+        fb["guide_sha256"] = guide_sha256
+        manifest["factblock_source"] = "derived"
     _write_json(os.path.join(workdir, "factblock.json"), fb)
     print_fn(f"      {len(fb['facts'])} facts, package={fb['package_name']!r}")
 
@@ -69,10 +108,20 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     if not cov.ok:
         print_fn(f"      GUARD BYPASSED (--force): {cov.reason}")
 
-    print_fn(f"[2/{total_stages}] Deriving vocabulary...")
-    vocab = vocabulary.derive(client, guide_text, fb)
+    if vocabulary_path:
+        print_fn(f"[2/{total_stages}] Loading vocabulary from {vocabulary_path}...")
+        vocab = validate.validate_vocabulary_file(vocabulary_path)
+        _warn_on_guide_mismatch("vocabulary", vocab.get("guide_sha256"))
+        manifest["vocabulary_source"] = f"loaded:{os.path.abspath(vocabulary_path)}"
+    else:
+        print_fn(f"[2/{total_stages}] Deriving vocabulary...")
+        vocab = vocabulary.derive(client, guide_text, fb)
+        vocab["guide_sha256"] = guide_sha256
+        manifest["vocabulary_source"] = "derived"
     _write_json(os.path.join(workdir, "vocabulary.json"), vocab)
     print_fn(f"      {len(vocab['patterns'])} patterns")
+
+    _write_json(os.path.join(workdir, "manifest.json"), manifest)
 
     vcov = guards.check_vocabulary_coverage(fb, vocab)
     with open(os.path.join(workdir, "vocabulary_coverage.txt"), "w") as f:
@@ -150,6 +199,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     print_fn(f"Done. Report: {report_path}")
 
     return {
+        "manifest": manifest,
         "factblock": fb,
         "vocabulary": vocab,
         "candidates": candidates,

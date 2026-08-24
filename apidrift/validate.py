@@ -52,6 +52,22 @@ def validate_factblock(data, what="factblock"):
     return data
 
 
+def validate_factblock_file(path):
+    """Same discipline as validate_adjudication_file/validate_fixgen_file --
+    used by --factblock to load a previously derived fact block. Loading
+    must not be a way to bypass validation: this runs the exact same
+    validate_factblock check a freshly derived fact block gets."""
+    with open(path) as f:
+        raw = f.read()
+    if raw.strip() == "":
+        _fail(path, "file is empty")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        _fail(path, f"not valid JSON ({e})")
+    return validate_factblock(data, what=path)
+
+
 # ---------------------------------------------------------------------
 # Vocabulary
 # ---------------------------------------------------------------------
@@ -191,6 +207,22 @@ def validate_vocabulary(data, what="vocabulary"):
             f"treat this as a hard stop, not a warning.",
         )
     return data
+
+
+def validate_vocabulary_file(path):
+    """Same discipline as validate_factblock_file -- used by --vocabulary
+    to load a previously derived vocabulary. Loading must not be a way to
+    bypass validation: this runs the exact same validate_vocabulary check
+    a freshly derived vocabulary gets."""
+    with open(path) as f:
+        raw = f.read()
+    if raw.strip() == "":
+        _fail(path, "file is empty")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        _fail(path, f"not valid JSON ({e})")
+    return validate_vocabulary(data, what=path)
 
 
 # ---------------------------------------------------------------------

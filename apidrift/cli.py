@@ -36,6 +36,14 @@ def main(argv=None):
     run_p.add_argument("--package-version", default=None,
                         help="Pin the exact version to install for tier-2 fix verification. "
                              "Default: pip installs the latest release of the inferred package.")
+    run_p.add_argument("--factblock", default=None,
+                        help="Load a previously derived fact block instead of deriving one -- "
+                             "skips stage 1. Still validated and guard-checked exactly like a "
+                             "freshly derived fact block.")
+    run_p.add_argument("--vocabulary", default=None,
+                        help="Load a previously derived vocabulary instead of deriving one -- "
+                             "skips stage 2. Still validated and guard-checked exactly like a "
+                             "freshly derived vocabulary.")
 
     apply_p = sub.add_parser(
         "apply", help="Write a run's FIX bucket into a separate working copy of the repo.")
@@ -70,6 +78,8 @@ def main(argv=None):
                 fixgen_chunk_size=args.fixgen_chunk_size or fixgen.DEFAULT_CHUNK_SIZE,
                 verify_install=args.verify_install,
                 package_version_override=args.package_version,
+                factblock_path=args.factblock,
+                vocabulary_path=args.vocabulary,
             )
         except preflight.PreflightError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)

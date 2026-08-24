@@ -38,7 +38,14 @@ def derive(client, guide_text):
         system_text=SYSTEM_PROMPT,
         user_text=guide_text,
         schema=SCHEMA,
-        max_tokens=8000,
+        # Raised from 8000 after a real large guide (MCP v1->v2, ~76k input
+        # tokens) hit the ceiling -- this stage's output scales with the
+        # guide's own size (one fact per guide-stated change), so a big
+        # guide can legitimately need more room than a small one ever
+        # would. Same headroom rationale as vocabulary.py's 16000; llm.py's
+        # stop_reason=="max_tokens" check still catches a guide that
+        # outgrows even this, loudly, rather than truncating silently.
+        max_tokens=32000,
         effort="high",
     )
     return validate.validate_factblock(result, what="derived fact block")
