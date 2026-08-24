@@ -650,3 +650,110 @@ gap `DESIGN.md`'s tier 3 (real test-suite diffing) exists to close, and
 it remains the honest reading of these results: the headline number is
 clean, the verification behind it is real but partial, and dropping the
 test-suite tier is a known, named risk, not a solved problem.
+
+## 10. Findings against a real, unmodified guide
+
+Everything through §9 ran against guides this project had already shaped
+itself around — official, well-formed, and (for Target B) the same
+686-word condensed spec the acceptance tests and cassettes are pinned to.
+The first run against a guide nobody had touched — the real, published
+MCP Python SDK v1→v2 migration guide, 23,000 words, 116 top-level `##`
+sections, 819 facts once derived — found problems none of the prior work
+could have, because none of it had ever pointed the packaged tool at a
+guide this large or this real.
+
+**Stage 1 could not complete in one call, and raising max_tokens was the
+wrong fix twice before it was the right diagnosis.** The first run
+truncated at the default max_tokens=8000; raising it to 32000 truncated
+again. Both were real, paid derivations that produced nothing usable.
+The actual problem wasn't the ceiling — it was that a 23,000-word guide
+asks for a fact block sized for a document that big in a single call, and
+that fact block is itself input to every downstream call (vocabulary
+derivation, every adjudication chunk), so pushing the ceiling higher
+again would have made every one of those calls more expensive on every
+repo, not just fixed stage 1. Stage 1 now chunks by guide section instead
+— split on `##` headings, never mid-section, an oversized section
+subdivided on its own `###` subheadings — mirroring the chunked,
+idempotent-per-chunk-file design `adjudicate.py` already used for
+adjudication.
+
+**Raising max_tokens to 32000 crossed a different ceiling than the one
+being aimed at.** The Anthropic API refuses non-streaming requests that
+could run past ten minutes, and 32000 output tokens crossed that
+threshold — the failure surfaced as `Streaming is required for
+operations that may take longer than 10 minutes`, not as another
+truncation. The fix was moving every completion call onto the streaming
+API and reading the accumulated final message, which introduced a
+genuinely new failure path that didn't exist before: a connection can now
+drop *during* the body read, after tokens (and billing) have already
+happened, distinct from a connection ever being established at all.
+
+**The vocabulary-coverage guard's substring bug (fixed this session,
+above) degrades exactly where it matters most.** It isn't a fixed-severity
+bug — its blind spot scales with how central the package name is to the
+vocabulary's own naming. A short, common package name like `mcp` shows up
+as a substring inside a large fraction of a real vocabulary's own pattern
+identifiers (`fastmcp`, `mcpserver`, `mcperror`, ...), so the guard's
+false-COVERED rate is worst on exactly the packages a migration tool
+spends the most time on. A guide for a package with a long, distinctive
+name would have shown this bug far less, which is part of why it survived
+until a real, large, `mcp`-named guide exercised it.
+
+**Insufficient fix set — `tonyzorin/youtrack-mcp`.** All three sites this
+migration touched in this repo were found, and each individual fix was
+correct in isolation. But the repo's `MCPServer(...)` construction call
+passes `host=` and `port=` as keyword arguments, and v2 moves both off
+the constructor entirely — applying only the three independently-correct
+renames produces code that imports cleanly and then raises `TypeError` at
+construction, which is worse than not migrating the repo at all: the
+break moved from an import-time signal a developer would catch
+immediately to a runtime one. The mechanism is structural, not a one-off
+model mistake: this pipeline generates fixes line by line, and a
+single-line fix to the *opening* line of a multi-line call satisfies
+fixgen's own "self-contained" test for a mechanical rename while leaving
+the rest of that same call broken — the boundary that correctly
+distinguishes a mechanical rename from a structural refactor for a single
+line doesn't see across the whole call it's a part of. The correct
+verdict for this site was FLAG-FOR-HUMAN, not three separate FIXes. Tier
+1 (parse + line-match) and tier 2 (real install) verification both passed
+every one of the three fixes, because both check whether each fix is
+internally self-consistent, never whether the *set* of fixes touching one
+call site is jointly sufficient — a gap neither tier is built to see.
+This was caught by hand, reading the diff, not by the tool.
+
+**Model refusal — `securityfortech/secops-mcp`.** Fix generation stopped
+outright with `stop_reason=refusal`, reproducibly, on a repo that wraps
+offensive-security tooling. The migration itself is a mechanical class
+rename with nothing sensitive about it; the refusal appears to be tripped
+by the surrounding code context fixgen sends along with the site (the
+repo's own subject matter), not by anything about the task asked of the
+model. This is a failure mode specific to an LLM-based tool: it can be
+refused service based on what the target repository *is*, independent of
+whether the migration being performed is itself benign, and it's
+deterministic — the same site refuses every time, so no retry strategy
+recovers it. A purely deterministic tool (grep and a hand-written fixer)
+would have no equivalent failure mode here at all.
+
+**Cost shape doesn't track how much of the migration a repo actually
+uses.** `youtrack-mcp`'s entire exposure to this migration was one import
+line, but fact-block and vocabulary derivation still ran the full cost of
+covering everything the guide describes — OAuth flows, client
+construction, the low-level `Server` class, transports — because those
+stages depend only on the guide, not on the repo. Adjudication cost, by
+contrast, scales with guide size × repo size: the 819-fact block (a
+225KB `factblock.json`) is input to every adjudication chunk regardless
+of how many candidates that chunk actually contains. Separately,
+prompt-cache accounting across three runs against this guide wrote
+144,795 tokens to the cache on *every* run and read zero back — the
+cache-write premium was paid three separate times for zero read-side
+benefit any of those times. The cause hasn't been investigated yet; noted
+here rather than quietly ignored.
+
+**Not every real-guide result was a new failure mode.** `QAInsights/
+jmeter-mcp-server` produced seven correct fixes across two separate entry
+points, including one genuine test-mock edge case handled right: a
+mock's *exposed* attribute name needed renaming while the local stub
+class's own identifier correctly did not change — the same
+name-impersonation-vs-real-reference distinction `DESIGN.md`'s Rule 1 and
+the original study's ground-truth correction (§3) both turn on, holding
+up again on a guide and a repo neither had been built around.
