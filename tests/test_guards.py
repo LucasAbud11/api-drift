@@ -87,6 +87,55 @@ def test_vocabulary_coverage_underscore_insensitive_match():
     assert result.ok
 
 
+def test_vocabulary_coverage_does_not_falsely_cover_via_package_name_substring():
+    # Real bug: `Mcp-Param-*` tokenizes to ["mcp", "param"], and under
+    # substring matching "mcp" is contained in "fastmcp", "mcpserver",
+    # "mcperror", etc, so almost every MCP-family pattern falsely
+    # registered as covering almost every fact. `fastmcp` has nothing to
+    # do with parameter headers -- it must not count as coverage.
+    factblock = {
+        "package_name": "mcp",
+        "facts": [{"number": 1, "text": "`Mcp-Param-*` headers change shape."}],
+    }
+    vocabulary = {"patterns": {
+        "p1_fastmcp": r"\bFastMCP\b",
+        "p24_pydsett": r"mcpserver\.settings",
+        "p78_websocket": r"mcperror\.WebSocket",
+    }}
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert not result.ok
+    assert "1" in result.reason
+
+
+def test_vocabulary_coverage_still_covers_via_a_real_non_package_token():
+    # Same fact as above, but a pattern that actually references the
+    # non-package-name token (`param`) must still register as covering
+    # it -- the fix must not become so strict it can never match.
+    factblock = {
+        "package_name": "mcp",
+        "facts": [{"number": 1, "text": "`Mcp-Param-*` headers change shape."}],
+    }
+    vocabulary = {"patterns": {
+        "p1_fastmcp": r"\bFastMCP\b",
+        "p_param_header": r"Mcp-Param-",
+    }}
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert result.ok
+
+
+def test_vocabulary_coverage_package_name_alone_is_not_coverage():
+    # A fact whose only identifier IS the bare package name has no real
+    # signal to search for -- a pattern that merely imports/references
+    # the package must not count as covering it.
+    factblock = {
+        "package_name": "mcp",
+        "facts": [{"number": 1, "text": "`mcp` behavior changes in an unspecified way."}],
+    }
+    vocabulary = {"patterns": {"p1": r"import mcp"}}
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert not result.ok
+
+
 def test_vocabulary_coverage_skips_non_breaking_and_shape_facts():
     factblock = {
         "package_name": "widget",

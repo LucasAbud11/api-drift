@@ -171,31 +171,40 @@ def _fact_identifier_spans(fact_text):
     return out
 
 
-def _pattern_tokens(regex):
-    """A pattern's own regex source, split into alnum/underscore 'words'
-    the same way a fact span is, each paired with its underscore-stripped
-    form. Needed because a guide names a wire command with spaces or no
-    separator at all (`CLIENT TRACKINGINFO`, `MEMORY STATS`) while the
-    Python client's real method name inserts underscores in different
-    places (`client_tracking_info`, `memory_stats`) -- and Python's `\\b`
-    treats `_` as a word character, so a literal `\\b`-bounded match
-    between the two spellings never fires even though they plainly name
-    the same thing. Stripping underscores from both sides before a plain
-    substring check sidesteps that mismatch entirely. Lowercased for the
-    same reason `_fact_identifier_spans` lowercases its tokens -- a guide
-    span and a pattern's identifier casing need not agree (`redis.Redis`
-    vs. a fact naming it `redis`) for this to plausibly be the same
-    symbol."""
-    words = [w.lower() for w in re.split(r"[^A-Za-z0-9_]+", regex) if len(w) >= 2]
-    return [(w, w.replace("_", "")) for w in words]
+def _pattern_tokens(regex, exclude=frozenset()):
+    """A pattern's own regex source, split into alnum/underscore 'words',
+    underscore-stripped and lowercased so an underscore-insensitive
+    EQUALITY check (not substring containment) can compare it against a
+    fact token. Needed because a guide names a wire command with spaces
+    or no separator at all (`CLIENT TRACKINGINFO`, `MEMORY STATS`) while
+    the Python client's real method name inserts underscores in
+    different places (`client_tracking_info`, `memory_stats`) -- and
+    Python's `\\b` treats `_` as a word character, so a literal
+    `\\b`-bounded match between the two spellings never fires even
+    though they plainly name the same thing. Underscore-stripped
+    equality sidesteps that mismatch without falling back to substring
+    containment, which is what this function used to do and is the bug
+    this docstring used to justify: stripping `fastmcp` the same way
+    strips to `fastmcp`, and `mcp` (from a fact token like `Mcp-Param-*`
+    splitting on punctuation) is a SUBSTRING of `fastmcp`, `mcpserver`,
+    `mcperror`, and dozens of other real pattern tokens for any MCP-family
+    package -- substring containment made almost every fact naming
+    anything MCP-flavored register as covered by almost every pattern,
+    regardless of whether the pattern had anything to do with the fact.
+    Equality has no such failure mode: `mcp` == `fastmcp` is False.
+    Lowercased for the same reason `_fact_identifier_spans` lowercases
+    its tokens -- a guide span and a pattern's identifier casing need not
+    agree (`redis.Redis` vs. a fact naming it `redis`) for this to
+    plausibly be the same symbol. `exclude` (already lowercased/
+    underscore-stripped by the caller) drops the package name itself --
+    a token that means nothing except "this package" grants no real
+    coverage signal, so it's inert on both sides of the comparison."""
+    words = {w.lower().replace("_", "") for w in re.split(r"[^A-Za-z0-9_]+", regex) if len(w) >= 2}
+    return words - exclude
 
 
-def _token_covers(token, pattern_word_pairs):
-    token_stripped = token.replace("_", "")
-    return any(
-        token_stripped in stripped or stripped in token_stripped
-        for _, stripped in pattern_word_pairs
-    )
+def _token_covers(token, pattern_stripped_tokens):
+    return token.replace("_", "") in pattern_stripped_tokens
 
 
 def check_vocabulary_coverage(factblock, vocabulary):
@@ -211,23 +220,32 @@ def check_vocabulary_coverage(factblock, vocabulary):
 
     For every fact that names at least one backtick-quoted identifier,
     checks whether ANY derived pattern's own regex source plausibly
-    represents EACH such identifier -- an underscore-insensitive substring
-    test against the pattern text itself (there's no sample code yet to
+    represents EACH such identifier -- an underscore-insensitive EQUALITY
+    test against the pattern's own tokens (there's no sample code yet to
     actually run the regex against; this is the same "text overlap as a
     proxy for coverage" approach check_factblock_coverage already uses,
-    one level further down the chain). For a dotted command name
-    (`TS.GET`), a generic segment (`get`) is not required to individually
-    match if a more distinctive segment (`ts`) already does -- coverage
-    for the trailing generic word is exactly what validate_vocabulary's
-    breadth check now forces to route through a namespace qualifier
-    instead of appearing standalone.
+    one level further down the chain -- see _pattern_tokens for why this
+    is equality now, not substring containment). For a dotted command
+    name (`TS.GET`), a generic segment (`get`) is not required to
+    individually match if a more distinctive segment (`ts`) already does
+    -- coverage for the trailing generic word is exactly what
+    validate_vocabulary's breadth check now forces to route through a
+    namespace qualifier instead of appearing standalone. The package name
+    itself is excluded as a matchable token on both sides -- a fact whose
+    only overlap with a pattern is the package name (e.g. a bare `mcp`
+    token matching any pattern that happens to import `mcp`) is not
+    covered in any meaningful sense, so it grants no coverage signal
+    rather than a real one.
 
     A fact naming zero concrete identifiers (pure checklist/process prose,
     e.g. "roll the change out gradually") has nothing a syntactic pattern
     could represent -- excluded from the pass/fail requirement, reported
     separately rather than miscounted as a real gap."""
+    package_name = (factblock.get("package_name") or "").strip().lower().replace("_", "")
+    exclude = {package_name} if package_name else set()
+
     patterns = vocabulary.get("patterns", {})
-    pattern_words = {name: _pattern_tokens(regex) for name, regex in patterns.items()}
+    pattern_words = {name: _pattern_tokens(regex, exclude=exclude) for name, regex in patterns.items()}
 
     rows = []
     any_gap = False
@@ -247,8 +265,30 @@ def check_vocabulary_coverage(factblock, vocabulary):
         fact_gap = False
         for span, tokens in id_spans:
             distinctive = [t for t in tokens if t not in validate.GENERIC_METHOD_NAMES] or tokens
+            # No "or distinctive" fallback here, unlike the generic-word
+            # filter above: a span whose only token IS the package name
+            # (e.g. a fact naming just `` `mcp` ``) has no real
+            # identifier left once that's excluded, and should be
+            # reported as such -- not silently matched back in.
+            distinctive = [t for t in distinctive if t not in exclude]
+
+            candidates = set(distinctive)
+            if len(tokens) > 1:
+                # A guide sometimes names a multi-word wire command
+                # (`CLIENT TRACKINGINFO`) that the real Python identifier
+                # merges with an underscore in a different place
+                # (`client_tracking_info`) -- _pattern_tokens treats that
+                # whole identifier as ONE token, so per-individual-token
+                # equality alone would never match it. The whole span's
+                # own concatenation is still an equality check, not a
+                # substring one: it either matches a pattern's merged
+                # token exactly or it doesn't.
+                concatenated = "".join(tokens)
+                if concatenated not in exclude:
+                    candidates.add(concatenated)
+
             covering = {
-                name for tok in distinctive
+                name for tok in candidates
                 for name, words in pattern_words.items()
                 if _token_covers(tok, words)
             }
