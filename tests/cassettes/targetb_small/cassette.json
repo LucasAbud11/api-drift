@@ -1,135 +1,127 @@
 {
-  "c2f6117e83aac187ae84a581": {
-    "stage": "factblock",
+  "6e5437b50b00c5cd818a230e": {
+    "stage": "factblock_chunk_000",
     "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
-    "user_excerpt": "# MIGRATION SPEC \u2014 MCP Python SDK v1 \u2192 v2\n\n(As given verbatim to each Target B detection agent on 2026-08-18. The\noriginal session's spec text was never persisted anywhere on disk, so this\nis a recons",
+    "user_excerpt": "SECTION TEXT (chunk 1 of 1 -- this is one section of a larger guide, split for processing. Derive every fact stated in THIS section's text):\n\n# MIGRATION SPEC \u2014 MCP Python SDK v1 \u2192 v2\n\n(As given verba",
     "response": {
       "package_name": "mcp",
       "facts": [
         {
           "number": 1,
-          "text": "The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X` or `import mcp.server.fastmcp` must become `from mcp.server.mcpserver import X` (respectively the `mcp.server.mcpserver` module path)."
+          "text": "The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X` or `import mcp.server.fastmcp` must become `from mcp.server.mcpserver import X` (or the equivalent `mcp.server.mcpserver` path)."
         },
         {
           "number": 2,
-          "text": "The main server class `FastMCP` is renamed to `MCPServer`. `FastMCP` no longer exists under that name anywhere in the package. Every place that imports it, uses it as a type annotation, subclasses it, or constructs it (`FastMCP(...)`) must have the identifier itself changed to `MCPServer` \u2014 this is a real class rename, not only an import-path change."
+          "text": "The main server class `FastMCP` is renamed to `MCPServer`. `FastMCP` no longer exists under that name anywhere in the package. Every place that imports it, uses it as a type annotation, subclasses it, or constructs it (`FastMCP(...)`) must change the identifier itself to `MCPServer` \u2014 this is a rename of the class name, not just a change of import location."
         },
         {
           "number": 3,
-          "text": "The `Context` class moves with the rest of the module \u2014 `from mcp.server.fastmcp import Context` becomes `from mcp.server.mcpserver import Context` \u2014 but `Context` KEEPS its own name. Nothing else about `Context` changes: its methods, its behavior, and its use as a type annotation elsewhere are all unaffected. Do not rename `Context`."
+          "text": "The `Context` class moves with the rest of the module: `from mcp.server.fastmcp import Context` \u2192 `from mcp.server.mcpserver import Context`. However, `Context` KEEPS its own name \u2014 it is not renamed. Nothing else about `Context` changes: its methods, its behavior, and its use as a type annotation elsewhere are all unaffected. Only the import path changes."
         },
         {
           "number": 4,
-          "text": "On the MCP client side, tool metadata objects returned by the SDK change field-naming convention from camelCase to snake_case: `tool.inputSchema` is renamed to `tool.input_schema`. Client code reading `.inputSchema` off a discovered tool object must change."
+          "text": "On the MCP client side, tool metadata objects returned by the SDK change field-naming convention from camelCase to snake_case. Specifically, `tool.inputSchema` is renamed to `tool.input_schema`. Client code reading `.inputSchema` off a discovered tool object must be changed."
         },
         {
           "number": 5,
-          "text": "`ClientSessionGroup.call_tool()` (the class managing calls across a group of client sessions) has a changed calling contract in v2."
+          "text": "`ClientSessionGroup.call_tool()` (the class managing calls across a group of client sessions) has a changed calling contract in v2. In contrast, plain `ClientSession.call_tool()` (a single session) is UNCHANGED \u2014 the two classes must not be conflated."
         },
         {
           "number": 6,
-          "text": "Plain `ClientSession.call_tool()` on a single session is UNCHANGED \u2014 do not conflate it with `ClientSessionGroup.call_tool()`."
+          "text": "Internally the SDK's HTTP transport dependency changed from the `httpx` package to `httpx2`. This is purely internal to the SDK implementation and has ZERO relevance to application code that imports and uses the separate `httpx` package for its own purposes (e.g. its own unrelated HTTP calls). Ordinary application-level `httpx` usage must NOT be flagged."
         },
         {
           "number": 7,
-          "text": "The SDK's own internal HTTP transport dependency changed from the `httpx` package to `httpx2`. This is purely internal to the SDK's implementation and has zero relevance to application code that imports and uses the separate `httpx` package for its own purposes (e.g. unrelated HTTP calls). Ordinary application-level `httpx` usage must NOT be flagged."
-        },
-        {
-          "number": 8,
           "text": "CONFIRMED UNCHANGED: the `@mcp.tool()`, `@mcp.resource()`, and `@mcp.prompt()` decorators have identical signature and behavior in v2."
         },
         {
+          "number": 8,
+          "text": "CONFIRMED UNCHANGED: `.add_tool(...)` is unchanged in v2."
+        },
+        {
           "number": 9,
-          "text": "CONFIRMED UNCHANGED: `.add_tool(...)` is unchanged."
+          "text": "CONFIRMED UNCHANGED: `ctx.error(...)` / `ctx.info(...)` calls that do NOT pass an `extra=` keyword argument are unchanged. Calls that DO pass `extra=` have a different, changed signature, but plain calls without `extra=` are unaffected."
         },
         {
           "number": 10,
-          "text": "CONFIRMED UNCHANGED: `ctx.error(...)` / `ctx.info(...)` calls that do NOT pass an `extra=` keyword argument are unchanged. (Calls that DO pass `extra=` have a different, changed signature, but plain calls without `extra=` are to be treated as unaffected.)"
+          "text": "CONFIRMED UNCHANGED: `get_context()` is unchanged in v2."
         },
         {
           "number": 11,
-          "text": "CONFIRMED UNCHANGED: `get_context()` is unchanged."
-        },
-        {
-          "number": 12,
           "text": "CONFIRMED UNCHANGED: anything imported from `mcp.types` \u2014 this subpackage remains aliased and working in v2."
         },
         {
-          "number": 13,
-          "text": "The listed items are the ONLY confirmed changes; anything not described in the spec is unaffected by the migration."
+          "number": 12,
+          "text": "The listed changes are the ONLY confirmed breaking changes; anything not described in the spec is unaffected, including things one might expect to be affected."
         },
         {
-          "number": 14,
-          "text": "Affected sites include ones reached indirectly through a repo's own helper functions and through test files, and also string literals that reference the old module path `mcp.server.fastmcp` (e.g. inside test mocks/patch targets)."
+          "number": 13,
+          "text": "Affected sites include ones reached indirectly through a repo's own helper functions and through test files; string literals referencing the old module path `mcp.server.fastmcp` (e.g. inside test mocks/patch targets) also need updating."
         }
       ]
     }
   },
-  "762f993723d18fbcfc291bde": {
+  "522beed4b6d5cc32894f416f": {
     "stage": "vocabulary",
     "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
     "user_excerpt": "Primary package: mcp\n\nFACT BLOCK:\n1. The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X`",
     "response": {
       "patterns": [
         {
-          "name": "p1_fastmcp",
+          "name": "p1_modpath",
           "regex": "mcp\\.server\\.fastmcp"
         },
         {
-          "name": "p2_fmimp",
-          "regex": "from\\s+mcp\\.server[\\w.]*\\s+import\\s+.*(FastMCP|Context)"
+          "name": "p2_fastmcp_i",
+          "regex": "(?:from|import)\\s+[^\\n#]*\\bFastMCP\\b"
         },
         {
-          "name": "p3_fastid",
-          "regex": "\\bFastMCP\\b"
+          "name": "p3_fastmcp_c",
+          "regex": "\\bFastMCP\\s*\\("
         },
         {
-          "name": "p4_fmctor",
-          "regex": "FastMCP\\s*\\("
+          "name": "p4_fastmcp_a",
+          "regex": "(?::|->|\\[|=|,|\\()\\s*(?:\"|')?FastMCP\\b"
         },
         {
-          "name": "p5_ctximp",
-          "regex": "import\\s+.*\\bContext\\b"
+          "name": "p5_fastmcp_r",
+          "regex": "\\bFastMCP\\b\\s*(?:[),\\]:.=]|$)"
         },
         {
-          "name": "p6_inschema",
+          "name": "p6_fastmcp_s",
+          "regex": "[\"'][^\"'\\n]*\\bFastMCP\\b"
+        },
+        {
+          "name": "p7_fastmcp_w",
+          "regex": "\\bfastmcp\\b\\s*[.,)\\]]"
+        },
+        {
+          "name": "p8_inschema",
           "regex": "\\.inputSchema\\b"
         },
         {
-          "name": "p7_inschkw",
-          "regex": "\\binputSchema\\b"
+          "name": "p9_inschema_k",
+          "regex": "[\"']inputSchema[\"']"
         },
         {
-          "name": "p8_csg",
+          "name": "p10_csgroup",
           "regex": "\\bClientSessionGroup\\b"
         },
         {
-          "name": "p9_csgcall",
-          "regex": "ClientSessionGroup[\\s\\S]{0,80}?\\.call_tool\\s*\\("
+          "name": "p11_calltool",
+          "regex": "\\.call_tool\\s*\\("
         },
         {
-          "name": "p10_grpcall",
-          "regex": "\\b(group|session_group|sessions|client_group)\\w*\\.call_tool\\s*\\("
-        },
-        {
-          "name": "p11_extra",
-          "regex": "\\.(error|info)\\s*\\([^)]*\\bextra\\s*="
-        },
-        {
-          "name": "p12_strpath",
-          "regex": "[\"'][^\"']*mcp\\.server\\.fastmcp[^\"']*[\"']"
-        },
-        {
-          "name": "p13_mcpsrv",
-          "regex": "mcp\\.server\\.mcpserver|\\bMCPServer\\b"
+          "name": "p12_ctxextra",
+          "regex": "\\.(?:error|info|warning|debug|log)\\s*\\([^)]*\\bextra\\s*="
         }
       ]
     }
   },
-  "11034c48fb974a2560ba36f6": {
+  "c6f92985de12ad2240c6a600": {
     "stage": "adjudicate_chunk_000",
     "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
-    "user_excerpt": "CANDIDATE LIST (22 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
+    "user_excerpt": "CANDIDATE LIST (23 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
     "response": {
       "proposed_sites": [
         {
@@ -144,119 +136,119 @@
           "line": 23,
           "snippet": "mcp = FastMCP(\"jmeter\")",
           "pattern": "2",
-          "reason": "Construction uses the old class name which no longer exists; must become MCPServer(...)."
+          "reason": "Construction using old class name `FastMCP`, which no longer exists; must be `MCPServer(...)`."
         },
         {
           "file": "QAInsights_jmeter-mcp-server/main.py",
           "line": 2,
           "snippet": "from mcp.server.fastmcp import FastMCP",
           "pattern": "1, 2",
-          "reason": "Import path removed and class renamed."
+          "reason": "Import from removed module path with renamed class."
         },
         {
           "file": "QAInsights_jmeter-mcp-server/main.py",
           "line": 9,
           "snippet": "mcp = FastMCP(\"jmeter\")",
           "pattern": "2",
-          "reason": "Constructor call with old class name must be renamed to MCPServer."
+          "reason": "Construction of renamed class."
         },
         {
           "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
           "line": 11,
           "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
-          "pattern": "1, 13, 14",
-          "reason": "Stand-in module built under the removed module path string; must be updated to 'mcp.server.mcpserver' so the module under test resolves."
+          "pattern": "1, 13",
+          "reason": "String literal referencing the removed module path in a test mock module construction; must be updated to `mcp.server.mcpserver`."
         },
         {
           "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
           "line": 21,
           "snippet": "fastmcp_mod.FastMCP = FastMCP",
-          "pattern": "2, 14",
-          "reason": "Attribute exposing the class under the old name; module under test now imports MCPServer, so the attribute name must change."
+          "pattern": "2, 13",
+          "reason": "Attribute exposing the class under the old name `FastMCP` on the stand-in module; code under test imports `MCPServer` after migration, so this attribute name must change."
         },
         {
           "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
           "line": 22,
           "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
           "pattern": "1, 13",
-          "reason": "sys.modules key uses the removed module path string and must be updated to 'mcp.server.mcpserver'."
+          "reason": "sys.modules key uses the removed module path string; must be `mcp.server.mcpserver`."
         },
         {
           "file": "danilop_MCP2Lambda/main.py",
           "line": 6,
           "snippet": "from mcp.server.fastmcp import FastMCP, Context",
           "pattern": "1, 2, 3",
-          "reason": "Module path moved and FastMCP renamed; Context keeps name but the import line still must change."
+          "reason": "Module path removed; FastMCP renamed to MCPServer; Context keeps name but path changes."
         },
         {
           "file": "danilop_MCP2Lambda/main.py",
           "line": 30,
           "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
           "pattern": "2",
-          "reason": "Construction with removed class name must become MCPServer."
+          "reason": "Construction with old class name."
         },
         {
           "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
           "line": 44,
           "snippet": "                input_schema={'json': tool.inputSchema}",
           "pattern": "4",
-          "reason": "Client code reads tool.inputSchema which is renamed to tool.input_schema."
+          "reason": "Client-side tool metadata field renamed from camelCase `inputSchema` to `input_schema`."
         },
         {
           "file": "m0xai_trello-mcp-server/main.py",
           "line": 6,
           "snippet": "from mcp.server.fastmcp import FastMCP",
           "pattern": "1, 2",
-          "reason": "Removed module path and renamed class."
+          "reason": "Import from removed module path with renamed class."
         },
         {
           "file": "m0xai_trello-mcp-server/main.py",
           "line": 23,
           "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
           "pattern": "2",
-          "reason": "Constructor call with old class name."
+          "reason": "Construction with old class name."
         },
         {
           "file": "m0xai_trello-mcp-server/server/tools/board.py",
           "line": 8,
           "snippet": "from mcp.server.fastmcp import Context",
           "pattern": "1, 3",
-          "reason": "Context keeps its name but the module path moves to mcp.server.mcpserver."
+          "reason": "Context moves to mcp.server.mcpserver; import path must change."
         },
         {
           "file": "m0xai_trello-mcp-server/server/tools/card.py",
           "line": 8,
           "snippet": "from mcp.server.fastmcp import Context",
           "pattern": "1, 3",
-          "reason": "Import path must change to mcp.server.mcpserver."
+          "reason": "Context moves to mcp.server.mcpserver; import path must change."
         },
         {
           "file": "m0xai_trello-mcp-server/server/tools/list.py",
           "line": 8,
           "snippet": "from mcp.server.fastmcp import Context",
           "pattern": "1, 3",
-          "reason": "Import path must change to mcp.server.mcpserver."
+          "reason": "Context moves to mcp.server.mcpserver; import path must change."
         },
         {
           "file": "securityfortech_secops-mcp/main.py",
           "line": 7,
           "snippet": "from mcp.server.fastmcp import FastMCP",
           "pattern": "1, 2",
-          "reason": "Removed module path and renamed class."
+          "reason": "Import from removed module path with renamed class."
         },
         {
           "file": "securityfortech_secops-mcp/main.py",
           "line": 26,
           "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
           "pattern": "2",
-          "reason": "Construction with old class name must be renamed to MCPServer."
+          "reason": "Construction with old class name."
         },
         {
           "file": "tonyzorin_youtrack-mcp/main.py",
           "line": 10,
           "snippet": "from mcp.server.fastmcp import FastMCP",
           "pattern": "1, 2",
-          "reason": "Removed module path and renamed class."
+          "reason": "Import from removed module path with renamed class."
         },
         {
           "file": "tonyzorin_youtrack-mcp/main.py",
@@ -270,7 +262,7 @@
           "line": 27,
           "snippet": "    mcp = FastMCP(",
           "pattern": "2",
-          "reason": "Construction with the removed class name must become MCPServer(."
+          "reason": "Construction with old class name."
         }
       ],
       "flag_uncertain": [
@@ -278,640 +270,13 @@
           "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
           "line": 12,
           "snippet": "class FastMCP:",
-          "reason": "Locally-defined stand-in class impersonating the migrating symbol name in a test file (Rule 1/Rule 2); whether the local class name must be renamed depends on how it is exposed, though the attribute assignment is the binding point."
-        }
-      ],
-      "considered_and_rejected": [
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 39,
-          "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
-          "reason": "Cosmetic log message string only; not a module path string nor a code reference to the class. Fact 15 limits scope to the listed changes, and fact 13 covers only old module path strings."
-        }
-      ]
-    }
-  },
-  "c040938fee8d987f81f4fa0a": {
-    "stage": "vocabulary",
-    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
-    "user_excerpt": "Primary package: mcp\n\nFACT BLOCK:\n1. The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X`",
-    "response": {
-      "patterns": [
-        {
-          "name": "p1_fmcp_path",
-          "regex": "mcp\\.server\\.fastmcp"
-        },
-        {
-          "name": "p2_fastmcp",
-          "regex": "\\bFastMCP\\b"
-        },
-        {
-          "name": "p3_fmcp_word",
-          "regex": "\\bfastmcp\\b"
-        },
-        {
-          "name": "p4_srv_imp",
-          "regex": "from\\s+mcp\\.server\\s+import\\s+[^\\n]*\\bfastmcp\\b"
-        },
-        {
-          "name": "p5_inputsch",
-          "regex": "\\binputSchema\\b"
-        },
-        {
-          "name": "p6_csgroup",
-          "regex": "\\bClientSessionGroup\\b"
-        },
-        {
-          "name": "p7_calltool",
-          "regex": "\\.call_tool\\s*\\("
-        },
-        {
-          "name": "p8_extra_kw",
-          "regex": "\\.(error|info)\\s*\\([^)]*\\bextra\\s*="
-        }
-      ]
-    }
-  },
-  "47748ae986ff9bf0035ff97a": {
-    "stage": "adjudicate_chunk_000",
-    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
-    "user_excerpt": "CANDIDATE LIST (23 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
-    "response": {
-      "proposed_sites": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 4,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import from removed module path and renamed class; must become `from mcp.server.mcpserver import MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class; identifier FastMCP no longer exists."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 2,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 9,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction site references renamed class name."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP, Context",
-          "pattern": "1, 2, 3",
-          "reason": "Module path moved; FastMCP renamed to MCPServer; Context keeps name but import path changes."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 30,
-          "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
-          "line": 44,
-          "snippet": "                input_schema={'json': tool.inputSchema}",
-          "pattern": "4",
-          "reason": "Client tool metadata field `inputSchema` renamed to `input_schema`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/board.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Context import path must move to mcp.server.mcpserver."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/card.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Context import path must move to mcp.server.mcpserver."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/list.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Context import path must move to mcp.server.mcpserver."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 7,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 26,
-          "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 10,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 25,
-          "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
-          "pattern": "2",
-          "reason": "Return type annotation references the removed class name FastMCP directly."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 27,
-          "snippet": "    mcp = FastMCP(",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 11,
-          "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
-          "pattern": "1, 14",
-          "reason": "Locally-built stand-in module registered under the old path; string literal referencing removed module path must change to mcp.server.mcpserver."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 22,
-          "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
-          "pattern": "1, 14",
-          "reason": "sys.modules key impersonating the old module path must be updated to the new path for the code under test to pick up the stand-in."
-        }
-      ],
-      "flag_uncertain": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 12,
-          "snippet": "class FastMCP:",
-          "reason": "Locally-defined stand-in class impersonating the migrating symbol (Rule 1); whether the stub class name must be renamed to MCPServer depends on how the module under test imports it \u2014 likely yes, but flagged per mandatory routing."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 21,
-          "snippet": "fastmcp_mod.FastMCP = FastMCP",
-          "reason": "Attribute assignment exposing the stand-in class under the migrating package's name (Rule 1); attribute name likely must become MCPServer, flagged per mandatory routing."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 39,
-          "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
-          "reason": "Only a log message string mentioning FastMCP; not a code reference, but cosmetic naming update is ambiguous under the facts."
-        }
-      ],
-      "considered_and_rejected": [
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
-          "line": 44,
-          "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)",
-          "reason": "Fact 6: plain ClientSession.call_tool() is unchanged; this is a single session, not ClientSessionGroup."
-        }
-      ]
-    }
-  },
-  "c0e3e835f9471559ee07dd75": {
-    "stage": "vocabulary",
-    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
-    "user_excerpt": "Primary package: mcp\n\nFACT BLOCK:\n1. The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X`",
-    "response": {
-      "patterns": [
-        {
-          "name": "p1_oldmod",
-          "regex": "mcp\\.server\\.fastmcp"
-        },
-        {
-          "name": "p2_fastmcp_w",
-          "regex": "(?i:\\bfastmcp\\b)"
-        },
-        {
-          "name": "p3_FastMCP",
-          "regex": "\\bFastMCP\\s*\\("
-        },
-        {
-          "name": "p4_inschema",
-          "regex": "(?:\\.|[\"'])inputSchema\\b"
-        },
-        {
-          "name": "p5_csgroup",
-          "regex": "\\bClientSessionGroup\\b"
-        },
-        {
-          "name": "p6_grp_call",
-          "regex": "\\b\\w*(?i:group|sessions)\\w*\\.call_tool\\s*\\("
-        },
-        {
-          "name": "p7_extra_kw",
-          "regex": "\\.(?:error|info|warning|debug|log)\\s*\\([^)]*\\bextra\\s*="
-        },
-        {
-          "name": "p8_ctxmod",
-          "regex": "from\\s+mcp\\.server\\s+import\\b"
-        },
-        {
-          "name": "p9_patchstr",
-          "regex": "[\"'][^\"']*server\\.fastmcp[^\"']*[\"']"
-        }
-      ]
-    }
-  },
-  "a5249fdff2537092154d33e7": {
-    "stage": "adjudicate_chunk_000",
-    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
-    "user_excerpt": "CANDIDATE LIST (22 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
-    "response": {
-      "proposed_sites": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 4,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import from removed module path and renamed class; must become `from mcp.server.mcpserver import MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction of the renamed class; identifier `FastMCP` no longer exists, must be `MCPServer(...)`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 2,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import statement."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 9,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction site using renamed class identifier."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 11,
-          "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
-          "pattern": "1, 13",
-          "reason": "Constructs a stand-in module named with the old removed module path; string literal referencing `mcp.server.fastmcp` must be updated."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 12,
-          "snippet": "class FastMCP:",
-          "pattern": "2",
-          "reason": "Locally-built stand-in class impersonating the migrating symbol name; must be renamed to MCPServer to match the package under test."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 21,
-          "snippet": "fastmcp_mod.FastMCP = FastMCP",
-          "pattern": "2",
-          "reason": "Attribute assignment exposing the class under the old package attribute name; must expose `MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 22,
-          "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
-          "pattern": "1, 13",
-          "reason": "sys.modules registration under the removed module path string; must be updated to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP, Context",
-          "pattern": "1, 2, 3",
-          "reason": "Old module path plus renamed FastMCP; Context keeps its name but the import path must change."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 30,
-          "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
-          "line": 44,
-          "snippet": "                input_schema={'json': tool.inputSchema}",
-          "pattern": "4",
-          "reason": "Client code reading `.inputSchema` off a discovered tool object; must become `.input_schema`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/board.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Context keeps its name but the module path moved to mcp.server.mcpserver."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/card.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Import path must change to mcp.server.mcpserver."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/list.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Import path must change to mcp.server.mcpserver."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 7,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 26,
-          "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 10,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 25,
-          "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
-          "pattern": "2",
-          "reason": "Return type annotation referencing the old identifier which no longer exists after the class rename."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 27,
-          "snippet": "    mcp = FastMCP(",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        }
-      ],
-      "flag_uncertain": [],
-      "considered_and_rejected": [
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 39,
-          "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
-          "reason": "'FastMCP' here appears only inside a human-readable log message string, not as a code identifier or module path; no fact requires changing log text (fact 14 scope)."
-        }
-      ]
-    }
-  },
-  "e92454f7f52d1fc82f1a52d3": {
-    "stage": "vocabulary",
-    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
-    "user_excerpt": "Primary package: mcp\n\nFACT BLOCK:\n1. The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X`",
-    "response": {
-      "patterns": [
-        {
-          "name": "p1_modpath",
-          "regex": "mcp\\.server\\.fastmcp"
-        },
-        {
-          "name": "p2_fromsrv",
-          "regex": "from\\s+mcp\\.server\\s+import\\s+[^\\n]*\\bfastmcp\\b"
-        },
-        {
-          "name": "p3_fastmcpw",
-          "regex": "\\bfastmcp\\b"
-        },
-        {
-          "name": "p4_cls",
-          "regex": "\\bFastMCP\\b"
-        },
-        {
-          "name": "p5_inschema",
-          "regex": "(?:\\.|[\"'])inputSchema\\b"
-        },
-        {
-          "name": "p6_csgroup",
-          "regex": "\\bClientSessionGroup\\b"
-        },
-        {
-          "name": "p7_calltool",
-          "regex": "\\.call_tool\\s*\\("
-        },
-        {
-          "name": "p8_extra",
-          "regex": "\\.(?:error|info)\\s*\\([^)]*\\bextra\\s*="
-        }
-      ]
-    }
-  },
-  "4525f6ba8859204e30500b1e": {
-    "stage": "adjudicate_chunk_000",
-    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
-    "user_excerpt": "CANDIDATE LIST (23 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
-    "response": {
-      "proposed_sites": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 4,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import from removed module path and renamed class; must become `from mcp.server.mcpserver import MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction using the old class name; `FastMCP` no longer exists, must be `MCPServer(...)`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 2,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in the import statement."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 9,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction of the renamed class must be updated to `MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 11,
-          "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
-          "pattern": "1, 13, 14",
-          "reason": "String literal of the old module path used to build a stand-in module for the migrating package; must be `mcp.server.mcpserver`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 21,
-          "snippet": "fastmcp_mod.FastMCP = FastMCP",
-          "pattern": "2, 14",
-          "reason": "Attribute exposing the class under the package's old name; the SDK-facing attribute name must become `MCPServer` so importing code resolves."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 22,
-          "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
-          "pattern": "1, 13, 14",
-          "reason": "sys.modules registration under the removed module path string; must be updated to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP, Context",
-          "pattern": "1, 2, 3",
-          "reason": "Old module path plus renamed `FastMCP`; `Context` keeps its name but the import path changes."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 30,
-          "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
-          "pattern": "2",
-          "reason": "Construction using the removed class name."
-        },
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
-          "line": 44,
-          "snippet": "                input_schema={'json': tool.inputSchema}",
-          "pattern": "4",
-          "reason": "Client code reading `.inputSchema` off a discovered tool object must become `.input_schema`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
-          "pattern": "2",
-          "reason": "Construction of the renamed class."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/board.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Import path of `Context` moved to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/card.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Import path of `Context` moved to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/list.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Import path of `Context` moved to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 7,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 26,
-          "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
-          "pattern": "2",
-          "reason": "Construction of the renamed class."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 10,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Old module path and old class name in import."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 25,
-          "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
-          "pattern": "2",
-          "reason": "Return type annotation referencing the removed class name must become `MCPServer`."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 27,
-          "snippet": "    mcp = FastMCP(",
-          "pattern": "2",
-          "reason": "Construction of the renamed class."
-        }
-      ],
-      "flag_uncertain": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 12,
-          "snippet": "class FastMCP:",
-          "reason": "Locally-defined stand-in class impersonating the migrating symbol inside a test file (Rule 1 and Rule 2). Whether the local class name must be renamed depends on how it is exposed/imported; flagging."
+          "reason": "Locally-defined stand-in class impersonating the migrating symbol name inside a test mock (Rule 1 / Rule 2); it may need renaming to MCPServer to match the migrated import, but it is a local definition."
         },
         {
           "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
           "line": 44,
           "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)",
-          "reason": "`call_tool` on a session object; if `self.session` is a plain ClientSession this is unchanged (fact 6), but if it is a ClientSessionGroup the contract changed (fact 5). Cannot determine from the line alone."
+          "reason": "Fact 5 says plain ClientSession.call_tool is unchanged, but it is not fully determinable from this line alone whether `self.session` is a ClientSession or a ClientSessionGroup."
         }
       ],
       "considered_and_rejected": [
@@ -919,434 +284,7 @@
           "file": "tonyzorin_youtrack-mcp/main.py",
           "line": 39,
           "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
-          "reason": "The 'FastMCP' occurrence is inside a human-readable log message string, not a symbol reference or module path; no fact requires changing log text (facts 2 and 13 concern identifiers and the module path string 'mcp.server.fastmcp')."
-        }
-      ]
-    }
-  },
-  "c5d88b23600755d30cb0dca9": {
-    "stage": "vocabulary",
-    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
-    "user_excerpt": "Primary package: mcp\n\nFACT BLOCK:\n1. The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X`",
-    "response": {
-      "patterns": [
-        {
-          "name": "p1_modpath",
-          "regex": "mcp\\.server\\.fastmcp"
-        },
-        {
-          "name": "p2_fastmcp",
-          "regex": "(?i:fastmcp)"
-        },
-        {
-          "name": "p3_impfm",
-          "regex": "from\\s+mcp\\.server\\s+import\\s+[^\\n]*fastmcp"
-        },
-        {
-          "name": "p4_inpschema",
-          "regex": "\\binputSchema\\b"
-        },
-        {
-          "name": "p5_csgroup",
-          "regex": "\\bClientSessionGroup\\b"
-        },
-        {
-          "name": "p6_calltool",
-          "regex": "\\.call_tool\\s*\\("
-        },
-        {
-          "name": "p7_ctxextra",
-          "regex": "\\.(?:error|info)\\s*\\([^)]*extra\\s*="
-        }
-      ]
-    }
-  },
-  "a06bd34cfe208ddad962bbd4": {
-    "stage": "adjudicate_chunk_000",
-    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
-    "user_excerpt": "CANDIDATE LIST (23 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
-    "response": {
-      "proposed_sites": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 4,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import from the removed module path and of the renamed class; must become `from mcp.server.mcpserver import MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction using the old class identifier `FastMCP`, which no longer exists; must become `MCPServer(...)`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 2,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Removed module path plus renamed class identifier in the import statement."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 9,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Direct construction of the renamed class; the identifier itself must change to `MCPServer`."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 11,
-          "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
-          "pattern": "1, 14",
-          "reason": "String literal naming the old module path used to build a stand-in module; the impersonated path must be `mcp.server.mcpserver` for the code under test to pick it up."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 21,
-          "snippet": "fastmcp_mod.FastMCP = FastMCP",
-          "pattern": "2, 14",
-          "reason": "Attribute exposing the class under the package's old name; the code under test will import `MCPServer`, so the exposed attribute name must change."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 22,
-          "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
-          "pattern": "1, 14",
-          "reason": "sys.modules key is the old module path string; must be registered under `mcp.server.mcpserver`."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP, Context",
-          "pattern": "1, 2, 3",
-          "reason": "Old module path plus renamed `FastMCP`; `Context` keeps its name but the path must change."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 30,
-          "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
-          "pattern": "2",
-          "reason": "Construction using the removed `FastMCP` identifier."
-        },
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
-          "line": 44,
-          "snippet": "                input_schema={'json': tool.inputSchema}",
-          "pattern": "4",
-          "reason": "Client-side tool metadata field `inputSchema` renamed to `input_schema`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Removed module path and renamed class in the import."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
-          "pattern": "2",
-          "reason": "Direct construction of the renamed class."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/board.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "`Context` keeps its name but must now be imported from `mcp.server.mcpserver`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/card.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "`Context` import path moves to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/list.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "`Context` import path moves to `mcp.server.mcpserver`."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 7,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Removed module path and renamed class in the import."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 26,
-          "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
-          "pattern": "2",
-          "reason": "Construction using the removed `FastMCP` identifier."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 10,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Removed module path and renamed class in the import."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 25,
-          "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
-          "pattern": "2",
-          "reason": "Return annotation references the old class identifier, which no longer exists under that name; must become `MCPServer`."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 27,
-          "snippet": "    mcp = FastMCP(",
-          "pattern": "2",
-          "reason": "Construction using the removed `FastMCP` identifier."
-        }
-      ],
-      "flag_uncertain": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 12,
-          "snippet": "class FastMCP:",
-          "reason": "Rule 1: this local class is the stand-in exposed under the migrating package's name. The class definition's own name could stay while only the exposed attribute changes, so its necessity is not settled; also a test file (Rule 2)."
-        }
-      ],
-      "considered_and_rejected": [
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
-          "line": 44,
-          "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)",
-          "reason": "Fact 6: plain `ClientSession.call_tool()` on a single session is unchanged; this is not `ClientSessionGroup`."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 39,
-          "snippet": "    logger.info(f\"Registered {len(tools)} tools with FastMCP\")",
-          "reason": "Fact 13: a cosmetic log message string, not a module path or code reference to the migrating symbol; nothing in the spec requires editing it."
-        }
-      ]
-    }
-  },
-  "b95bb02d2e16ab7b12a218cb": {
-    "stage": "vocabulary",
-    "system_excerpt": "You are deriving a coverage-tuned `grep -E` vocabulary for a Python\ncodebase, from a migration fact block already derived from a real\nmigration guide. The vocabulary you produce is used for exhaustive",
-    "user_excerpt": "Primary package: mcp\n\nFACT BLOCK:\n1. The module path `mcp.server.fastmcp` is removed entirely in v2. Everything that lived there moves to `mcp.server.mcpserver`. Any `from mcp.server.fastmcp import X`",
-    "response": {
-      "patterns": [
-        {
-          "name": "p1_modpath",
-          "regex": "mcp\\.server\\.fastmcp"
-        },
-        {
-          "name": "p1b_imp",
-          "regex": "(?:from|import)\\s+[\\w.]*\\bfastmcp\\b"
-        },
-        {
-          "name": "p1c_attr",
-          "regex": "\\bfastmcp\\s*[.\"']"
-        },
-        {
-          "name": "p1d_frommcp",
-          "regex": "from\\s+mcp\\.server\\s+import\\s+[^\\n]*fastmcp"
-        },
-        {
-          "name": "p2a_call",
-          "regex": "\\bFastMCP\\s*[\\(\\[\\.]"
-        },
-        {
-          "name": "p2b_imp",
-          "regex": "(?:import|as)\\s+FastMCP\\b"
-        },
-        {
-          "name": "p2c_ann",
-          "regex": "[:=\\[\\(,]\\s*[\"']?FastMCP\\b"
-        },
-        {
-          "name": "p2d_ret",
-          "regex": "->\\s*[\"']?FastMCP\\b"
-        },
-        {
-          "name": "p2e_str",
-          "regex": "[\"'][\\w.]*FastMCP[\\w.]*[\"']"
-        },
-        {
-          "name": "p4_inschema",
-          "regex": "(?:\\.|[\"'])inputSchema\\b"
-        },
-        {
-          "name": "p5a_csgroup",
-          "regex": "\\bClientSessionGroup\\b\\s*[\\(\\[\\.\\),:]?"
-        },
-        {
-          "name": "p5b_calltool",
-          "regex": "\\.call_tool\\s*\\("
-        },
-        {
-          "name": "p10_extra",
-          "regex": "\\.(error|info|debug|warning)\\s*\\([^)]*extra\\s*="
-        }
-      ]
-    }
-  },
-  "6f5d8cd2da70923786550e70": {
-    "stage": "adjudicate_chunk_000",
-    "system_excerpt": "TASK: You are adjudicating a fixed, pre-generated, PRE-FILTERED candidate\nlist of lines from a codebase, checking each one against a real migration.\nDo NOT fix anything -- only judge whether each line",
-    "user_excerpt": "CANDIDATE LIST (21 items):\n\n```json\n[\n  {\n    \"file\": \"QAInsights_jmeter-mcp-server/jmeter_server.py\",\n    \"line\": 4,\n    \"snippet\": \"from mcp.server.fastmcp import FastMCP\"\n  },\n  {\n    \"file\": \"QAIn",
-    "response": {
-      "proposed_sites": [
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 4,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import path moved to mcp.server.mcpserver and FastMCP renamed to MCPServer."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/jmeter_server.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction using the old class name; FastMCP no longer exists, must become MCPServer(...)."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 2,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import path moved and class renamed."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/main.py",
-          "line": 9,
-          "snippet": "mcp = FastMCP(\"jmeter\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class must change."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 11,
-          "snippet": "fastmcp_mod = types.ModuleType('mcp.server.fastmcp')",
-          "pattern": "1, 14",
-          "reason": "String literal referencing removed module path in a locally-built stand-in module; must reference mcp.server.mcpserver."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 21,
-          "snippet": "fastmcp_mod.FastMCP = FastMCP",
-          "pattern": "2, 14",
-          "reason": "Attribute exposing the class under the old name on the stand-in module; must expose MCPServer to satisfy the renamed import."
-        },
-        {
-          "file": "QAInsights_jmeter-mcp-server/tests/test_jmeter_server.py",
-          "line": 22,
-          "snippet": "sys.modules['mcp.server.fastmcp'] = fastmcp_mod",
-          "pattern": "1, 14",
-          "reason": "sys.modules key uses the removed module path string; must become mcp.server.mcpserver."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP, Context",
-          "pattern": "1, 2, 3",
-          "reason": "Module path moved, FastMCP renamed to MCPServer; Context keeps its name but the import line still changes."
-        },
-        {
-          "file": "danilop_MCP2Lambda/main.py",
-          "line": 30,
-          "snippet": "mcp = FastMCP(\"MCP Gateway to AWS Lambda\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/main.py",
-          "line": 44,
-          "snippet": "                input_schema={'json': tool.inputSchema}",
-          "pattern": "4",
-          "reason": "Client tool metadata field renamed to snake_case: tool.inputSchema -> tool.input_schema."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 6,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import path moved and class renamed."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/main.py",
-          "line": 23,
-          "snippet": "mcp = FastMCP(\"Trello MCP Server\")",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/board.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Module path moved; Context keeps its name but the import path must change."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/card.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Module path moved; import path must change to mcp.server.mcpserver."
-        },
-        {
-          "file": "m0xai_trello-mcp-server/server/tools/list.py",
-          "line": 8,
-          "snippet": "from mcp.server.fastmcp import Context",
-          "pattern": "1, 3",
-          "reason": "Module path moved; import path must change to mcp.server.mcpserver."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 7,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import path moved and class renamed."
-        },
-        {
-          "file": "securityfortech_secops-mcp/main.py",
-          "line": 26,
-          "snippet": "mcp = FastMCP(name=\"secops-mcp\",",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 10,
-          "snippet": "from mcp.server.fastmcp import FastMCP",
-          "pattern": "1, 2",
-          "reason": "Import path moved and class renamed."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 25,
-          "snippet": "def create_server(host: str = \"0.0.0.0\", port: int = 8000) -> FastMCP:",
-          "pattern": "2",
-          "reason": "Return type annotation references the old class name, which no longer exists; must become MCPServer."
-        },
-        {
-          "file": "tonyzorin_youtrack-mcp/main.py",
-          "line": 27,
-          "snippet": "    mcp = FastMCP(",
-          "pattern": "2",
-          "reason": "Construction of renamed class."
-        }
-      ],
-      "flag_uncertain": [],
-      "considered_and_rejected": [
-        {
-          "file": "danilop_MCP2Lambda/mcp_client_bedrock/mcp_client.py",
-          "line": 44,
-          "snippet": "        result = await self.session.call_tool(tool_name, arguments=arguments)",
-          "reason": "Fact 6: plain ClientSession.call_tool() on a single session is unchanged; this is a session object, not ClientSessionGroup. File path contains no test/mock markers."
+          "reason": "Purely a log message string; not a code reference to the class or module path, so no behavior depends on it. Not a required migration edit."
         }
       ]
     }
