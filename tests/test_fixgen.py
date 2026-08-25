@@ -144,3 +144,151 @@ def test_expand_duplicates_passes_through_non_collapsed_sites():
     }
     expanded = fixgen.expand_duplicates(merged, expansion_map={})
     assert expanded["fixes"] == merged["fixes"]
+
+
+# ---------------------------------------------------------------------
+# Multi-line-span guard -- reproduces the tonyzorin/youtrack-mcp gap:
+# `mcp = FastMCP(\n    ...,\n    host=host,\n    port=port,\n)` at main.py:27
+# had its opening line renamed correctly while the model never looked at
+# the rest of the call, which still passed `host=`/`port=` that v2 moved
+# off the constructor -- the fix set imported cleanly and then blew up at
+# runtime. Tier 1/2 verification both passed because they check each fix's
+# self-consistency, never whether the fix set is sufficient. These fixtures
+# reproduce that exact shape: a multi-line assignment-call spanning lines
+# 5-9, plus a single-line call for contrast.
+# ---------------------------------------------------------------------
+
+MULTILINE_CALL_BODY = (
+    "from old_pkg import OldMCP\n"      # line 1
+    "\n"                                # line 2
+    "\n"                                # line 3
+    "def create_server(host=\"0.0.0.0\", port=8000):\n"  # line 4
+    "    mcp = OldMCP(\n"               # line 5 -- opening line, candidate A
+    "        \"name\",\n"               # line 6
+    "        host=host,\n"              # line 7 -- non-opening line, candidate C
+    "        port=port,\n"              # line 8
+    "    )\n"                           # line 9
+    "    return mcp\n"                  # line 10
+)
+
+
+def test_multiline_span_opening_line_flags_without_calling_model(tmp_path):
+    reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
+    sites = [{"file": "pkg/mod.py", "line": 5, "snippet": "    mcp = OldMCP(",
+              "pattern": "1", "reason": "constructor of the renamed class"}]
+    client = FakeLLMClient([])  # any complete() call would IndexError -- proves the model is never asked
+    workdir = str(tmp_path / "workdir")
+
+    merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
+
+    validate.validate_fixgen_dict(merged)
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 1
+    flag = merged["flagged_for_human"][0]
+    assert flag["file"] == "pkg/mod.py"
+    assert flag["line"] == 5
+    assert flag["flag_source"] == "multiline_span_guard"
+    assert flag["span"] == [5, 9]
+    assert client.calls == []
+
+
+def test_multiline_span_non_opening_line_also_flags(tmp_path):
+    reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
+    sites = [{"file": "pkg/mod.py", "line": 7, "snippet": "        host=host,",
+              "pattern": "1", "reason": "keyword argument moved off the constructor"}]
+    client = FakeLLMClient([])
+    workdir = str(tmp_path / "workdir")
+
+    merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 1
+    flag = merged["flagged_for_human"][0]
+    assert flag["line"] == 7
+    assert flag["flag_source"] == "multiline_span_guard"
+    assert flag["span"] == [5, 9]
+    assert client.calls == []
+
+
+def test_multiline_span_flag_reason_includes_full_span_range(tmp_path):
+    reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
+    sites = [{"file": "pkg/mod.py", "line": 5, "snippet": "    mcp = OldMCP(",
+              "pattern": "1", "reason": "constructor of the renamed class"}]
+    client = FakeLLMClient([])
+    workdir = str(tmp_path / "workdir")
+
+    merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
+
+    reason = merged["flagged_for_human"][0]["reason"]
+    assert "5-9" in reason
+    assert "not evaluated" in reason
+
+
+def test_same_rename_on_single_line_call_still_fixes(tmp_path):
+    # Same class-rename fact, same identifier, but the call fits on one
+    # physical line -- must go through the model and come back as a FIX,
+    # not get swept into the guard.
+    body = (
+        "from old_pkg import OldMCP\n"          # line 1
+        "\n"                                    # line 2
+        "def create_server():\n"                # line 3
+        "    mcp = OldMCP(\"name\")\n"          # line 4 -- single-line call
+        "    return mcp\n"                      # line 5
+    )
+    reader = _make_repo(tmp_path, body=body)
+    sites = [{"file": "pkg/mod.py", "line": 4, "snippet": "    mcp = OldMCP(\"name\")",
+              "pattern": "1", "reason": "constructor of the renamed class"}]
+    response = {
+        "fixes": [{
+            "file": "pkg/mod.py", "line": 4,
+            "original_line": "    mcp = OldMCP(\"name\")",
+            "proposed_line": "    mcp = NewMCP(\"name\")",
+            "reason": "fact 1: class renamed",
+        }],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+    workdir = str(tmp_path / "workdir")
+
+    merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
+
+    assert merged["flagged_for_human"] == []
+    assert len(merged["fixes"]) == 1
+    assert merged["fixes"][0]["proposed_line"] == "    mcp = NewMCP(\"name\")"
+    assert len(client.calls) == 1  # the model WAS asked, unlike the multi-line cases above
+
+
+def test_multiline_and_singleline_sites_mixed_in_one_run(tmp_path):
+    # One site inside the multi-line call (must FLAG, no model call for it)
+    # and one ordinary single-line site (must FIX via the model) in the
+    # same run -- proves the guard filters per-site, not per-run.
+    reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
+    sites = [
+        {"file": "pkg/mod.py", "line": 5, "snippet": "    mcp = OldMCP(",
+         "pattern": "1", "reason": "constructor of the renamed class"},
+        {"file": "pkg/mod.py", "line": 1, "snippet": "from old_pkg import OldMCP",
+         "pattern": "1", "reason": "import of the renamed package"},
+    ]
+    response = {
+        "fixes": [{
+            "file": "pkg/mod.py", "line": 1,
+            "original_line": "from old_pkg import OldMCP",
+            "proposed_line": "from new_pkg import NewMCP",
+            "reason": "fact 1",
+        }],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+    workdir = str(tmp_path / "workdir")
+
+    merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
+
+    assert len(merged["fixes"]) == 1
+    assert merged["fixes"][0]["line"] == 1
+    assert len(merged["flagged_for_human"]) == 1
+    assert merged["flagged_for_human"][0]["line"] == 5
+    assert merged["flagged_for_human"][0]["flag_source"] == "multiline_span_guard"
+    # only the single-line site was ever sent to the model
+    assert len(client.calls) == 1
+    assert "pkg/mod.py:5" not in client.calls[0]["user_text"]
+    assert "pkg/mod.py:1" in client.calls[0]["user_text"]

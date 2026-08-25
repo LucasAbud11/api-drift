@@ -73,14 +73,37 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
             lines.append(f"  ```diff\n  - {item['original_line']}\n  + {item['proposed_line']}\n  ```")
         lines.append("")
 
-        lines.append(f"## FLAG-FOR-HUMAN ({len(fixgen_expanded['flagged_for_human'])})")
+        all_flagged = fixgen_expanded["flagged_for_human"]
+        span_flagged = [it for it in all_flagged if it.get("flag_source") == "multiline_span_guard"]
+        model_flagged = [it for it in all_flagged if it.get("flag_source") != "multiline_span_guard"]
+
+        lines.append(f"## FLAG-FOR-HUMAN ({len(all_flagged)})")
         lines.append("")
         lines.append("Confirmed as a required change, but not a confident single-line fix -- "
                       "a structural refactor or a genuine judgment call. Needs a human.")
         lines.append("")
-        for item in sorted(fixgen_expanded["flagged_for_human"], key=lambda x: (x["file"], x["line"])):
-            lines.append(f"- `{item['file']}:{item['line']}` -- {item['reason']}")
-        lines.append("")
+
+        if span_flagged:
+            lines.append(f"### Not evaluated -- multi-line statement ({len(span_flagged)})")
+            lines.append("")
+            lines.append("These were never sent to the model. The line falls inside a "
+                          "statement that spans more than one physical line (e.g. a "
+                          "multi-line call); fixgen only ever rewrites one line, so it "
+                          "cannot safely tell whether the rest of the statement also needs "
+                          "to change. This is the tool declining to judge, not the model "
+                          "hedging.")
+            lines.append("")
+            for item in sorted(span_flagged, key=lambda x: (x["file"], x["line"])):
+                lines.append(f"- `{item['file']}:{item['line']}` -- {item['reason']}")
+            lines.append("")
+
+        if model_flagged:
+            if span_flagged:
+                lines.append(f"### Model judgment call ({len(model_flagged)})")
+                lines.append("")
+            for item in sorted(model_flagged, key=lambda x: (x["file"], x["line"])):
+                lines.append(f"- `{item['file']}:{item['line']}` -- {item['reason']}")
+            lines.append("")
 
         if verification_report is not None:
             install = verification_report["install"]
