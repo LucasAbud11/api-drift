@@ -660,7 +660,11 @@ The first run against a guide nobody had touched — the real, published
 MCP Python SDK v1→v2 migration guide, 23,000 words, 116 top-level `##`
 sections, 819 facts once derived — found problems none of the prior work
 could have, because none of it had ever pointed the packaged tool at a
-guide this large or this real.
+guide this large or this real. (Fact count is a property of how a guide
+was derived, not of the guide itself — see §10's redis equivalence check
+below, which yielded 68 facts derived whole and 84 derived in 6 chunks
+from identical content, with no fact present in one and absent from the
+other.)
 
 **Stage 1 could not complete in one call, and raising max_tokens was the
 wrong fix twice before it was the right diagnosis.** The first run
@@ -741,8 +745,10 @@ covering everything the guide describes — OAuth flows, client
 construction, the low-level `Server` class, transports — because those
 stages depend only on the guide, not on the repo. Adjudication cost, by
 contrast, scales with guide size × repo size: the 819-fact block (a
-225KB `factblock.json`) is input to every adjudication chunk regardless
-of how many candidates that chunk actually contains. Separately,
+225KB `factblock.json`, a figure that describes this particular
+derivation rather than a fixed property of the guide — see the caveat in
+§10 above) is input to every adjudication chunk regardless of how many
+candidates that chunk actually contains. Separately,
 prompt-cache accounting across three runs against this guide wrote
 144,795 tokens to the cache on *every* run and read zero back — the
 cache-write premium was paid three separate times for zero read-side
