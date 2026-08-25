@@ -1,0 +1,680 @@
+{
+  "8fec2bd73464a5a1a1dc8a2d": {
+    "stage": "factblock_chunk_000",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "GUIDE PREAMBLE (context only -- the guide's own introduction/scope note, shown for background. Do NOT derive facts from this preamble alone; only from the SECTION TEXT below):\n\n# Migration Guide: Unif",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "Unified responses are opt-in and activated by passing the keyword argument `legacy_responses=False` to the client constructor, e.g. `redis.Redis(legacy_responses=False)`."
+        },
+        {
+          "number": 2,
+          "text": "`legacy_responses=False` can be combined with an explicit wire protocol: `redis.Redis(protocol=2, legacy_responses=False)` for RESP2 and `redis.Redis(protocol=3, legacy_responses=False)` for RESP3; passing it without `protocol` uses the default wire protocol with unified responses."
+        },
+        {
+          "number": 3,
+          "text": "The `legacy_responses=False` option is also accepted by the asyncio client, e.g. `import redis.asyncio as redis_async` then `redis_async.Redis(legacy_responses=False)`."
+        },
+        {
+          "number": 4,
+          "text": "The `legacy_responses=False` option is also accepted by the cluster client, e.g. `from redis.cluster import RedisCluster` then `RedisCluster(host=\"localhost\", port=6379, legacy_responses=False)`."
+        },
+        {
+          "number": 5,
+          "text": "Unified responses can be enabled through a connection URL by using the query parameter `legacy_responses=false`, e.g. `redis.from_url(\"redis://localhost:6379?legacy_responses=false\")`."
+        }
+      ]
+    }
+  },
+  "6358878d6b96e83cb39addb6": {
+    "stage": "factblock_chunk_001",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "GUIDE PREAMBLE (context only -- the guide's own introduction/scope note, shown for background. Do NOT derive facts from this preamble alone; only from the SECTION TEXT below):\n\n# Migration Guide: Unif",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "`Redis()` with no protocol or response-mode arguments uses the default RESP3 wire protocol but returns the legacy RESP2-compatible Python response shape."
+        },
+        {
+          "number": 2,
+          "text": "`Redis(protocol=2)` uses the RESP2 wire protocol and returns the legacy RESP2 response shape."
+        },
+        {
+          "number": 3,
+          "text": "`Redis(protocol=3)` uses the RESP3 wire protocol and returns the native RESP3 response shape."
+        },
+        {
+          "number": 4,
+          "text": "`Redis(legacy_responses=False)` uses the default RESP3 wire protocol and returns the unified response shape."
+        },
+        {
+          "number": 5,
+          "text": "`Redis(protocol=2, legacy_responses=False)` uses the RESP2 wire protocol and returns the unified response shape."
+        },
+        {
+          "number": 6,
+          "text": "`Redis(protocol=3, legacy_responses=False)` uses the RESP3 wire protocol and returns the unified response shape."
+        },
+        {
+          "number": 7,
+          "text": "Passing `legacy_responses=False` selects the unified response shape regardless of the wire protocol in use (default RESP3, `protocol=2`, or `protocol=3`)."
+        },
+        {
+          "number": 8,
+          "text": "`decode_responses` is independent of `legacy_responses` and `protocol`; it is not changed by unified responses and still controls bulk-string decoding where the parser does not otherwise normalize structural keys or values."
+        }
+      ]
+    }
+  },
+  "4491b352eb73e403285f2e53": {
+    "stage": "factblock_chunk_002",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "GUIDE PREAMBLE (context only -- the guide's own introduction/scope note, shown for background. Do NOT derive facts from this preamble alone; only from the SECTION TEXT below):\n\n# Migration Guide: Unif",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "Unified responses are enabled by passing `legacy_responses=False` at redis-py client construction points; this must be applied everywhere clients are constructed, including background workers, admin scripts, asyncio clients, and cluster clients."
+        },
+        {
+          "number": 2,
+          "text": "Enabling `legacy_responses=False` does not require changing the server protocol: the protocol can stay unchanged unless you also explicitly want to pin `protocol=2` or `protocol=3`."
+        },
+        {
+          "number": 3,
+          "text": "With `legacy_responses=False`, application code that indexes into tuples, expects flat lists, compares exact response containers, or serializes command responses directly must be updated for the affected commands."
+        },
+        {
+          "number": 4,
+          "text": "Module command responses -- such as JSON, TimeSeries, RediSearch, and probabilistic commands -- must be reviewed separately, because several of them return richer objects or nested containers in unified mode."
+        },
+        {
+          "number": 5,
+          "text": "`decode_responses` is independent of unified responses: unified responses normalize response structures, while `decode_responses` still controls how bulk string data is decoded (i.e., changing `legacy_responses` does not change decoding behavior)."
+        },
+        {
+          "number": 6,
+          "text": "The recommended rollout is gradual -- enable `legacy_responses=False` for one environment or service path first, and monitor application paths that parse Redis responses manually."
+        }
+      ]
+    }
+  },
+  "65ff40dd6611eebbfa0ae76d": {
+    "stage": "factblock_chunk_003",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "GUIDE PREAMBLE (context only -- the guide's own introduction/scope note, shown for background. Do NOT derive facts from this preamble alone; only from the SECTION TEXT below):\n\n# Migration Guide: Unif",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "Unified responses (enabled with `legacy_responses=False`) change `ZDIFF`, `ZINTER`, `ZRANGE`, `ZRANGEBYSCORE`, `ZREVRANGE`, `ZREVRANGEBYSCORE`, `ZUNION` when called with scores: RESP2 legacy returned flat or tuple score pairs with scores often as bytes; unified returns list score pairs with scores as floats."
+        },
+        {
+          "number": 2,
+          "text": "`ZPOPMAX` and `ZPOPMIN`: RESP2 legacy returned `[(member, score)]` (tuple pairs); unified returns `[[member, float_score]]` (list pairs with float scores)."
+        },
+        {
+          "number": 3,
+          "text": "`BZPOPMAX` and `BZPOPMIN`: RESP2 legacy returned a tuple `(key, member, score)`; unified returns a list `[key, member, float_score]`."
+        },
+        {
+          "number": 4,
+          "text": "`ZRANK` and `ZREVRANK` with score: RESP2 legacy returned `[rank, score]` where score can be bytes or int; unified returns `[rank, float_score]`."
+        },
+        {
+          "number": 5,
+          "text": "`ZSCAN`: RESP2 legacy returned `(cursor, [(member, score)])` and the score cast callable received raw bytes; unified returns `(cursor, [[member, score]])` and the score cast receives a float."
+        },
+        {
+          "number": 6,
+          "text": "`ZRANDMEMBER` with scores and `HRANDFIELD` with values: RESP2 legacy returned a flat interleaved list; unified returns nested `[[item, value], ...]` pairs."
+        },
+        {
+          "number": 7,
+          "text": "Blocking list pops `BLPOP` and `BRPOP`: RESP2 legacy returned a tuple `(key, value)`; unified returns a list `[key, value]`."
+        },
+        {
+          "number": 8,
+          "text": "Sorted set pops `ZMPOP` and `BZMPOP`: RESP2 legacy returned nested tuple pairs with raw scores; unified returns nested list pairs with float scores."
+        },
+        {
+          "number": 9,
+          "text": "Streams `XREAD` and `XREADGROUP`: RESP2 legacy returned `[[stream, entries], ...]`; unified returns `{stream: entries}` (a dict keyed by stream)."
+        },
+        {
+          "number": 10,
+          "text": "`LCS` with `IDX`: RESP2 legacy returned a flat key/value list; unified returns a dict with string keys."
+        },
+        {
+          "number": 11,
+          "text": "`STRALGO ... IDX`: RESP2 legacy returned tuple ranges; unified returns list ranges."
+        },
+        {
+          "number": 12,
+          "text": "`CLIENT TRACKINGINFO`: RESP2 legacy returned a flat list; unified returns a dict with string keys and decoded string lists."
+        },
+        {
+          "number": 13,
+          "text": "`COMMAND`: RESP2 legacy returned `flags` as a list; unified returns `flags` and `acl_categories` as sets of strings."
+        },
+        {
+          "number": 14,
+          "text": "`ACL GETUSER`: RESP2 legacy returned selectors as flat lists; unified returns selector dicts."
+        },
+        {
+          "number": 15,
+          "text": "`ACL LOG`: RESP2 legacy returned string/bytes scalar values; unified returns `age-seconds` as a float and `client-info` as a dict."
+        },
+        {
+          "number": 16,
+          "text": "Sentinel commands `SENTINEL MASTER`, `SENTINEL MASTERS`, `SENTINEL SLAVES`, `SENTINEL SENTINELS`: RESP2 legacy returned `flags` as a comma-separated string; unified returns `flags` as a set plus derived booleans."
+        },
+        {
+          "number": 17,
+          "text": "`CLUSTER LINKS` and `CLUSTER SHARDS`: RESP2 legacy returned raw byte structural keys; unified returns string structural keys."
+        },
+        {
+          "number": 18,
+          "text": "`GEOPOS`: RESP2 legacy returned coordinate tuples; unified returns coordinate lists."
+        },
+        {
+          "number": 19,
+          "text": "`GEOSEARCH`, `GEORADIUS`, `GEORADIUSBYMEMBER` with coordinates: both RESP2 legacy and unified return tuple coordinates (unified matches the approved unified shape) \u2014 i.e., no change in coordinate container type."
+        },
+        {
+          "number": 20,
+          "text": "`FUNCTION LIST`: RESP2 legacy returned flat sublists; unified returns nested dictionaries."
+        },
+        {
+          "number": 21,
+          "text": "`MEMORY STATS`: RESP2 legacy returned raw string-like values; unified decodes structural keys and returns numeric values as native numbers."
+        },
+        {
+          "number": 22,
+          "text": "`JSON.NUMINCRBY` and `JSON.NUMMULTBY`: RESP2 legacy used a legacy scalar path; unified uses JSONPath-compatible array behavior."
+        },
+        {
+          "number": 23,
+          "text": "`JSON.RESP`: in RESP2 legacy float values can be string leaves; unified converts float leaves into Python floats."
+        },
+        {
+          "number": 24,
+          "text": "`JSON.OBJKEYS`: RESP2 legacy forced keys to strings; unified keys respect the `decode_responses` setting."
+        },
+        {
+          "number": 25,
+          "text": "TimeSeries `TS.GET`, `TS.RANGE`, `TS.REVRANGE`: RESP2 legacy returned tuples; unified returns lists."
+        },
+        {
+          "number": 26,
+          "text": "`TS.MGET`: RESP2 legacy returned a sorted list of dicts; unified returns a dict keyed by series."
+        },
+        {
+          "number": 27,
+          "text": "`TS.MRANGE` and `TS.MREVRANGE`: RESP2 legacy returned dict/list without a metadata slot; unified returns dict values of the form `[labels, metadata, samples]`."
+        },
+        {
+          "number": 28,
+          "text": "`TS.QUERYINDEX`: in RESP2 legacy numeric-looking keys can be coerced; unified preserves keys as-is."
+        },
+        {
+          "number": 29,
+          "text": "RediSearch `FT.INFO`: RESP2 legacy returned attribute flat sublists; unified returns attribute dicts with `flags`."
+        },
+        {
+          "number": 30,
+          "text": "`FT.CONFIG GET`: RESP2 legacy returned bytes keys/values; unified returns string keys/values."
+        },
+        {
+          "number": 31,
+          "text": "`FT.SEARCH`: RESP2 legacy returned a `Result` without a unified warnings surface; unified returns a `Result` with `warnings`."
+        },
+        {
+          "number": 32,
+          "text": "`FT.AGGREGATE`: RESP2 legacy returned an `AggregateResult` without unified total/warnings surface; unified returns an `AggregateResult` with `total` and `warnings`."
+        },
+        {
+          "number": 33,
+          "text": "`FT.PROFILE`: RESP2 legacy returned a parsed tuple with legacy profile data; unified returns a parsed tuple with unified profile data."
+        },
+        {
+          "number": 34,
+          "text": "`FT.HYBRID`: both RESP2 legacy and unified return `HybridResult` with bytes by default (bytes preserved by default) \u2014 no change in that respect."
+        },
+        {
+          "number": 35,
+          "text": "Probabilistic `TOPK.ADD`, `TOPK.INCRBY`, `TOPK.LIST`: in RESP2 legacy numeric-looking item names can be coerced; unified preserves item names as-is."
+        }
+      ]
+    }
+  },
+  "59b9981edb811ed9c5356467": {
+    "stage": "factblock_chunk_004",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "GUIDE PREAMBLE (context only -- the guide's own introduction/scope note, shown for background. Do NOT derive facts from this preamble alone; only from the SECTION TEXT below):\n\n# Migration Guide: Unif",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "Context for this section: it describes what changes when moving from RESP3 legacy responses to unified responses (`legacy_responses=False`) in redis-py \u2014 i.e. the RESP3 legacy shape versus the unified shape for each affected command."
+        },
+        {
+          "number": 2,
+          "text": "Sorted sets: sorted-set score commands returned native RESP3 arrays and scores under RESP3 legacy; under unified responses they use the same public score-pair normalization as RESP2 unified."
+        },
+        {
+          "number": 3,
+          "text": "Sorted sets: `ZSCAN` returned native score pairs under RESP3 legacy; under unified responses it returns list score pairs with unified score casting."
+        },
+        {
+          "number": 4,
+          "text": "ACL: `ACL CAT`, `ACL HELP`, `ACL LIST`, and `ACL USERS` returned lists of bytes under RESP3 legacy; under unified responses they return lists of strings."
+        },
+        {
+          "number": 5,
+          "text": "ACL: `ACL GENPASS` and `ACL WHOAMI` returned a bytes scalar under RESP3 legacy; under unified responses they return a string scalar."
+        },
+        {
+          "number": 6,
+          "text": "ACL: `ACL LOG` returned a RESP3 map with string-like scalars under RESP3 legacy; under unified responses it returns a normalized map with float `age-seconds` and parsed `client-info`."
+        },
+        {
+          "number": 7,
+          "text": "Client metadata: `CLIENT GETNAME` returned a bytes scalar under RESP3 legacy; under unified responses it returns a string scalar."
+        },
+        {
+          "number": 8,
+          "text": "Client metadata: `CLIENT TRACKINGINFO` returned a native RESP3 map under RESP3 legacy; under unified responses it returns a dict with string keys and decoded string lists."
+        },
+        {
+          "number": 9,
+          "text": "Command metadata: `COMMAND` returned native RESP3 command metadata under RESP3 legacy; under unified responses it returns unified command metadata with set fields."
+        },
+        {
+          "number": 10,
+          "text": "Cluster: `CLUSTER LINKS` and `CLUSTER SHARDS` returned native maps with raw structural keys under RESP3 legacy; under unified responses the structural keys are strings."
+        },
+        {
+          "number": 11,
+          "text": "Geo: `GEOHASH` returned a list of bytes under RESP3 legacy; under unified responses it returns a list of strings."
+        },
+        {
+          "number": 12,
+          "text": "Geo: `GEOPOS` returns list coordinates in both RESP3 legacy and unified shapes (no change)."
+        },
+        {
+          "number": 13,
+          "text": "Geo: `GEOSEARCH`, `GEORADIUS`, and `GEORADIUSBYMEMBER` with coordinates returned list coordinates under RESP3 legacy; under unified responses they return tuple coordinates."
+        },
+        {
+          "number": 14,
+          "text": "String algorithms: `LCS` and `STRALGO ... IDX` returned RESP3 maps under RESP3 legacy; under unified responses they return dicts with string keys and unified match range lists."
+        },
+        {
+          "number": 15,
+          "text": "Sentinel: `SENTINEL MASTER`, `SENTINEL MASTERS`, `SENTINEL SLAVES`, and `SENTINEL SENTINELS` returned native RESP3 state maps under RESP3 legacy; under unified responses they return unified state dicts."
+        },
+        {
+          "number": 16,
+          "text": "Probabilistic: `BF.INFO`, `CF.INFO`, `CMS.INFO`, `TOPK.INFO`, and `TDIGEST.INFO` returned raw maps under RESP3 legacy; under unified responses they return rich info objects."
+        },
+        {
+          "number": 17,
+          "text": "Probabilistic: `TDIGEST.BYRANK`, `TDIGEST.BYREVRANK`, `TDIGEST.CDF`, and `TDIGEST.QUANTILE` returned raw lists under RESP3 legacy; under unified responses they return parsed lists with numeric and special-value handling."
+        },
+        {
+          "number": 18,
+          "text": "TimeSeries: `TS.INFO` returned a raw map under RESP3 legacy; under unified responses it returns a `TSInfo` object."
+        },
+        {
+          "number": 19,
+          "text": "TimeSeries: `TS.MRANGE` and `TS.MREVRANGE` returned the native response without a unified metadata slot under RESP3 legacy; under unified responses dict values include `[labels, metadata, samples]`."
+        },
+        {
+          "number": 20,
+          "text": "JSON: `JSON.TYPE` for missing keys returned `[None]` under RESP3 legacy; under unified responses it returns `None`."
+        },
+        {
+          "number": 21,
+          "text": "JSON: `JSON.RESP` could return numeric float leaves as string/bytes under RESP3 legacy; under unified responses float leaves become Python floats."
+        },
+        {
+          "number": 22,
+          "text": "RediSearch: `FT.SEARCH` returned a raw RESP3 result map under RESP3 legacy; under unified responses it returns a `Result` object."
+        },
+        {
+          "number": 23,
+          "text": "RediSearch: `FT.AGGREGATE` returned a raw RESP3 aggregate map under RESP3 legacy; under unified responses it returns an `AggregateResult` object."
+        },
+        {
+          "number": 24,
+          "text": "RediSearch: `FT.PROFILE` returned `ProfileInformation(raw_response)` under RESP3 legacy; under unified responses it returns a tuple `(Result | AggregateResult, ProfileInformation)`."
+        },
+        {
+          "number": 25,
+          "text": "RediSearch: `FT.SPELLCHECK` returned a native nested spellcheck map under RESP3 legacy; under unified responses it returns a normalized term suggestion dict."
+        },
+        {
+          "number": 26,
+          "text": "RediSearch: `FT.INFO`, `FT.CONFIG GET`, and `FT.SYNDUMP` returned raw structural keys under RESP3 legacy; under unified responses the structural keys are strings."
+        },
+        {
+          "number": 27,
+          "text": "RediSearch: `FT.HYBRID` returned a raw native response under RESP3 legacy; under unified responses it returns a `HybridResult`, and field values remain bytes by default."
+        }
+      ]
+    }
+  },
+  "374ce1a46e730a335be303f8": {
+    "stage": "factblock_chunk_005",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "GUIDE PREAMBLE (context only -- the guide's own introduction/scope note, shown for background. Do NOT derive facts from this preamble alone; only from the SECTION TEXT below):\n\n# Migration Guide: Unif",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "`FT.HYBRID` is experimental. Under unified responses (`legacy_responses=False`), the HYBRID command preserves result field values and warnings as bytes by default (rather than decoding them to `str`), so binary loaded fields such as vector embeddings stay intact."
+        },
+        {
+          "number": 2,
+          "text": "To get decoded (text) values for a specific HYBRID result field, pass `decode_field=True` to `HybridPostProcessingConfig.load()` \u2014 e.g. `post = HybridPostProcessingConfig()` then `post.load(\"@title\", decode_field=True)`. This should be used only for fields known to be text values."
+        },
+        {
+          "number": 3,
+          "text": "Binary HYBRID fields should be loaded with `decode_field=False`, e.g. `post.load(\"@embedding\", decode_field=False)`, to keep the value as bytes."
+        }
+      ]
+    }
+  },
+  "8a2a899a80d7079f03b1131b": {
+    "stage": "factblock_chunk_000",
+    "system_excerpt": "You are deriving a migration FACT BLOCK from a real software migration\nguide, for a downstream tool that will use it to (a) write code-search\npatterns that find affected call sites in an arbitrary cod",
+    "user_excerpt": "SECTION TEXT (chunk 1 of 1 -- this is one section of a larger guide, split for processing. Derive every fact stated in THIS section's text):\n\n# Migration Guide: Unified Responses\n\nUnified responses ar",
+    "response": {
+      "package_name": "redis",
+      "facts": [
+        {
+          "number": 1,
+          "text": "Unified responses are an opt-in Python response shape in redis-py, enabled by passing `legacy_responses=False`; they are designed so affected commands return the same Python structure whether the connection uses RESP2 or RESP3."
+        },
+        {
+          "number": 2,
+          "text": "`legacy_responses=False` can be passed to `redis.Redis(...)` (e.g. `redis.Redis(legacy_responses=False)`, `redis.Redis(protocol=2, legacy_responses=False)`, `redis.Redis(protocol=3, legacy_responses=False)`)."
+        },
+        {
+          "number": 3,
+          "text": "`legacy_responses=False` is also supported on `redis.asyncio.Redis` (e.g. `redis_async.Redis(legacy_responses=False)`), on `redis.cluster.RedisCluster` (e.g. `RedisCluster(host=\"localhost\", port=6379, legacy_responses=False)`), and as a URL query parameter via `redis.from_url(\"redis://localhost:6379?legacy_responses=false\")`."
+        },
+        {
+          "number": 4,
+          "text": "Response mode matrix: `Redis()` uses the default RESP3 wire but returns the legacy RESP2-compatible shape; `Redis(protocol=2)` uses RESP2 wire and returns the legacy RESP2 shape; `Redis(protocol=3)` uses RESP3 wire and returns the native RESP3 shape; `Redis(legacy_responses=False)`, `Redis(protocol=2, legacy_responses=False)`, and `Redis(protocol=3, legacy_responses=False)` all return the unified shape."
+        },
+        {
+          "number": 5,
+          "text": "`decode_responses` is independent of `legacy_responses`: it still controls bulk-string decoding where the parser does not otherwise normalize structural keys or values. Unified responses normalize response structures, while `decode_responses` still controls how bulk string data is decoded; decisions about the two options must be kept separate."
+        },
+        {
+          "number": 6,
+          "text": "Migration checklist: locate all redis-py client construction points (including background workers, admin scripts, asyncio clients, and cluster clients); enable `legacy_responses=False` for one environment/service path first (the server protocol can stay unchanged unless you also want to pin `protocol=2` or `protocol=3`); update code that indexes into tuples, expects flat lists, compares exact response containers, or serializes command responses directly; review module command responses (JSON, TimeSeries, RediSearch, probabilistic) separately since several return richer objects or nested containers in unified mode; roll out gradually and monitor application paths that parse Redis responses manually."
+        },
+        {
+          "number": 7,
+          "text": "RESP2 -> unified: `ZDIFF`, `ZINTER`, `ZRANGE`, `ZRANGEBYSCORE`, `ZREVRANGE`, `ZREVRANGEBYSCORE`, `ZUNION` with scores changed from flat or tuple score pairs with scores often bytes, to list score pairs with scores as floats."
+        },
+        {
+          "number": 8,
+          "text": "RESP2 -> unified: `ZPOPMAX` and `ZPOPMIN` changed from `[(member, score)]` to `[[member, float_score]]`."
+        },
+        {
+          "number": 9,
+          "text": "RESP2 -> unified: `BZPOPMAX` and `BZPOPMIN` changed from `(key, member, score)` to `[key, member, float_score]`."
+        },
+        {
+          "number": 10,
+          "text": "RESP2 -> unified: `ZRANK` and `ZREVRANK` with score changed from `[rank, score]` where score can be bytes/int, to `[rank, float_score]`."
+        },
+        {
+          "number": 11,
+          "text": "RESP2 -> unified: `ZSCAN` changed from `(cursor, [(member, score)])` where the score cast receives raw bytes, to `(cursor, [[member, score]])` where the score cast receives a float."
+        },
+        {
+          "number": 12,
+          "text": "RESP2 -> unified: `ZRANDMEMBER` with scores and `HRANDFIELD` with values changed from a flat interleaved list to nested `[[item, value], ...]` pairs."
+        },
+        {
+          "number": 13,
+          "text": "RESP2 -> unified: `BLPOP` and `BRPOP` changed from `(key, value)` to `[key, value]`."
+        },
+        {
+          "number": 14,
+          "text": "RESP2 -> unified: `ZMPOP` and `BZMPOP` changed from nested tuple pairs with raw scores to nested list pairs with float scores."
+        },
+        {
+          "number": 15,
+          "text": "RESP2 -> unified: `XREAD` and `XREADGROUP` changed from `[[stream, entries], ...]` to `{stream: entries}` (a dict keyed by stream)."
+        },
+        {
+          "number": 16,
+          "text": "RESP2 -> unified: `LCS` with `IDX` changed from a flat key/value list to a dict with string keys."
+        },
+        {
+          "number": 17,
+          "text": "RESP2 -> unified: `STRALGO ... IDX` changed from tuple ranges to list ranges."
+        },
+        {
+          "number": 18,
+          "text": "RESP2 -> unified: `CLIENT TRACKINGINFO` changed from a flat list to a dict with string keys and decoded string lists."
+        },
+        {
+          "number": 19,
+          "text": "RESP2 -> unified: `COMMAND` changed from `flags` as a list to `flags` and `acl_categories` as sets of strings."
+        },
+        {
+          "number": 20,
+          "text": "RESP2 -> unified: `ACL GETUSER` changed from selector flat lists to selector dicts."
+        },
+        {
+          "number": 21,
+          "text": "RESP2 -> unified: `ACL LOG` changed from string/bytes scalar values to `age-seconds` as a float and `client-info` as a dict."
+        },
+        {
+          "number": 22,
+          "text": "RESP2 -> unified: `SENTINEL MASTER`, `SENTINEL MASTERS`, `SENTINEL SLAVES`, `SENTINEL SENTINELS` changed from `flags` as a comma-separated string to `flags` as a set plus derived booleans."
+        },
+        {
+          "number": 23,
+          "text": "RESP2 -> unified: `CLUSTER LINKS` and `CLUSTER SHARDS` changed from raw byte structural keys to string structural keys."
+        },
+        {
+          "number": 24,
+          "text": "RESP2 -> unified: `GEOPOS` changed from coordinate tuples to coordinate lists."
+        },
+        {
+          "number": 25,
+          "text": "RESP2 -> unified: `GEOSEARCH`, `GEORADIUS`, `GEORADIUSBYMEMBER` with coordinates keep tuple coordinates \u2014 legacy tuple coordinates match the approved unified shape (no change on RESP2)."
+        },
+        {
+          "number": 26,
+          "text": "RESP2 -> unified: `FUNCTION LIST` changed from flat sublists to nested dictionaries."
+        },
+        {
+          "number": 27,
+          "text": "RESP2 -> unified: `MEMORY STATS` changed from raw string-like values to decoded structural keys with native numeric values."
+        },
+        {
+          "number": 28,
+          "text": "RESP2 -> unified: `JSON.NUMINCRBY` and `JSON.NUMMULTBY` changed from legacy scalar path behavior to JSONPath-compatible array behavior."
+        },
+        {
+          "number": 29,
+          "text": "RESP2 -> unified: `JSON.RESP` changed from float values possibly being string leaves to float leaves becoming Python floats."
+        },
+        {
+          "number": 30,
+          "text": "RESP2 -> unified: `JSON.OBJKEYS` changed from keys forced to strings to keys respecting `decode_responses`."
+        },
+        {
+          "number": 31,
+          "text": "RESP2 -> unified: `TS.GET`, `TS.RANGE`, `TS.REVRANGE` changed from tuples to lists."
+        },
+        {
+          "number": 32,
+          "text": "RESP2 -> unified: `TS.MGET` changed from a sorted list of dicts to a dict keyed by series."
+        },
+        {
+          "number": 33,
+          "text": "RESP2 -> unified: `TS.MRANGE` and `TS.MREVRANGE` changed from a dict/list without a metadata slot to dict values of the form `[labels, metadata, samples]`."
+        },
+        {
+          "number": 34,
+          "text": "RESP2 -> unified: `TS.QUERYINDEX` changed from numeric-looking keys possibly being coerced to keys being preserved."
+        },
+        {
+          "number": 35,
+          "text": "RESP2 -> unified: `FT.INFO` changed from attribute flat sublists to attribute dicts with `flags`."
+        },
+        {
+          "number": 36,
+          "text": "RESP2 -> unified: `FT.CONFIG GET` changed from bytes keys/values to string keys/values."
+        },
+        {
+          "number": 37,
+          "text": "RESP2 -> unified: `FT.SEARCH` still returns a `Result`, but the unified `Result` exposes a `warnings` surface that the legacy result lacked."
+        },
+        {
+          "number": 38,
+          "text": "RESP2 -> unified: `FT.AGGREGATE` still returns an `AggregateResult`, but the unified object exposes `total` and `warnings` surfaces that the legacy object lacked."
+        },
+        {
+          "number": 39,
+          "text": "RESP2 -> unified: `FT.PROFILE` still returns a parsed tuple, but with unified profile data instead of legacy profile data."
+        },
+        {
+          "number": 40,
+          "text": "RESP2 -> unified: `FT.HYBRID` still returns `HybridResult` with bytes by default; bytes are preserved by default in unified mode."
+        },
+        {
+          "number": 41,
+          "text": "RESP2 -> unified: `TOPK.ADD`, `TOPK.INCRBY`, `TOPK.LIST` changed from numeric-looking item names possibly being coerced to item names being preserved."
+        },
+        {
+          "number": 42,
+          "text": "RESP3 -> unified: sorted-set score commands changed from native RESP3 arrays and scores to the same public score-pair normalization as RESP2 unified."
+        },
+        {
+          "number": 43,
+          "text": "RESP3 -> unified: `ZSCAN` changed from native score pairs to list score pairs with unified score casting."
+        },
+        {
+          "number": 44,
+          "text": "RESP3 -> unified: `ACL CAT`, `ACL HELP`, `ACL LIST`, `ACL USERS` changed from lists of bytes to lists of strings."
+        },
+        {
+          "number": 45,
+          "text": "RESP3 -> unified: `ACL GENPASS` and `ACL WHOAMI` changed from a bytes scalar to a string scalar."
+        },
+        {
+          "number": 46,
+          "text": "RESP3 -> unified: `ACL LOG` changed from a RESP3 map with string-like scalars to a normalized map with float `age-seconds` and parsed `client-info`."
+        },
+        {
+          "number": 47,
+          "text": "RESP3 -> unified: `CLIENT GETNAME` changed from a bytes scalar to a string scalar."
+        },
+        {
+          "number": 48,
+          "text": "RESP3 -> unified: `CLIENT TRACKINGINFO` changed from a native RESP3 map to a dict with string keys and decoded string lists."
+        },
+        {
+          "number": 49,
+          "text": "RESP3 -> unified: `COMMAND` changed from native RESP3 command metadata to unified command metadata with set fields."
+        },
+        {
+          "number": 50,
+          "text": "RESP3 -> unified: `CLUSTER LINKS` and `CLUSTER SHARDS` changed from native maps with raw structural keys to string structural keys."
+        },
+        {
+          "number": 51,
+          "text": "RESP3 -> unified: `GEOHASH` changed from a list of bytes to a list of strings."
+        },
+        {
+          "number": 52,
+          "text": "RESP3 -> unified: `GEOPOS` keeps list coordinates (list coordinates in both legacy RESP3 and unified)."
+        },
+        {
+          "number": 53,
+          "text": "RESP3 -> unified: `GEOSEARCH`, `GEORADIUS`, `GEORADIUSBYMEMBER` with coordinates changed from list coordinates to tuple coordinates."
+        },
+        {
+          "number": 54,
+          "text": "RESP3 -> unified: `LCS` and `STRALGO ... IDX` changed from RESP3 maps to dicts with string keys and unified match range lists."
+        },
+        {
+          "number": 55,
+          "text": "RESP3 -> unified: `SENTINEL MASTER`, `SENTINEL MASTERS`, `SENTINEL SLAVES`, `SENTINEL SENTINELS` changed from native RESP3 state maps to unified state dicts."
+        },
+        {
+          "number": 56,
+          "text": "RESP3 -> unified: `BF.INFO`, `CF.INFO`, `CMS.INFO`, `TOPK.INFO`, `TDIGEST.INFO` changed from raw maps to rich info objects."
+        },
+        {
+          "number": 57,
+          "text": "RESP3 -> unified: `TDIGEST.BYRANK`, `TDIGEST.BYREVRANK`, `TDIGEST.CDF`, `TDIGEST.QUANTILE` changed from raw lists to parsed lists with numeric and special-value handling."
+        },
+        {
+          "number": 58,
+          "text": "RESP3 -> unified: `TS.INFO` changed from a raw map to a `TSInfo` object."
+        },
+        {
+          "number": 59,
+          "text": "RESP3 -> unified: `TS.MRANGE` and `TS.MREVRANGE` changed from the native response without a unified metadata slot to dict values of the form `[labels, metadata, samples]`."
+        },
+        {
+          "number": 60,
+          "text": "RESP3 -> unified: `JSON.TYPE` for missing keys changed from `[None]` to `None`."
+        },
+        {
+          "number": 61,
+          "text": "RESP3 -> unified: `JSON.RESP` changed from numeric float leaves possibly being string/bytes to float leaves becoming Python floats."
+        },
+        {
+          "number": 62,
+          "text": "RESP3 -> unified: `FT.SEARCH` changed from a raw RESP3 result map to a `Result` object."
+        },
+        {
+          "number": 63,
+          "text": "RESP3 -> unified: `FT.AGGREGATE` changed from a raw RESP3 aggregate map to an `AggregateResult` object."
+        },
+        {
+          "number": 64,
+          "text": "RESP3 -> unified: `FT.PROFILE` changed from `ProfileInformation(raw_response)` to a tuple `(Result | AggregateResult, ProfileInformation)`."
+        },
+        {
+          "number": 65,
+          "text": "RESP3 -> unified: `FT.SPELLCHECK` changed from a native nested spellcheck map to a normalized term suggestion dict."
+        },
+        {
+          "number": 66,
+          "text": "RESP3 -> unified: `FT.INFO`, `FT.CONFIG GET`, `FT.SYNDUMP` changed from raw structural keys to string structural keys."
+        },
+        {
+          "number": 67,
+          "text": "RESP3 -> unified: `FT.HYBRID` changed from a raw native response to a `HybridResult`, whose field values remain bytes by default."
+        },
+        {
+          "number": 68,
+          "text": "`FT.HYBRID` is experimental; unified responses for the HYBRID command preserve result field values and warnings as bytes by default, keeping binary loaded fields such as vector embeddings intact. Use `decode_field=True` only for fields known to be text values, e.g. `post = HybridPostProcessingConfig()`, `post.load(\"@title\", decode_field=True)`, `post.load(\"@embedding\", decode_field=False)`."
+        }
+      ]
+    }
+  }
+}

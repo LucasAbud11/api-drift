@@ -749,6 +749,31 @@ cache-write premium was paid three separate times for zero read-side
 benefit any of those times. The cause hasn't been investigated yet; noted
 here rather than quietly ignored.
 
+**Stage 1's chunking has no defense against an unstructured guide.**
+`factblock.plan_chunks()` splits only on `##`/`###` Markdown headings —
+a guide with none is returned as a single whole-guide chunk
+unconditionally, regardless of `--factblock-chunk-size`; the budget only
+subdivides an oversized *section*, it never subdivides a guide that has
+no sections to begin with. Both the Target A and Target B guides have
+zero `##` headings, which is why neither one ever exercised the
+multi-chunk merge / global-renumbering / duplicate-fact-flagging /
+package_name-consensus path this stage was built for — every acceptance
+and replay test that used either guide only ever ran stage 1 as a single
+chunk. A large real guide with no heading structure at all would
+therefore still hit the same max_tokens truncation stage 1 was chunked
+to avoid, with no remedy available at the CLI. Coverage of the
+multi-chunk path was added separately using `rule_test/
+factblock_experiment/guide_redis_unified_responses.md` (6 real `##`
+sections, already in the repo) — a chunked (6-call) and a single-chunk
+(headings stripped, 1-call) derivation of that same guide content were
+compared fact-by-fact, cross-checked against its
+`ground_truth_factblock.md`, and found equivalent: every table row and
+scope statement in one derivation had a matching counterpart in the
+other. The two runs differ only in how finely they group facts (84 vs.
+68, e.g. one combined "response mode matrix" fact vs. seven granular
+ones) — no fact present in one was absent from the other. No
+chunk-boundary fact loss on this guide.
+
 **Not every real-guide result was a new failure mode.** `QAInsights/
 jmeter-mcp-server` produced seven correct fixes across two separate entry
 points, including one genuine test-mock edge case handled right: a

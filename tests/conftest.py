@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -7,6 +8,28 @@ from apidrift.llm import estimate_cost, format_usage_report
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPOS_DIR = os.path.join(REPO_ROOT, "repos")
+
+# The only guide in the repo with real `##` structure (6 sections) --
+# Target A/B both have zero `##`/`###` headings, so they can never
+# exercise factblock's multi-chunk merge path (see REPORT.md). Used by
+# test_acceptance_factblock_chunked.py / test_replay_factblock_chunked.py
+# only; Target A/B and their cassettes are untouched by that pair.
+FACTBLOCK_REDIS_GUIDE_PATH = os.path.join(
+    REPO_ROOT, "rule_test", "factblock_experiment", "guide_redis_unified_responses.md")
+FACTBLOCK_REDIS_CASSETTE_PATH = os.path.join(
+    REPO_ROOT, "tests", "cassettes", "factblock_redis_chunked", "cassette.json")
+
+_HEADING_RE = re.compile(r"^(#{2,3})(?!#)[ \t]+", re.MULTILINE)
+
+
+def strip_markdown_headings(guide_text):
+    """Same facts, same wording -- just removes the `##`/`###` markers so
+    factblock.plan_chunks() sees no section structure and falls back to
+    deriving the whole guide as one chunk, the same path Target A/B's
+    headless guides already take. Lets the single-chunk comparison
+    derivation exercise the real factblock.run() code path instead of a
+    hand-rolled one-off call."""
+    return _HEADING_RE.sub("", guide_text)
 
 TARGET_B_SMALL_REPOS = [
     "danilop_MCP2Lambda",
