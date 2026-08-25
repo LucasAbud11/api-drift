@@ -97,8 +97,11 @@ class LLMClient:
     in this pipeline)."""
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
         raise NotImplementedError
+
+
+_VALID_CACHE_TTLS = ("5m", "1h")
 
 
 class AnthropicLLMClient(LLMClient):
@@ -116,14 +119,19 @@ class AnthropicLLMClient(LLMClient):
         self.calls = []
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
         import anthropic
         import httpx2
+
+        if cache_ttl not in _VALID_CACHE_TTLS:
+            raise ValueError(
+                f"[{stage}] cache_ttl={cache_ttl!r} is not one of {_VALID_CACHE_TTLS!r}"
+            )
 
         system = system_text
         if cache_system:
             system = [{"type": "text", "text": system_text,
-                       "cache_control": {"type": "ephemeral"}}]
+                       "cache_control": {"type": "ephemeral", "ttl": cache_ttl}}]
         try:
             # The Anthropic API requires streaming for requests that may run
             # past 10 minutes -- a large max_tokens (factblock's 32000,
@@ -244,10 +252,10 @@ class RecordingLLMClient(LLMClient):
         return self.inner.calls
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
         result = self.inner.complete(stage, system_text, user_text, schema,
-                                      cache_system=cache_system, max_tokens=max_tokens,
-                                      effort=effort)
+                                      cache_system=cache_system, cache_ttl=cache_ttl,
+                                      max_tokens=max_tokens, effort=effort)
         key = _request_key(system_text, user_text)
         self._cassette[key] = {
             "stage": stage,
@@ -273,7 +281,7 @@ class ReplayLLMClient(LLMClient):
             self._cassette = json.load(f)
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
         key = _request_key(system_text, user_text)
         entry = self._cassette.get(key)
         if entry is None:

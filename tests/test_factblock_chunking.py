@@ -45,7 +45,7 @@ class ScriptedLLMClient:
         self.calls = []
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
         self.calls.append({"stage": stage, "user_text": user_text, "max_tokens": max_tokens,
                             "usage": {"input_tokens": 100, "output_tokens": 50,
                                       "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}})

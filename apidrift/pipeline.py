@@ -36,7 +36,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         package_name_override=None, print_fn=print, skip_fix_generation=False,
         fixgen_chunk_size=fixgen.DEFAULT_CHUNK_SIZE, verify_install=True,
         package_version_override=None, factblock_path=None, vocabulary_path=None,
-        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None):
+        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None, cache_ttl="5m"):
     """Runs the full pipeline. Never writes anything outside `workdir` --
     repo access goes exclusively through RepoReader, which has no write
     method. Returns a dict with every intermediate artifact plus the
@@ -64,7 +64,13 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     input-token budget per chunk, and `model` (a plain string, not read
     off `client`, since not every LLMClient implementation carries one)
     is used only to print a per-chunk cost estimate as each chunk
-    completes; omitted entirely (no cost line) if None."""
+    completes; omitted entirely (no cost line) if None.
+
+    `cache_ttl`: prompt-cache TTL for adjudicate/fixgen's system prompt
+    ("5m" default, or "1h"). Only worth raising when running several
+    repos against the same loaded --factblock within the hour -- see
+    stages/adjudicate.py and stages/fixgen.py for why a single-chunk run
+    can't benefit from its own cache write regardless of TTL."""
     preflight.check_inputs(repo_root, guide_path, workdir,
                             factblock_path=factblock_path, vocabulary_path=vocabulary_path)
     os.makedirs(workdir, exist_ok=True)
@@ -165,7 +171,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
               f"C: collapsed {stats.get('collapsed_by_C', 0)})")
 
     print_fn(f"[5/{total_stages}] Adjudicating...")
-    merged = adjudicate.run(client, kept, fb, workdir, chunk_size=chunk_size)
+    merged = adjudicate.run(client, kept, fb, workdir, chunk_size=chunk_size, cache_ttl=cache_ttl)
     expanded = adjudicate.expand_duplicates(merged, expansion_map)
     print_fn(f"      PROPOSE: {len(expanded['proposed_sites'])}  "
               f"FLAG-UNCERTAIN: {len(expanded['flag_uncertain'])}  "
@@ -178,7 +184,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         print_fn(f"[6/{total_stages}] Generating fixes...")
         if merged["proposed_sites"]:
             fixgen_merged = fixgen.run(client, reader, merged["proposed_sites"], fb, workdir,
-                                        chunk_size=fixgen_chunk_size)
+                                        chunk_size=fixgen_chunk_size, cache_ttl=cache_ttl)
             fixgen_expanded = fixgen.expand_duplicates(fixgen_merged, expansion_map)
         else:
             fixgen_merged = {"fixes": [], "flagged_for_human": []}

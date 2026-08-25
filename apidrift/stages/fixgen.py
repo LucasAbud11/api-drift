@@ -184,12 +184,15 @@ def _chunk_is_done(dir_, idx, chunk_sites):
     return covered == expected
 
 
-def run(client, reader, sites, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE):
+def run(client, reader, sites, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE, cache_ttl="5m"):
     """Returns the merged two-bucket dict. Writes workdir/fixgen/chunk_NNN.json
     (one per chunk) and workdir/fixgen/merged.json. `sites` should be
     adjudication's proposed_sites list -- one entry per distinct
     (file, line), pre-duplicate-expansion; callers expand the result with
-    expand_duplicates(), the same shape adjudicate.py's own expansion takes."""
+    expand_duplicates(), the same shape adjudicate.py's own expansion takes.
+
+    `cache_ttl`: see adjudicate.run()'s docstring -- same reasoning for
+    the cache_system gate below."""
     fg_dir = os.path.join(workdir, "fixgen")
     os.makedirs(fg_dir, exist_ok=True)
 
@@ -213,6 +216,11 @@ def run(client, reader, sites, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE
             eval_sites.append(site)
 
     chunks = _chunks(eval_sites, chunk_size)
+    # See adjudicate.run(): a single chunk can't redeem its own cache
+    # write within this run, so only cache it unconditionally when there
+    # are multiple chunks to read it back, or when the caller explicitly
+    # asked for a non-default TTL (signaling cross-run reuse is intended).
+    cache_system = len(chunks) > 1 or cache_ttl != "5m"
     for idx, chunk_sites in chunks:
         if _chunk_is_done(fg_dir, idx, chunk_sites):
             continue
@@ -223,7 +231,8 @@ def run(client, reader, sites, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE
             system_text=system_text,
             user_text=user_text,
             schema=SCHEMA,
-            cache_system=True,
+            cache_system=cache_system,
+            cache_ttl=cache_ttl,
             max_tokens=8000,
             effort="high",
         )

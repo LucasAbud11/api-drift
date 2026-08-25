@@ -21,8 +21,9 @@ class FakeLLMClient:
         self.calls = []
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
-        self.calls.append({"stage": stage, "user_text": user_text})
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
+        self.calls.append({"stage": stage, "user_text": user_text,
+                            "cache_system": cache_system, "cache_ttl": cache_ttl})
         return self._responses.pop(0)
 
 

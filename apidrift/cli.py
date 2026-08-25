@@ -52,6 +52,13 @@ def main(argv=None):
                         help="Print the planned fact-block chunk list (guide section, approx "
                              "input tokens) and an estimated cost, then exit without making "
                              "any API call.")
+    run_p.add_argument("--cache-ttl", choices=["5m", "1h"], default="5m",
+                        help="Prompt-cache TTL for adjudication/fix-generation's system "
+                             "prompt (default: 5m). '1h' costs a higher cache-write premium "
+                             "and only pays off when running several repos against the same "
+                             "loaded --factblock within that hour, so later repos' calls can "
+                             "read the cache an earlier repo's call wrote. A single repo run "
+                             "cannot redeem its own cache write either way.")
 
     apply_p = sub.add_parser(
         "apply", help="Write a run's FIX bucket into a separate working copy of the repo.")
@@ -115,6 +122,7 @@ def main(argv=None):
                 vocabulary_path=args.vocabulary,
                 factblock_chunk_size=factblock_chunk_size,
                 model=args.model,
+                cache_ttl=args.cache_ttl,
             )
         except preflight.PreflightError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)

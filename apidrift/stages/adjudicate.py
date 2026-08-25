@@ -108,9 +108,13 @@ def _chunk_is_done(adj_dir, idx, chunk_candidates):
     return adjudicated == expected
 
 
-def run(client, candidates, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE):
+def run(client, candidates, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE, cache_ttl="5m"):
     """Returns the merged three-bucket dict. Writes workdir/adjudication/
-    chunk_NNN.json (one per chunk) and workdir/adjudication/merged.json."""
+    chunk_NNN.json (one per chunk) and workdir/adjudication/merged.json.
+
+    `cache_ttl`: the prompt-cache TTL requested for the (large,
+    fact-block-embedding) system prompt -- see the cache_system gate just
+    below for when caching is even attempted."""
     adj_dir = os.path.join(workdir, "adjudication")
     os.makedirs(adj_dir, exist_ok=True)
 
@@ -118,6 +122,12 @@ def run(client, candidates, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE):
     system_text = _TEMPLATE.replace("{MIGRATION_FACTS}", facts_text)
 
     chunks = _chunks(candidates, chunk_size)
+    # A single chunk can never redeem its own cache write -- there's no
+    # second call in this run to read it back. Cache anyway when the
+    # caller asked for a non-default TTL: that's the runtime signal they
+    # intend to redeem it from a LATER run (several repos against the
+    # same loaded --factblock, within the TTL window), not this one.
+    cache_system = len(chunks) > 1 or cache_ttl != "5m"
     for idx, chunk_candidates in chunks:
         if _chunk_is_done(adj_dir, idx, chunk_candidates):
             continue
@@ -131,7 +141,8 @@ def run(client, candidates, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE):
             system_text=system_text,
             user_text=user_text,
             schema=SCHEMA,
-            cache_system=True,
+            cache_system=cache_system,
+            cache_ttl=cache_ttl,
             max_tokens=8000,
             effort="high",
         )

@@ -20,7 +20,7 @@ class ScriptedLLMClient:
         self.calls = []
 
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
-                 max_tokens=8000, effort="high"):
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
         self.calls.append({"stage": stage, "max_tokens": max_tokens})
         for prefix, response in self._script.items():
             if stage.startswith(prefix):
