@@ -74,6 +74,24 @@ def test_vocabulary_coverage_catches_a_dropped_fact():
     assert "qux" in result.report
 
 
+def test_vocabulary_coverage_escape_anchored_pattern_registers_as_covering():
+    # Regression for the escape-fusion bug: a pattern whose only
+    # alternatives are \b-anchored must still register as covering the
+    # identifier it names. Pre-fix, `_pattern_tokens(r"\bMcpError\b|\bMCPError\b")`
+    # produced only {"bmcperror"} -- the leading \b's own "b" fused onto
+    # the identifier -- so this pattern could never cover any fact
+    # regardless of vocabulary quality.
+    factblock = {
+        "package_name": "mcp",
+        "facts": [{"number": 1, "text": "`McpError` was renamed to `MCPError`."}],
+    }
+    vocabulary = {"patterns": {"p8_mcperror": r"\bMcpError\b|\bMCPError\b"}}
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert result.ok
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    assert rows[0]["status"] == "covered"
+
+
 def test_vocabulary_coverage_underscore_insensitive_match():
     # The guide names a wire-style command with no separator; the actual
     # Python method inserts an underscore in a different place. A plain

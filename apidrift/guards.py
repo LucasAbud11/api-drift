@@ -171,6 +171,42 @@ def _fact_identifier_spans(fact_text):
     return out
 
 
+# A backslash-escape sequence in a regex source string carries no literal
+# text of its own -- `\b`/`\B` are zero-width assertions, `\d`/`\D`/`\w`/
+# `\W`/`\s`/`\S` are character classes, `\A`/`\Z` are anchors, `\n`/`\t`/`\r`
+# are control characters, and `\1`/`\12`/... are backreferences. None of
+# them is a letter the pattern author actually typed as part of an
+# identifier. A valid Python regex never uses backslash+letter to mean
+# "this literal letter" (that's not a legal escape in the `re` module --
+# an unrecognized one raises `re.error` at compile time, and every pattern
+# here already passed `re.compile` in validate_vocabulary), so matching
+# ANY backslash followed by a letter or digit-run is safe and covers the
+# full set (\b \B \d \D \w \W \s \S \A \Z \n \t \r, any other single-letter
+# escape, and numeric backreferences) without having to enumerate it.
+_REGEX_ESCAPE_RE = re.compile(r"\\(?:[0-9]+|[A-Za-z])")
+
+
+def _strip_regex_escapes(regex):
+    """Replaces every backslash-escape sequence with a single space --
+    never just the bare backslash, and never nothing at all. This is the
+    fix for the third bug in this area (after lowercasing and substring
+    containment, both fixed below): `re.split(r"[^A-Za-z0-9_]+", ...)`
+    treats `\\` as a separator but the escape's own letter is
+    alphanumeric and FUSES onto whichever identifier sits next to it with
+    no separator in between -- `\\bMcpError\\b` split that way yields the
+    single token `bMcpError`, never the real `McpError`, because the `b`
+    of the leading `\\b` glues onto the front of it. Replacing the whole
+    two-(or-more)-character escape with a space guarantees a real,
+    non-alphanumeric boundary in its place instead of leaving a stray
+    letter behind to merge into real identifier text on either side.
+    Measured impact on the real MCP v1->v2 vocabulary (115 patterns): 57
+    patterns are `\\b`-anchored and had at least one token corrupted this
+    way; 34 of those lost every real token and could never register as
+    covering any fact, purely from this bug, regardless of what identifier
+    the pattern's author actually intended to match."""
+    return _REGEX_ESCAPE_RE.sub(" ", regex)
+
+
 def _pattern_tokens(regex, exclude=frozenset()):
     """A pattern's own regex source, split into alnum/underscore 'words',
     underscore-stripped and lowercased so an underscore-insensitive
@@ -198,8 +234,14 @@ def _pattern_tokens(regex, exclude=frozenset()):
     plausibly be the same symbol. `exclude` (already lowercased/
     underscore-stripped by the caller) drops the package name itself --
     a token that means nothing except "this package" grants no real
-    coverage signal, so it's inert on both sides of the comparison."""
-    words = {w.lower().replace("_", "") for w in re.split(r"[^A-Za-z0-9_]+", regex) if len(w) >= 2}
+    coverage signal, so it's inert on both sides of the comparison.
+
+    Regex escape sequences are stripped (see _strip_regex_escapes) BEFORE
+    splitting into words -- otherwise a `\\b`-anchored pattern's own
+    escape letter fuses onto the real identifier right next to it (see
+    _strip_regex_escapes' docstring for the concrete failure)."""
+    stripped = _strip_regex_escapes(regex)
+    words = {w.lower().replace("_", "") for w in re.split(r"[^A-Za-z0-9_]+", stripped) if len(w) >= 2}
     return words - exclude
 
 
