@@ -701,7 +701,31 @@ identifiers (`fastmcp`, `mcpserver`, `mcperror`, ...), so the guard's
 false-COVERED rate is worst on exactly the packages a migration tool
 spends the most time on. A guide for a package with a long, distinctive
 name would have shown this bug far less, which is part of why it survived
-until a real, large, `mcp`-named guide exercised it.
+until a real, large, `mcp`-named guide exercised it. `_pattern_tokens`
+(the function underneath this guard) has since had a third bug found in
+it the same way this one was — by inspecting real output on this same
+819-fact block, not by reasoning about the code in the abstract: escape
+fusion. `re.split` on non-alphanumeric runs let a regex escape's own
+letter glue onto the identifier sitting next to it (`\bMcpError\b`
+tokenized to `bmcperror`, never `mcperror`), silently suppressing
+coverage for any `\b`-anchored pattern regardless of vocabulary quality —
+57 of the real vocabulary's 115 patterns were affected, 34 of them losing
+every real token. All three bugs found in this function (a lowercasing
+mismatch, this substring bug, then escape fusion) share the same
+direction of error — each made coverage look worse than it actually was,
+never better — but each still had to be found by inspecting real numbers,
+not by review; none was caught by an example test until it had already
+shipped. With both the substring and escape-fusion bugs fixed, the same
+819-fact block measures 323 covered, 356 partial, 58 uncovered, 35
+non-breaking, 47 no-identifier — 414 facts flag a genuine gap, down from
+the substring-fix-only figure this section originally reported before the
+escape-fusion bug was found. `_pattern_tokens` is now covered by
+property-based tests over generated regexes (an embedded identifier must
+survive any surrounding regex syntax; tokenization must be invariant to
+`\b` anchoring; no token may contain a character that came from regex
+syntax rather than the pattern's own text) instead of another set of
+hand-picked cases, precisely because hand-picked cases missed this bug
+three times.
 
 **Insufficient fix set — `tonyzorin/youtrack-mcp`.** All three sites this
 migration touched in this repo were found, and each individual fix was
