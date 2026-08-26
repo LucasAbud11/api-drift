@@ -81,7 +81,8 @@ def _chunks(candidates, chunk_size):
 
 def _strip_internal_fields(candidates):
     """The candidate list shown to the model must not carry apidrift's own
-    bookkeeping field (_pattern, used only by guards.py)."""
+    bookkeeping fields (_pattern/_patterns, used only by guards.py and
+    fact-block filtering)."""
     out = []
     for c in candidates:
         out.append({k: v for k, v in c.items() if not k.startswith("_")})

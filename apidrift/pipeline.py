@@ -139,6 +139,18 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
 
     _write_json(os.path.join(workdir, "manifest.json"), manifest)
 
+    # Persisted as structured data (not just guard report prose) so the
+    # fact<->pattern relation is directly inspectable from the workdir --
+    # e.g. by a future fact-block filter deciding what's safe to withhold
+    # from a chunk. Shares its matching logic with check_vocabulary_coverage
+    # below via compute_fact_pattern_coverage; neither reimplements it.
+    coverage_rows = guards.compute_fact_pattern_coverage(fb, vocab)
+    coverage_summary = {"non_breaking": 0, "no_identifier": 0, "covered": 0, "partial": 0, "uncovered": 0}
+    for row in coverage_rows:
+        coverage_summary[row["status"]] += 1
+    _write_json(os.path.join(workdir, "fact_pattern_coverage.json"),
+                {"summary": coverage_summary, "facts": coverage_rows})
+
     vcov = guards.check_vocabulary_coverage(fb, vocab)
     with open(os.path.join(workdir, "vocabulary_coverage.txt"), "w") as f:
         f.write(vcov.report)

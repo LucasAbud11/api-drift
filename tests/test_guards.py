@@ -136,6 +136,71 @@ def test_vocabulary_coverage_package_name_alone_is_not_coverage():
     assert not result.ok
 
 
+def test_compute_fact_pattern_coverage_row_shape_is_uniform():
+    # Every row carries the same keys regardless of status -- "spans" is
+    # always a list (empty where there's nothing to match), never absent,
+    # so a persistence caller can treat every row identically.
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "CONFIRMED UNCHANGED: `widget.Foo` is not affected."},
+            {"number": 2, "text": "No concrete symbol named here, just process notes."},
+            {"number": 3, "text": "`widget.Bar` is renamed to `widget.Baz`."},
+        ],
+    }
+    vocabulary = {"patterns": {"p1": r"\bwidget\.Bar\b"}}
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    assert [r["number"] for r in rows] == [1, 2, 3]
+    for row in rows:
+        assert set(row.keys()) == {"number", "text", "status", "spans"}
+        assert isinstance(row["spans"], list)
+    assert rows[0]["status"] == "non_breaking"
+    assert rows[0]["spans"] == []
+    assert rows[1]["status"] == "no_identifier"
+    assert rows[1]["spans"] == []
+    assert rows[2]["status"] == "partial"  # `widget.Bar` covered, `widget.Baz` is not
+    covering_by_span = {s["span"]: s["covering"] for s in rows[2]["spans"]}
+    assert covering_by_span["widget.Bar"] == ["p1"]
+    assert covering_by_span["widget.Baz"] == []
+
+
+def test_compute_fact_pattern_coverage_uncovered_vs_covered():
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "`widget.Foo` is renamed to `widget.Bar`."},
+            {"number": 2, "text": "`widget.Baz.qux()` gains a required `timeout=` kwarg."},
+        ],
+    }
+    vocabulary = {"patterns": {"p1": r"\bwidget\.Foo\b", "p2": r"\bwidget\.Bar\b"}}
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    by_number = {r["number"]: r for r in rows}
+    assert by_number[1]["status"] == "covered"
+    assert by_number[2]["status"] == "uncovered"
+
+
+def test_check_vocabulary_coverage_delegates_to_compute_and_render():
+    # check_vocabulary_coverage's report/verdict must be exactly what
+    # compute_fact_pattern_coverage + render_fact_pattern_coverage_report
+    # produce independently -- it's a thin wrapper now, not a second copy
+    # of the matching logic.
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "`widget.Foo` is renamed to `widget.Bar`."},
+            {"number": 2, "text": "`widget.Baz.qux()` gains a required `timeout=` kwarg."},
+        ],
+    }
+    vocabulary = {"patterns": {"p1": r"\bwidget\.Foo\b"}}
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    expected_report = guards.render_fact_pattern_coverage_report(rows)
+
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert result.report == expected_report
+    assert not result.ok
+    assert "2" in result.reason
+
+
 def test_vocabulary_coverage_skips_non_breaking_and_shape_facts():
     factblock = {
         "package_name": "widget",

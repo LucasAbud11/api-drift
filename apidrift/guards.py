@@ -207,16 +207,13 @@ def _token_covers(token, pattern_stripped_tokens):
     return token.replace("_", "") in pattern_stripped_tokens
 
 
-def check_vocabulary_coverage(factblock, vocabulary):
-    """Runs right after vocabulary derivation, before grep. The last
-    unchecked link in the coverage chain: check_factblock_coverage already
-    guards guide -> factblock; this guards factblock -> vocabulary. Exists
-    because vocabulary derivation is demonstrably non-deterministic call to
-    call (observed directly: the same fact block, re-derived, silently
-    dropped a keyword-argument pattern present in an earlier derivation,
-    with zero signal anywhere in the pipeline) -- a fact naming a concrete
-    identifier can lose its pattern between one run and the next with
-    nothing today to notice.
+def compute_fact_pattern_coverage(factblock, vocabulary):
+    """The fact<->pattern coverage relation, as structured data -- no
+    report text, no pass/fail verdict. This is the one place the
+    fact/pattern matching logic lives; check_vocabulary_coverage (the
+    runtime guard) and any persistence caller (pipeline.py, so the
+    relation is inspectable from the workdir as JSON, not only as guard
+    report prose) both call this instead of each keeping their own copy.
 
     For every fact that names at least one backtick-quoted identifier,
     checks whether ANY derived pattern's own regex source plausibly
@@ -240,7 +237,23 @@ def check_vocabulary_coverage(factblock, vocabulary):
     A fact naming zero concrete identifiers (pure checklist/process prose,
     e.g. "roll the change out gradually") has nothing a syntactic pattern
     could represent -- excluded from the pass/fail requirement, reported
-    separately rather than miscounted as a real gap."""
+    separately rather than miscounted as a real gap.
+
+    Returns a list of per-fact row dicts, in factblock order:
+    {"number", "text", "status", "spans"}. `status` is one of:
+      - "non_breaking"  -- the fact itself states it's not a breaking
+        change (guards._is_non_breaking_fact); no pattern is expected.
+      - "no_identifier" -- names no concrete backtick-quoted identifier;
+        nothing for a syntactic pattern to represent either way.
+      - "covered"       -- every identifier span has at least one
+        covering pattern.
+      - "partial"       -- some spans covered, some not.
+      - "uncovered"      -- names identifiers but not one span is covered
+        by any derived pattern.
+    `spans` is always a list (empty for non_breaking/no_identifier, one
+    entry per identifier span otherwise): {"span", "covering"} where
+    `covering` is the sorted list of pattern names whose regex source
+    plausibly represents that span (empty if none do)."""
     package_name = (factblock.get("package_name") or "").strip().lower().replace("_", "")
     exclude = {package_name} if package_name else set()
 
@@ -248,17 +261,15 @@ def check_vocabulary_coverage(factblock, vocabulary):
     pattern_words = {name: _pattern_tokens(regex, exclude=exclude) for name, regex in patterns.items()}
 
     rows = []
-    any_gap = False
-
     for fact in factblock.get("facts", []):
         num = fact.get("number")
         text = fact.get("text", "")
         if _is_non_breaking_fact(text):
-            rows.append({"number": num, "text": text, "status": "non_breaking"})
+            rows.append({"number": num, "text": text, "status": "non_breaking", "spans": []})
             continue
         id_spans = _fact_identifier_spans(text)
         if not id_spans:
-            rows.append({"number": num, "text": text, "status": "no_identifier"})
+            rows.append({"number": num, "text": text, "status": "no_identifier", "spans": []})
             continue
 
         span_rows = []
@@ -299,12 +310,17 @@ def check_vocabulary_coverage(factblock, vocabulary):
         status = "uncovered" if all(not r["covering"] for r in span_rows) else (
             "partial" if fact_gap else "covered"
         )
-        if fact_gap:
-            any_gap = True
         rows.append({"number": num, "text": text, "status": status, "spans": span_rows})
 
+    return rows
+
+
+def render_fact_pattern_coverage_report(rows):
+    """The human-readable report check_vocabulary_coverage prints/writes
+    -- factored out from the guard decision so a caller that only wants
+    the structured `rows` (to persist as JSON) isn't forced to also
+    build a report string it will discard."""
     report_lines = ["VOCABULARY COVERAGE CHECK (fact block -> derived vocabulary)", ""]
-    gap_facts = []
     for row in rows:
         if row["status"] == "no_identifier":
             report_lines.append(f"  [{row['number']:>3}] (no concrete identifier stated) {row['text'][:90]}")
@@ -316,11 +332,25 @@ def check_vocabulary_coverage(factblock, vocabulary):
         for sr in row["spans"]:
             covering = ", ".join(sr["covering"]) if sr["covering"] else "*** MISSING -- no pattern references it ***"
             report_lines.append(f"        `{sr['span']}` -> {covering}")
-        if row["status"] != "covered":
-            gap_facts.append(row["number"])
-    report = "\n".join(report_lines)
+    return "\n".join(report_lines)
 
-    if any_gap:
+
+def check_vocabulary_coverage(factblock, vocabulary):
+    """Runs right after vocabulary derivation, before grep. The last
+    unchecked link in the coverage chain: check_factblock_coverage already
+    guards guide -> factblock; this guards factblock -> vocabulary. Exists
+    because vocabulary derivation is demonstrably non-deterministic call to
+    call (observed directly: the same fact block, re-derived, silently
+    dropped a keyword-argument pattern present in an earlier derivation,
+    with zero signal anywhere in the pipeline) -- a fact naming a concrete
+    identifier can lose its pattern between one run and the next with
+    nothing today to notice. See compute_fact_pattern_coverage for the
+    actual matching logic this wraps."""
+    rows = compute_fact_pattern_coverage(factblock, vocabulary)
+    report = render_fact_pattern_coverage_report(rows)
+
+    gap_facts = [row["number"] for row in rows if row["status"] in ("partial", "uncovered")]
+    if gap_facts:
         return GuardResult(
             False,
             f"{len(gap_facts)} fact(s) name a concrete identifier with no derived pattern "
