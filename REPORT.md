@@ -749,6 +749,37 @@ internally self-consistent, never whether the *set* of fixes touching one
 call site is jointly sufficient — a gap neither tier is built to see.
 This was caught by hand, reading the diff, not by the tool.
 
+**The first merged PR, and what the maintainer's correction revealed.**
+`tonyzorin/youtrack-mcp#41`, opened against the repo above, was merged by
+the maintainer on 2026-08-26 — the first of three opened PRs to get a
+response (`m0xai/trello-mcp-server#29`, opened 2026-08-19, and
+`RafaelCartenet/mcp-databricks-server#11`, opened 2026-08-26, remain open
+with zero comments; three PRs is too small a sample to support any claim
+about maintainer receptivity in either direction). The PR's description
+stated three parts with distinct provenance: two mechanical renames
+generated end-to-end from the published guide (the import path, the
+`create_server` return annotation); a dependency floor bump to
+`mcp>=2.0.0,<3`, added after CodeRabbit's automated review flagged the
+unbounded `mcp>=1.11.0` pin; and one hand-written change — moving
+`host`/`port` off the `MCPServer` constructor to `run()` — covering the
+exact site the multi-line span guard above had flagged instead of fixing.
+The maintainer confirmed the first two parts as correct and corrected the
+third on merge: the hand-written fix guarded `host`/`port` on the `sse`
+transport only, but v2 also changed the default HTTP bind address to
+`127.0.0.1`, so the `streamable-http` path needed the same guard — without
+it, a container would listen on localhost inside itself and be unreachable
+from Docker Compose. That fact follows from how the project is deployed,
+not from the migration guide, and was not among the facts the tool (or the
+human who wrote the hand-fix) had surfaced. This inverts the failure mode
+recorded earlier from the same repo: there, the tool's individually-correct
+fixes were collectively insufficient, and a human caught it; here, the
+tool's mechanical output was correct and the human-judgment portion — the
+part the span guard had deliberately declined to automate — was the part
+that was wrong. Both failures are real; neither the tool nor the human is
+reliably the safer half. The span guard behaved correctly in both cases —
+it declined to fix a site it could not safely judge, which is what put a
+human in the loop rather than a wrong automatic fix.
+
 **Model refusal — `securityfortech/secops-mcp`.** Fix generation stopped
 outright with `stop_reason=refusal`, reproducibly, on a repo that wraps
 offensive-security tooling. The migration itself is a mechanical class
