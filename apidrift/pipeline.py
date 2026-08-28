@@ -203,6 +203,17 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
                 print_fn(f"      [gapfill] {len(gapfill_report['renamed_on_merge'])} pattern "
                           f"id(s) renamed on merge (collided across chunks): "
                           f"{gapfill_report['renamed_on_merge']}")
+            if gapfill_report["deduplicated"]:
+                dropped = sum(len(g["dropped"]) for g in gapfill_report["deduplicated"])
+                print_fn(f"      [gapfill] {dropped} redundant pattern(s) across "
+                          f"{len(gapfill_report['deduplicated'])} group(s) collapsed at merge "
+                          f"(same symbol set, independently derived by different chunks) -- "
+                          f"see gapfill/report.json's 'deduplicated' for kept/dropped detail")
+            if gapfill_report["overlapping_symbol_sets"]:
+                print_fn(f"      [gapfill] {len(gapfill_report['overlapping_symbol_sets'])} "
+                          f"pattern pair(s) share a symbol without matching symbol sets exactly "
+                          f"-- NOT collapsed, see gapfill/report.json's "
+                          f"'overlapping_symbol_sets' for review")
             if gapfill_report["anti_goodhart_warnings"]:
                 print_fn(f"      [gapfill] WARNING: {len(gapfill_report['anti_goodhart_warnings'])} "
                           f"pattern(s) flagged by an anti-Goodhart check (non-fatal, still merged "

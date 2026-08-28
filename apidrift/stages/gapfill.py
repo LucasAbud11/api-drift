@@ -26,6 +26,7 @@ reached, but that isn't built here.
 """
 import json
 import os
+from collections import defaultdict
 
 from .. import guards, llm, validate
 from . import vocabulary as vocabulary_stage
@@ -310,6 +311,108 @@ def _merge_patterns(chunk_results, existing_pattern_ids):
     return merged, renamed
 
 
+def _deduplicate_patterns(patterns):
+    """patterns: {name: regex}, already id-unique (post _merge_patterns).
+    Chunks are derived independently with zero visibility into each
+    other's output, so the same symbol routinely gets a pattern from
+    more than one chunk -- confirmed on a real run: 206 merged patterns
+    included six separate ones naming `ClientSession`. This groups
+    patterns by their DISTINCT SYMBOL SET (validate._distinct_symbols,
+    the same extraction the anti-Goodhart symbol cap already uses --
+    reused deliberately rather than reimplemented, despite the leading
+    underscore, per this fix's own design brief) and treats an EXACT
+    match as redundant.
+
+    Redundant patterns are merged into one, not "keep one, drop the
+    rest": a dropped pattern may cover a syntactic context (an import
+    line vs. a constructor call) the kept one doesn't, and silently
+    losing that coverage to save one grep pass is a worse trade than
+    the recall this project exists to protect. The keep candidates are
+    every DISTINCT regex body in the group (duplicate bodies collapse
+    for free), combined into one `(?:a)|(?:b)|...` alternation -- the
+    same wrapping pipeline.py already uses to combine the whole
+    vocabulary into one search regex, so this is a proven-safe way to
+    combine arbitrary already-valid sub-patterns. The surviving id is
+    the alphabetically-first member's -- deterministic and reproducible
+    rather than an arbitrary pick, so a re-run of this exact function
+    over the exact same chunk files always makes the exact same choice.
+
+    A symbol set that OVERLAPS another without being IDENTICAL is never
+    merged -- that is a real judgment call (does a broader pattern
+    subsume a narrower one, or do they genuinely name different things
+    that happen to share one symbol?) this function is not positioned
+    to make safely. Those pairs are surfaced in the second return value
+    for a human to look at, untouched.
+
+    A pattern with an EMPTY symbol set (rare -- every real identifier
+    token filtered out, or none present) is passed through as its own
+    singleton and never grouped with another empty-symbol pattern:
+    two patterns that both fail to yield a symbol set are not
+    thereby shown to be about the same thing.
+
+    Returns (final: {name: regex}, dedup_report: [...], overlap_report:
+    [...]). dedup_report has one entry per redundant group actually
+    collapsed: {"kept": {"name", "regex"}, "dropped": [{"name",
+    "regex"}, ...], "symbols": [...]}. overlap_report has one entry per
+    overlapping-but-not-identical PAIR found in the FINAL (post-merge)
+    pattern set: {"a": {...}, "b": {...}, "shared_symbols": [...]}."""
+    groups = defaultdict(list)
+    passthrough = {}
+    for name, regex in patterns.items():
+        symbols = frozenset(validate._distinct_symbols(regex))
+        if not symbols:
+            passthrough[name] = regex
+            continue
+        groups[symbols].append((name, regex))
+
+    final = dict(passthrough)
+    dedup_report = []
+    for symbols, members in groups.items():
+        if len(members) == 1:
+            name, regex = members[0]
+            final[name] = regex
+            continue
+        members_sorted = sorted(members, key=lambda m: m[0])
+        keep_name = members_sorted[0][0]
+        distinct_bodies = []
+        for _, regex in members_sorted:
+            if regex not in distinct_bodies:
+                distinct_bodies.append(regex)
+        merged_regex = (
+            distinct_bodies[0] if len(distinct_bodies) == 1
+            else "|".join(f"(?:{b})" for b in distinct_bodies)
+        )
+        final[keep_name] = merged_regex
+        dedup_report.append({
+            "kept": {"name": keep_name, "regex": merged_regex},
+            "dropped": [{"name": n, "regex": r} for n, r in members_sorted[1:]],
+            "symbols": sorted(symbols),
+        })
+
+    overlap_report = []
+    items = sorted(final.items())
+    symbol_sets = {name: frozenset(validate._distinct_symbols(regex)) for name, regex in items}
+    for i in range(len(items)):
+        name_a, regex_a = items[i]
+        symbols_a = symbol_sets[name_a]
+        if not symbols_a:
+            continue
+        for j in range(i + 1, len(items)):
+            name_b, regex_b = items[j]
+            symbols_b = symbol_sets[name_b]
+            if not symbols_b or symbols_a == symbols_b:
+                continue
+            shared = symbols_a & symbols_b
+            if shared:
+                overlap_report.append({
+                    "a": {"name": name_a, "regex": regex_a, "symbols": sorted(symbols_a)},
+                    "b": {"name": name_b, "regex": regex_b, "symbols": sorted(symbols_b)},
+                    "shared_symbols": sorted(shared),
+                })
+
+    return final, dedup_report, overlap_report
+
+
 def _merge_declined(chunk_results):
     declined = []
     for cr in chunk_results:
@@ -329,7 +432,8 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
       added (a fresh dict; `vocabulary` itself is never mutated). See
       _merge_patterns for the two different collision responses.
     - gapfill_report: {"target_fact_count", "chunk_count", "new_patterns",
-      "renamed_on_merge", "declined", "unresolved", "anti_goodhart_warnings"}.
+      "renamed_on_merge", "deduplicated", "overlapping_symbol_sets",
+      "declined", "unresolved", "anti_goodhart_warnings"}.
       "unresolved" is every target (fact, span) pair no chunk either
       covered or explicitly declined -- distinct from "declined" (an
       explicit, reasoned no) and expected to be nonzero on a real large
@@ -341,7 +445,15 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
       _validate_gapfill_pattern_anti_goodhart), still merged in, worth a
       human glancing at: both checks' real-world false-positive rate on
       valid patterns has been high enough that neither blocks a run
-      anymore, but the signal is still often right.
+      anymore, but the signal is still often right. "deduplicated" is
+      every group of patterns _deduplicate_patterns found naming the
+      exact same symbol set and collapsed into one (see that function
+      for why collapsed rather than "keep one, drop the rest," and why
+      the survivor's regex is a merge of every distinct body in the
+      group, not an arbitrary pick). "overlapping_symbol_sets" is every
+      pair of FINAL (post-dedup) patterns whose symbol sets intersect
+      without being identical -- never touched, reported only, because
+      partial overlap is a judgment call this function does not make.
     - new_coverage_rows: guards.compute_fact_pattern_coverage recomputed
       against merged_vocabulary, so a caller doesn't have to recompute
       it a third time.
@@ -404,7 +516,8 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
                 validate.validate_gapfill_dict(json.load(f), what=path, warnings=anti_goodhart_warnings)
             )
 
-    new_patterns, renamed = _merge_patterns(chunk_results, vocabulary["patterns"].keys())
+    raw_new_patterns, renamed = _merge_patterns(chunk_results, vocabulary["patterns"].keys())
+    new_patterns, dedup_report, overlap_report = _deduplicate_patterns(raw_new_patterns)
     declined = _merge_declined(chunk_results)
 
     merged_patterns = dict(vocabulary["patterns"])
@@ -437,6 +550,8 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
         "chunk_count": len(chunks),
         "new_patterns": sorted(new_patterns),
         "renamed_on_merge": [{"from": a, "to": b} for a, b in renamed],
+        "deduplicated": dedup_report,
+        "overlapping_symbol_sets": overlap_report,
         "declined": declined,
         "unresolved": unresolved,
         "anti_goodhart_warnings": anti_goodhart_warnings,

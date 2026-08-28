@@ -8,6 +8,7 @@ fake client answers whichever chunks actually need deriving.
 """
 import json
 import os
+import re
 
 import pytest
 
@@ -453,6 +454,127 @@ def test_run_renumbers_pattern_id_colliding_across_chunks(tmp_path):
     assert merged["patterns"]["gf_symbol"] == r"\bSymbol1\b"
     assert merged["patterns"]["gf_symbol_2"] == r"\bSymbol2\b"
     assert report["renamed_on_merge"] == [{"from": "gf_symbol", "to": "gf_symbol_2"}]
+
+
+# ---------------------------------------------------------------------
+# Deduplication at merge -- redundant patterns (identical symbol sets)
+# collapsed into one; overlapping-but-not-identical sets left alone and
+# reported. Confirmed on a real run: 206 merged patterns included six
+# separate ones naming `ClientSession` alone.
+# ---------------------------------------------------------------------
+
+def test_deduplicate_identical_regex_bodies_keeps_first_by_name():
+    final, dedup_report, overlap_report = gapfill._deduplicate_patterns({
+        "gf_clisess_2": r"\bClientSession\b",
+        "gf_clientsess_4": r"\bClientSession\b",
+        "gf_clisess": r"\bClientSession\b",
+    })
+    # Alphabetically first of the three names survives.
+    assert set(final) == {"gf_clientsess_4"}
+    assert final["gf_clientsess_4"] == r"\bClientSession\b"
+    assert len(dedup_report) == 1
+    assert dedup_report[0]["kept"]["name"] == "gf_clientsess_4"
+    assert {d["name"] for d in dedup_report[0]["dropped"]} == {"gf_clisess", "gf_clisess_2"}
+    assert dedup_report[0]["symbols"] == ["clientsession"]
+    assert overlap_report == []
+
+
+def test_deduplicate_same_symbols_different_contexts_merges_regex_bodies():
+    # Two patterns naming the same one symbol via different syntactic
+    # contexts -- neither should be dropped outright, since each covers
+    # a shape the other doesn't; the survivor must match both. Both
+    # regexes must yield the SAME symbol set ({clientsession}) for this
+    # to be the redundant-not-overlapping case -- a quoted-string
+    # context adds no extra identifier token, unlike e.g. a dotted
+    # `mcp.client.session` path, which would add `mcp`/`client`/
+    # `session` as their own symbols and make the sets diverge.
+    final, dedup_report, _ = gapfill._deduplicate_patterns({
+        "gf_clientsess": r"\bClientSession\(",
+        "gf_clisess": r'"ClientSession"',
+    })
+    assert len(final) == 1
+    (name, regex), = final.items()
+    assert re.search(regex, "session = ClientSession(")
+    assert re.search(regex, 'name == "ClientSession"')
+    assert len(dedup_report) == 1
+    assert dedup_report[0]["kept"]["name"] == name
+
+
+def test_deduplicate_collapses_duplicate_bodies_within_a_group_once():
+    # Three patterns, all symbol set {clientsession} -- gf_a and gf_b
+    # share the exact same regex body; gf_c's body differs (a quoted-
+    # string context vs. a bare word boundary) but names the same one
+    # symbol. The merged regex must contain the duplicate body once,
+    # not twice, and must still contain the genuinely different one.
+    final, dedup_report, _ = gapfill._deduplicate_patterns({
+        "gf_a": r"\bClientSession\b",
+        "gf_b": r"\bClientSession\b",
+        "gf_c": r'"ClientSession"',
+    })
+    (name, regex), = final.items()
+    assert regex.count("ClientSession") == 2  # one copy of each distinct body
+    assert dedup_report[0]["symbols"] == ["clientsession"]
+
+
+def test_deduplicate_leaves_singleton_symbol_sets_untouched():
+    patterns = {"gf_a": r"\bRootModel\b", "gf_b": r"\bTypeAliasType\b"}
+    final, dedup_report, overlap_report = gapfill._deduplicate_patterns(patterns)
+    assert final == patterns
+    assert dedup_report == []
+    assert overlap_report == []
+
+
+def test_deduplicate_overlapping_not_identical_is_reported_not_merged():
+    # `gf_narrow` (ClientSession only) and `gf_broad` (ClientSession +
+    # ClientSessionGroup) share a symbol but aren't the same set -- must
+    # NOT be collapsed; both survive, and the overlap is reported for a
+    # human to look at.
+    patterns = {
+        "gf_narrow": r"\bClientSession\b",
+        "gf_broad": r"\bClientSession\b|\bClientSessionGroup\b",
+    }
+    final, dedup_report, overlap_report = gapfill._deduplicate_patterns(patterns)
+    assert set(final) == {"gf_narrow", "gf_broad"}
+    assert dedup_report == []
+    assert len(overlap_report) == 1
+    pair = overlap_report[0]
+    assert {pair["a"]["name"], pair["b"]["name"]} == {"gf_narrow", "gf_broad"}
+    assert pair["shared_symbols"] == ["clientsession"]
+
+
+def test_deduplicate_empty_symbol_sets_never_grouped_together():
+    # Two patterns that both fail to yield a symbol set (e.g. every
+    # token filtered as regex-syntax noise) are not thereby the same
+    # thing -- each passes through untouched, on its own.
+    patterns = {"gf_a": r"\d{2,3}", "gf_b": r"[0-9]{4}"}
+    final, dedup_report, overlap_report = gapfill._deduplicate_patterns(patterns)
+    assert final == patterns
+    assert dedup_report == []
+    assert overlap_report == []
+
+
+def test_run_deduplicates_across_chunks_and_reports_it(tmp_path):
+    # The real scenario: two chunks, with no visibility into each
+    # other's output, both write a bare-identical pattern for the same
+    # symbol under different ids -- gap-fill's merge must collapse them
+    # to one and say so, not silently keep both inflating candidates.
+    factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=2)
+    script = {
+        "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_sym1dup", "regex": r"\bSymbol1\b"}], "declined": []},
+    }
+    client = FakeGapfillClient(script)
+
+    merged, report, _ = gapfill.run(
+        client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1,
+    )
+
+    surviving = [n for n in merged["patterns"] if n.startswith("gf_sym")]
+    assert len(surviving) == 1
+    assert len(report["deduplicated"]) == 1
+    assert report["deduplicated"][0]["symbols"] == ["symbol1"]
+    assert {d["name"] for d in report["deduplicated"][0]["dropped"]} | \
+           {report["deduplicated"][0]["kept"]["name"]} == {"gf_symbol1", "gf_sym1dup"}
 
 
 def test_run_resume_only_calls_for_incomplete_chunks(tmp_path):
