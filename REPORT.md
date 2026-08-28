@@ -843,3 +843,31 @@ class's own identifier correctly did not change — the same
 name-impersonation-vs-real-reference distinction `DESIGN.md`'s Rule 1 and
 the original study's ground-truth correction (§3) both turn on, holding
 up again on a guide and a repo neither had been built around.
+
+**The Target A/B benchmark repos cannot measure a large class of
+detection improvement, and this was not visible until tested directly.**
+269 of the 320 searchable-but-uncovered identifier spans in the real MCP
+v1→v2 vocabulary are real, guide-stated API surface — `ClientSession`,
+`RootModel`, `TypeAliasType`, `ErrorData`, OAuth grant-type constants,
+and more — that stage 2 never wrote a pattern for: zero token overlap
+with any of the 115 derived patterns, not near-misses. That's a
+detection ceiling, not a precision problem — grep cannot generate a
+candidate for an identifier no pattern covers, regardless of what
+downstream filtering or adjudication does with what grep finds.
+Grepping all five Target B repos, plus two later ones run against the
+same guide (`bangumi-analysis`, `databricks-analysis`), for the top-40
+uncovered spans found exactly one genuine occurrence:
+`danilop/MCP2Lambda`, one file, `ClientSession` construction and
+`.initialize()`. Everything OAuth-shaped (`client_credentials`,
+`client_secret_basic`, `private_key_jwt`, ...) and everything
+protocol-internals-shaped (`RequestId`, `RequestT`, `lifespan_context`,
+`related_request_id`, ...) is absent from all seven repos, production
+and test code alike. The reason is architectural, not coincidental: all
+seven repos are the same shape — a thin FastMCP server wrapping one
+external API. The missing facts describe client-side surface: session
+construction, capability negotiation, request-context internals, OAuth
+grant types — none of which has any reason to appear in code whose job
+is to be a server rather than drive one. This means the 100%/100%
+figures reported for Target A/B (§5) characterize performance on thin
+server wrappers specifically, not on the migration as a whole, and
+should be read with that scope attached.
