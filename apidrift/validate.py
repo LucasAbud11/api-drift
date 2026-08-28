@@ -314,44 +314,101 @@ GAPFILL_MAX_ALTERNATIVES = 3
 # stops being true well before branch counts reach the double digits.
 
 
-def _regex_own_words(regex):
-    """A rough, regex-syntax-agnostic word split of a pattern's own
-    source. Deliberately simpler than guards.py's _pattern_tokens (which
-    has to be precise about escape sequences for accurate fact<->pattern
-    coverage matching) -- this only needs to answer "does this pattern's
-    id trace back to recognizable text in its own regex," a much cruder
-    bar, and living in validate.py (which nothing in apidrift imports)
-    keeps this file free of the guards.py<->validate.py import cycle
-    that reusing _pattern_tokens directly would create."""
+def _regex_identifier_tokens(regex):
+    """Every identifier-shaped token in the regex's own source, ORIGINAL
+    CASE preserved (needed downstream to find CamelCase word
+    boundaries) -- regex escapes stripped first so an escape's own
+    letter never fuses onto a real identifier, same fix guards.py's
+    _strip_regex_escapes applies for fact<->pattern coverage matching.
+    Deliberately simpler than guards.py's _pattern_tokens (which has to
+    be precise about escape sequences for accurate coverage matching);
+    this only needs "what identifiers did the pattern author write,"
+    and living in validate.py (which nothing in apidrift imports) keeps
+    this file free of the guards.py<->validate.py import cycle reusing
+    _pattern_tokens directly would create. Tokens under 3 characters
+    are dropped -- regex syntax residue (a repetition count, a
+    single-letter character-class member) that was never a symbol the
+    id could plausibly be naming."""
     cleaned = re.sub(r"\\[A-Za-z0-9]", " ", regex)
-    return {w.lower().replace("_", "") for w in re.findall(r"[A-Za-z0-9_]{2,}", cleaned)}
+    return [w for w in re.findall(r"[A-Za-z0-9_]+", cleaned) if len(w) >= 3]
 
 
-def _longest_common_substring_len(a, b):
-    """Longest run of contiguous characters common to both strings.
-    Both operands here are short (a pattern id, ~12 chars per
-    vocabulary_system.md's own guidance; a regex-derived word, rarely
-    more than ~20) so the O(len(a)*len(b)) DP is cheap. Used instead of
-    plain substring containment because a realistic short id truncates a
-    longer word rather than repeating it whole (e.g. id 'gf_clientsess'
-    for a `ClientSession` pattern) -- neither direction of `in` holds
-    once a stage prefix like 'gf_' sits in front of the truncation, even
-    though the id plainly does name the symbol."""
-    if not a or not b:
-        return 0
-    prev = [0] * (len(b) + 1)
-    best = 0
-    for ca in a:
-        curr = [0] * (len(b) + 1)
-        for j, cb in enumerate(b, start=1):
-            if ca == cb:
-                curr[j] = prev[j - 1] + 1
-                best = max(best, curr[j])
-        prev = curr
-    return best
+# Splits one CamelCase run into word-initial pieces: 'ResourceTemplate'
+# -> ['Resource', 'Template']. The first alternative peels off an
+# acronym run that is itself followed by a new capitalized word (so
+# 'HTTPServer' -> 'HTTP' + 'Server'); for a run like 'OAuth' with no such
+# following boundary, it degrades to single letters ('O' + 'Auth') --
+# harmless here, since the subsequence matcher below only needs parts in
+# the right relative order, not linguistically exact boundaries.
+_CAMEL_SPLIT_RE = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z][a-z0-9]*|[a-z0-9]+")
 
 
-GAPFILL_ID_OVERLAP_MIN = 4
+def _split_word_parts(token):
+    """Splits one identifier token into lowercase word parts on
+    underscore, dot, and CamelCase boundaries -- 'ResourceTemplateReference'
+    -> ['resource', 'template', 'reference'], 'client_secret_basic' ->
+    ['client', 'secret', 'basic']. This is what makes the id check below
+    handle a multi-word symbol at all: without it, a whole CamelCase
+    symbol is one long opaque string, and a short abbreviation built
+    from its word-initial letters (id 'gf_restmplref' for
+    `ResourceTemplateReference`) shares no long contiguous run with
+    that string even though it plainly names it."""
+    parts = []
+    for chunk in re.split(r"[_.]+", token):
+        parts.extend(m.group(0).lower() for m in _CAMEL_SPLIT_RE.finditer(chunk))
+    return [p for p in parts if p]
+
+
+def _id_names_symbol(id_remainder, symbol_parts):
+    """True if `id_remainder` (already lowercased, separators stripped)
+    can be explained as an abbreviation of `symbol_parts` (that
+    symbol's own lowercase word parts, in order): each id character is
+    matched, left to right, as the next unconsumed character within the
+    CURRENT symbol part; when the current part has no more matching
+    characters, matching advances to the next part (parts may be
+    skipped entirely, e.g. an id that abbreviates only some words of a
+    long symbol) but never goes backward. This accepts an ordered,
+    part-respecting subsequence -- 'restmplref' matches
+    resource+template+reference (res|tmpl|ref, none of the three pieces
+    contiguous in the symbol itself), 'clientsess' matches
+    client+session -- while an id sharing no real relationship with the
+    symbol runs out of parts before its characters are consumed."""
+    pi, ci = 0, 0
+    for ch in id_remainder:
+        matched = False
+        while pi < len(symbol_parts):
+            idx = symbol_parts[pi].find(ch, ci)
+            if idx != -1:
+                ci = idx + 1
+                matched = True
+                break
+            pi += 1
+            ci = 0
+        if not matched:
+            return False
+    return True
+
+
+# Below this length an abbreviation is too short to plausibly name a
+# specific symbol on its own (nearly any letter is "in order somewhere"
+# in a long CamelCase word) -- the check fails outright rather than
+# risk a false pass on a near-empty remainder.
+GAPFILL_ID_MIN_REMAINDER = 3
+
+
+def _id_remainder(name):
+    """Strips a leading 'stage prefix' -- everything up to and
+    including the first underscore, the shape every id in this
+    vocabulary follows ('p3_mcpserver', 'gf_restmplref') -- then splits
+    what's left into its own word parts (in case the model used
+    CamelCase or underscores inside its own abbreviation) and rejoins
+    them with no separator. The rejoin matters: this function returns a
+    flat character stream for _id_names_symbol to consume, not a part
+    list -- the id's OWN internal boundaries aren't load-bearing for
+    matching, only the SYMBOL's are; splitting them out here just
+    normalizes away any separator the model happened to use."""
+    remainder = name.split("_", 1)[1] if "_" in name else name
+    return "".join(_split_word_parts(remainder))
 
 
 def _count_alternation_branches(regex):
@@ -391,20 +448,26 @@ def _validate_gapfill_pattern_anti_goodhart(name, regex, what):
             f"the ones that don't fit (see the 'declined' bucket) rather than folding "
             f"them into one pattern to shrink the decline count.",
         )
-    id_norm = name.lower().replace("_", "")
-    words = [w for w in _regex_own_words(regex) if len(w) >= 3]
-    if words and not any(
-        _longest_common_substring_len(id_norm, w) >= min(GAPFILL_ID_OVERLAP_MIN, len(w))
-        for w in words
+    tokens = _regex_identifier_tokens(regex)
+    remainder = _id_remainder(name)
+    if tokens and (
+        len(remainder) < GAPFILL_ID_MIN_REMAINDER
+        or not any(_id_names_symbol(remainder, _split_word_parts(t)) for t in tokens)
     ):
         _fail(
             what,
-            f"gap-fill pattern '{name}' ({regex!r}) -- id does not reference any "
-            f"recognizable word from its own regex text. Every gap-fill pattern's id "
-            f"must name the specific symbol it targets (e.g. 'gf_rootmodel' for a "
-            f"RootModel pattern) -- an id that can't be traced back to its own "
-            f"pattern's content is exactly the shape a pattern written to satisfy the "
-            f"coverage checker, rather than to name a real symbol, would have.",
+            f"gap-fill pattern '{name}' ({regex!r}) -- id does not read as an "
+            f"abbreviation of any symbol in its own regex text. Every gap-fill "
+            f"pattern's id must name the specific symbol it targets (e.g. "
+            f"'gf_restmplref' for a `ResourceTemplateReference` pattern -- "
+            f"res+tmpl+ref against Resource+Template+Reference, in order) -- an id "
+            f"that can't be read back this way is exactly the shape a pattern written "
+            f"to satisfy the coverage checker, rather than to name a real symbol, "
+            f"would have. This is a secondary signal, not the primary defense -- the "
+            f"{GAPFILL_MAX_ALTERNATIVES}-branch alternation cap above is what actually "
+            f"keeps one pattern from covering many unrelated target facts; this check "
+            f"only catches a pattern (of any branch count) whose id doesn't say what "
+            f"it matches.",
         )
 
 

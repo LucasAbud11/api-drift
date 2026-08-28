@@ -431,6 +431,42 @@ def test_run_resume_only_calls_for_incomplete_chunks(tmp_path):
     assert "gf_symbol1" in merged["patterns"] and "gf_symbol2" in merged["patterns"]
 
 
+def test_run_resume_after_a_later_chunk_fails_validation_does_not_recharge_the_earlier_one(tmp_path):
+    # The real scenario this guards against: chunk 0's call succeeds and
+    # is paid for and persisted; chunk 1's call also succeeds (gets
+    # billed) but its OWN response fails validate_gapfill_dict (here: an
+    # alternation over the branch cap -- any hard-fail shape exercises
+    # the same path). chunk_001.json is therefore never written -- the
+    # write only happens after validation passes. A resumed run must
+    # not re-request chunk 0 (already valid, already paid for) and must
+    # only retry chunk 1.
+    factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=2)
+    bad_script = {
+        "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_bad", "regex": r"\b(A|B|C|D)\b"}], "declined": []},
+    }
+    client = FakeGapfillClient(bad_script)
+    with pytest.raises(ValueError, match="alternation"):
+        gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1)
+
+    assert os.path.isfile(os.path.join(workdir, "gapfill", "chunk_000.json"))
+    assert not os.path.isfile(os.path.join(workdir, "gapfill", "chunk_001.json"))
+    assert [c["stage"] for c in client.calls] == ["gapfill_chunk_000", "gapfill_chunk_001"]
+
+    fixed_script = {
+        "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_symbol2", "regex": r"\bSymbol2\b"}], "declined": []},
+    }
+    client2 = FakeGapfillClient(fixed_script)
+    merged, report, _ = gapfill.run(
+        client2, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1,
+    )
+    # Only chunk 1 was re-requested -- chunk 0's already-valid, already-
+    # billed output was reused as-is.
+    assert [c["stage"] for c in client2.calls] == ["gapfill_chunk_001"]
+    assert "gf_symbol1" in merged["patterns"] and "gf_symbol2" in merged["patterns"]
+
+
 def test_run_truncation_error_names_the_chunk_and_suggests_lowering_chunk_size(tmp_path):
     factblock, vocabulary, rows, workdir = _setup(tmp_path)
     client = TruncatingLLMClient()

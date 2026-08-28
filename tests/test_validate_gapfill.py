@@ -142,33 +142,70 @@ def test_alternation_cap_ignores_escaped_literal_pipe():
 # ---------------------------------------------------------------------
 
 def test_id_referencing_its_symbol_passes():
+    # A single-word symbol, id equals it whole.
     validate.validate_gapfill_dict(_result(patterns=[
         {"name": "gf_rootmodel", "regex": r"\bRootModel\b"},
     ]))
-    # A truncated id must still pass -- neither direction of plain
-    # substring containment holds once the 'gf_' stage prefix sits in
-    # front of the truncation, which is exactly why this check uses
-    # longest-common-substring instead of `in`.
+    # A two-word CamelCase symbol, id truncates each word.
     validate.validate_gapfill_dict(_result(patterns=[
         {"name": "gf_clientsess", "regex": r"\bClientSession\s*\("},
+    ]))
+    # A three-word CamelCase symbol abbreviated to its word-initial
+    # letters -- the real false positive this check was rewritten for:
+    # no long contiguous run of 'ResourceTemplateReference' contains
+    # 'restmplref', but it plainly abbreviates
+    # Resource+Template+Reference in order.
+    validate.validate_gapfill_dict(_result(patterns=[
+        {"name": "gf_restmplref", "regex": r"\bResourceTemplateReference\b"},
+    ]))
+    # A four-word CamelCase symbol with an acronym-shaped first word.
+    validate.validate_gapfill_dict(_result(patterns=[
+        {"name": "gf_oauthclientinfo", "regex": r"\bOAuthClientInformationFull\b"},
+    ]))
+    # A snake_case symbol.
+    validate.validate_gapfill_dict(_result(patterns=[
+        {"name": "gf_clientsecretbasic", "regex": r"\bclient_secret_basic\b"},
+    ]))
+    validate.validate_gapfill_dict(_result(patterns=[
+        {"name": "gf_secbasic", "regex": r"\bclient_secret_basic\b"},
     ]))
 
 
 def test_id_not_referencing_its_symbol_fails():
-    # The other half of the same Goodhart shape: a vague, category-style
-    # id ("gf_misc") that can't be traced back to what the pattern
-    # actually matches -- exactly what a pattern optimizing for the
-    # checker rather than naming a real symbol would look like.
-    with pytest.raises(ValueError, match="id does not reference any recognizable word"):
+    # An id naming a symbol that's simply absent from its own regex --
+    # not an abbreviation of anything the pattern actually matches.
+    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
         validate.validate_gapfill_dict(_result(patterns=[
-            {"name": "gf_misc", "regex": r"\bRootModel\b"},
+            {"name": "gf_requestid", "regex": r"\bClientSession\s*\("},
         ]))
+
+
+def test_generic_id_over_multi_symbol_alternation_fails():
+    # The other half of the same Goodhart shape: a vague, category-style
+    # id that can't be traced back to what the pattern actually
+    # matches, tried against EVERY branch of a multi-symbol alternation
+    # -- exactly what a pattern optimizing for the checker rather than
+    # naming a real symbol would look like.
+    kitchen_sink = r"\b(ClientSession|RootModel|title)\b"
+    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
+        validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_misc", "regex": kitchen_sink}]))
+    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
+        validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_pattern1", "regex": kitchen_sink}]))
 
 
 def test_id_check_ignores_short_regex_syntax_noise():
     # A pattern's regex source can contain short alnum runs that are pure
     # regex syntax residue (e.g. a repetition count) -- these must not
-    # count as "words" the id needs to reference.
+    # count as tokens the id needs to reference.
     validate.validate_gapfill_dict(_result(patterns=[
         {"name": "gf_rootmodel", "regex": r"\bRootModel[s]{1,2}\b"},
     ]))
+
+
+def test_id_check_rejects_a_remainder_too_short_to_mean_anything():
+    # A one-character abbreviation is "in order somewhere" in nearly any
+    # word -- too short to plausibly be naming a specific symbol.
+    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
+        validate.validate_gapfill_dict(_result(patterns=[
+            {"name": "gf_r", "regex": r"\bRootModel\b"},
+        ]))
