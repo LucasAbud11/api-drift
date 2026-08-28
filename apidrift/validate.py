@@ -298,10 +298,19 @@ def validate_vocabulary_file(path):
 # generic-method check never even looks at it), and would make every
 # target fact register as covered.
 #
-# Two checks below target this, but only ONE hard-fails. The alternation
-# cap is structural -- a branch count is a fact about the regex, not a
-# judgment call, and it directly caps the blast radius of the exact
-# failure shape described above, so there's nothing to be wrong about.
+# Two checks below target this, but only ONE hard-fails. The symbol-
+# count cap is structural -- how many distinct target symbols a pattern
+# names is a fact about the regex, not a judgment call, and it directly
+# caps the blast radius of the exact failure shape described above, so
+# there's nothing to be wrong about IN PRINCIPLE. Its first
+# implementation counted `|` occurrences instead of distinct symbols,
+# which is a different, wrong thing: `(?:import|from)\s+
+# (?:certifi|truststore)\b|["'](?:certifi|truststore)["']` covers
+# exactly two symbols (certifi, truststore), each named twice for two
+# match contexts (an import line, a quoted string) -- and was rejected
+# as "5 branches." Counting distinct symbols instead of `|` is the fix
+# below; the cap itself (3) never needed to change, only what it counts.
+#
 # The id-must-reference-a-symbol check is a heuristic, and real gap-fill
 # output broke its premise twice, at real cost ($1.22 combined): the
 # check assumes an id abbreviates ONE symbol, but a correct id for an
@@ -312,7 +321,7 @@ def validate_vocabulary_file(path):
 # accepting anything, which defeats the point -- so it stays a WARNING:
 # still computed, still surfaced (gapfill.py records it in the pass
 # report for human review), never a reason to block a valid chunk.
-GAPFILL_MAX_ALTERNATIVES = 3
+GAPFILL_MAX_SYMBOLS = 3
 # Picked, not derived: gap-fill's OWN target set already groups facts
 # that are individually flagged as separately lacking coverage, not
 # facts a human bundled because they share a call shape -- unlike
@@ -422,50 +431,58 @@ def _id_remainder(name):
     return "".join(_split_word_parts(remainder))
 
 
-def _count_alternation_branches(regex):
-    """Total `|`-separated alternatives anywhere in the pattern, at ANY
-    nesting depth -- unlike _split_top_level_alternatives above (which
-    only counts a depth-0 `|`, because that check specifically cares
-    whether a branch is an independent WHOLE-PATTERN alternative, the
-    shape a bare generic method name has to have to overmatch on its
-    own), gap-fill's cap cares how many distinct things one pattern can
-    match at all. `\\b(A|B|C)\\b` offers three alternatives exactly as
-    much as a top-level `A|B|C` would, and the grouped form is how this
-    vocabulary's own existing patterns are written (p7_removedtyp,
-    p12_unions, ...), so counting only depth-0 pipes would miss the
-    exact shape a gap-fill kitchen-sink pattern is written in."""
-    n, i, length = 1, 0, len(regex)
-    while i < length:
-        ch = regex[i]
-        if ch == "\\" and i + 1 < length:
-            i += 2
-            continue
-        if ch == "|":
-            n += 1
-        i += 1
-    return n
+# Identifier-shaped tokens that show up in a gap-fill pattern's regex
+# source as part of the MATCH SHAPE -- an import-statement alternation,
+# a class/def declaration, an async/await call context -- rather than
+# naming a target symbol. Deliberately this specific, short list (not
+# the full Python keyword list): most keywords have no reason to appear
+# literally in a vocabulary pattern's regex source at all, so there's
+# nothing to curate defensively against; these ten are the ones that
+# plausibly DO, because a gap-fill pattern legitimately anchors a symbol
+# to how it's imported or declared.
+GAPFILL_SYMBOL_COUNT_STOPWORDS = {
+    "import", "from", "class", "def", "return", "async", "await",
+    "raise", "with", "as",
+}
+
+
+def _distinct_symbols(regex):
+    """How many distinct target SYMBOLS a gap-fill pattern's regex
+    covers -- not how many `|`-branches its regex syntax uses. Reuses
+    _regex_identifier_tokens (the same extraction the id check uses),
+    drops match-shape vocabulary (GAPFILL_SYMBOL_COUNT_STOPWORDS), and
+    deduplicates case-insensitively -- a symbol named in several
+    contexts (an import line, a quoted string, an attribute access)
+    counts once, not once per context. Returns the set of symbols
+    found, lowercased, so a caller can both count them (len) and name
+    them in an error message."""
+    tokens = _regex_identifier_tokens(regex)
+    return {t.lower() for t in tokens if t.lower() not in GAPFILL_SYMBOL_COUNT_STOPWORDS}
 
 
 def _validate_gapfill_pattern_anti_goodhart(name, regex, what, warnings=None):
-    """The alternation cap hard-fails via _fail, same as every other
+    """The symbol-count cap hard-fails via _fail, same as every other
     check in this file. The id check does not: it appends a warning
     dict to `warnings` (when given; silently a no-op otherwise) instead
-    of raising. See the block comment above GAPFILL_MAX_ALTERNATIVES for
-    why -- the id check's premise (an id abbreviates ONE symbol) is
+    of raising. See the block comment above GAPFILL_MAX_SYMBOLS for why
+    -- the id check's premise (an id abbreviates ONE symbol) is
     sometimes wrong for a legitimate multi-symbol alternation, and two
     real false-fails on valid gap-fill output are the reason this is a
     warning and not a third hard-fail."""
-    branches = _count_alternation_branches(regex)
-    if branches > GAPFILL_MAX_ALTERNATIVES:
+    symbols = _distinct_symbols(regex)
+    if len(symbols) > GAPFILL_MAX_SYMBOLS:
         _fail(
             what,
-            f"gap-fill pattern '{name}' ({regex!r}) has {branches} alternation "
-            f"branches, over the gap-fill cap of {GAPFILL_MAX_ALTERNATIVES}. "
-            f"If these branches genuinely share one call shape from the same fact or "
-            f"sibling facts, that's still capped here deliberately -- split into more "
-            f"than one pattern. If some of them don't actually belong together, decline "
-            f"the ones that don't fit (see the 'declined' bucket) rather than folding "
-            f"them into one pattern to shrink the decline count.",
+            f"gap-fill pattern '{name}' ({regex!r}) covers {len(symbols)} distinct "
+            f"symbols ({', '.join(sorted(symbols))}), over the gap-fill cap of "
+            f"{GAPFILL_MAX_SYMBOLS}. If these are genuinely the same call shape from "
+            f"the same fact or sibling facts, that's still capped here deliberately -- "
+            f"split into more than one pattern. If some of them don't actually belong "
+            f"together, decline the ones that don't fit (see the 'declined' bucket) "
+            f"rather than folding them into one pattern to shrink the decline count. "
+            f"(This counts distinct SYMBOLS, not `|` occurrences -- the same symbol "
+            f"matched in several syntactic contexts, e.g. an import line and a quoted "
+            f"string, counts once.)",
         )
     tokens = _regex_identifier_tokens(regex)
     remainder = _id_remainder(name)

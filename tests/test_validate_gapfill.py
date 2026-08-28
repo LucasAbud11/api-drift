@@ -1,9 +1,9 @@
 """Offline tests for the gap-fill two-bucket contract (validate.py):
 shape checks shared with validate_vocabulary via _validate_pattern_regex,
 and the two checks specific to gap-fill's narrower, more exploitable
-prompt -- max alternation branches (hard-fail) and id-reads-as-an-
-abbreviation (warning only, collected via the `warnings` list param, not
-raised -- see validate_gapfill_dict's docstring). No network, no LLM
+prompt -- max distinct symbols per pattern (hard-fail) and id-reads-as-
+an-abbreviation (warning only, collected via the `warnings` list param,
+not raised -- see validate_gapfill_dict's docstring). No network, no LLM
 calls.
 """
 import pytest
@@ -101,42 +101,66 @@ def test_bare_dotted_generic_call_fails():
 
 
 # ---------------------------------------------------------------------
-# Anti-Goodhart: max alternation branches
+# Anti-Goodhart: max DISTINCT SYMBOLS, not max `|` occurrences.
+#
+# The first implementation counted every `|` in the regex, which
+# conflated two different things: how many unrelated target symbols a
+# pattern covers (the actual Goodhart risk) and how much alternation
+# SYNTAX it uses to match one or a few symbols across several contexts.
+# A pattern legitimately anchoring `certifi`/`truststore` to both an
+# import statement and a quoted string needs 5 `|` for 2 real symbols;
+# the old counting rejected it as "5 branches." These tests pin the
+# real, cost-confirmed cases: the certifi/truststore pattern must pass,
+# an unrelated 4-symbol kitchen sink must still fail, and one symbol
+# matched in several syntactic contexts must pass regardless of how
+# many `|` that takes.
 # ---------------------------------------------------------------------
 
-def test_pattern_within_alternation_cap_passes():
+def test_pattern_within_symbol_cap_passes():
     validate.validate_gapfill_dict(_result(patterns=[
         {"name": "gf_clientsecret", "regex": r"\b(client_secret_basic|client_secret_post|private_key_jwt)\b"},
     ]))
 
 
-def test_pattern_over_alternation_cap_fails():
+def test_pattern_over_symbol_cap_fails():
     # The exact Goodhart shape this cap exists to catch: one broad
     # alternation whose branches are unrelated target facts' own
     # identifiers, satisfying the coverage checker for all of them at
-    # once without a real per-symbol pattern for any of them. Written in
-    # the grouped `\b(A|B|C|D)\b` form this vocabulary's own existing
-    # patterns already use -- the branches are nested inside one group,
-    # not top-level alternatives, and the cap must still catch it.
+    # once without a real per-symbol pattern for any of them.
     kitchen_sink = r"\b(ClientSession|RootModel|TypeAliasType|ErrorData)\b"
-    with pytest.raises(ValueError, match="alternation branches"):
+    with pytest.raises(ValueError, match="4 distinct symbols"):
         validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_misc", "regex": kitchen_sink}]))
 
 
-def test_alternation_cap_counts_nested_pipes_too():
-    # Exactly at the cap (3 branches) inside a nested, non-alternation-
-    # named group -- must still pass, since it's genuinely under the cap.
-    validate.validate_gapfill_dict(_result(patterns=[
-        {"name": "gf_rootmodel", "regex": r"\bRootModel\((?:foo|bar|baz)\)"},
-    ]))
+def test_two_symbols_in_two_syntactic_contexts_each_passes():
+    # The real false-positive that motivated this fix, the exact
+    # rejected regex: covers exactly two symbols (certifi, truststore),
+    # each named twice for two match contexts (an import line, a
+    # quoted string) -- 5 `|` in the regex, 2 distinct symbols, well
+    # under the cap of 3.
+    regex = r"""(?:import|from)\s+(?:certifi|truststore)\b|["'](?:certifi|truststore)["']"""
+    validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_certtruststore", "regex": regex}]))
 
 
-def test_alternation_cap_ignores_escaped_literal_pipe():
-    # `\|` is a literal pipe character in the matched text, not an
-    # alternation operator -- must not inflate the branch count.
-    validate.validate_gapfill_dict(_result(patterns=[
-        {"name": "gf_rootmodel", "regex": r"\bRootModel\|v2\b"},
-    ]))
+def test_one_symbol_in_four_syntactic_contexts_passes():
+    # One real target symbol, matched via an attribute access, a call,
+    # an import, and a quoted string -- 4 distinct syntactic shapes, 1
+    # distinct symbol. Must pass regardless of how many `|` or contexts
+    # that takes.
+    validate.validate_gapfill_dict(_result(patterns=[{
+        "name": "gf_rootmodel",
+        "regex": r"\.RootModel\b|\bRootModel\(|from\s+\S+\s+import\s+RootModel|[\"']RootModel[\"']",
+    }]))
+
+
+def test_symbol_cap_ignores_import_from_keywords():
+    # `import`/`from` are match-shape vocabulary, not target symbols --
+    # a pattern anchoring 3 real symbols to an import statement must not
+    # be penalized for also containing those two keywords.
+    validate.validate_gapfill_dict(_result(patterns=[{
+        "name": "gf_threeimports",
+        "regex": r"(?:import|from)\s+(?:widgetone|widgettwo|widgetthree)\b",
+    }]))
 
 
 # ---------------------------------------------------------------------

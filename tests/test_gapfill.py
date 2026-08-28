@@ -307,7 +307,7 @@ def test_run_invalid_gapfill_output_raises_and_leaves_no_chunk_file(tmp_path):
     # hard-fail via validate_gapfill_dict, not get silently accepted or
     # partially written.
     response = {
-        "patterns": [{"name": "gf_misc", "regex": r"\b(A|B|C|D)\b"}],
+        "patterns": [{"name": "gf_misc", "regex": r"\b(WidgetOne|WidgetTwo|WidgetThree|WidgetFour)\b"}],
         "declined": [],
     }
     client = FakeGapfillClient(response)
@@ -468,10 +468,10 @@ def test_run_resume_after_a_later_chunk_fails_validation_does_not_recharge_the_e
     factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=2)
     bad_script = {
         "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
-        "gapfill_chunk_001": {"patterns": [{"name": "gf_bad", "regex": r"\b(A|B|C|D)\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_bad", "regex": r"\b(WidgetOne|WidgetTwo|WidgetThree|WidgetFour)\b"}], "declined": []},
     }
     client = FakeGapfillClient(bad_script)
-    with pytest.raises(ValueError, match="alternation"):
+    with pytest.raises(ValueError, match="distinct symbols"):
         gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1)
 
     assert os.path.isfile(os.path.join(workdir, "gapfill", "chunk_000.json"))
