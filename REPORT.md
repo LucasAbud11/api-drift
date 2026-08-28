@@ -902,3 +902,63 @@ corpus of deliberately malicious MCP servers as scan fixtures, which
 makes the refusal explicable, but two refusals on two unrelated repos
 whose only shared property is "security tooling" confirms the failure
 mode is domain-driven, not a one-off.
+
+**Gap-fill result, measured — the pre-registered test passes.** The
+finding above stated a specific, checkable prediction: `ClientSession`
+produces zero candidates out of 815 despite three production sites in
+`mcpscanner/core/scanner.py`. After one gap-fill pass against this same
+guide and vocabulary, all three appear — lines 1382, 1536, 1864 — plus
+the import at line 34, none of which grep could reach before. Over the
+run's 323 target facts, the three-bucket split was 206 patterns, 124
+explicit declines, 0 unresolved. The decline channel was the actual
+point of the design, not a side effect of it: before it existed, "the
+model chose not to write a pattern" and "the model never got to this
+fact at all" were indistinguishable, which is exactly how 269 real gaps
+sat silent in the original diagnostic.
+
+**Cost ran above estimate, and prompt caching paid for itself for the
+first time on this project.** $3.03 across 11 chunks, against a
+pre-call estimate of $1.20–$1.60 — the gap was output volume, not input:
+74,934 output tokens, well past what the estimate (input-token-only, by
+design — see gapfill.py's `estimate_cost_report`) could see coming.
+`cache_read` hit 852,490 tokens on this run, the first time cache reads
+actually registered anywhere in this project's cost reporting (§10
+above records three prior runs against this same guide writing
+144,795 tokens to the cache and reading zero back). Rough accounting:
+the same run without a cache to read from would have priced the shared
+system-prompt prefix at full input rate on each of the 11 chunks instead
+of once, on the order of triple the actual cost.
+
+**Two problems the run exposed, both about redundancy chunking
+introduces rather than about coverage.** First: chunks are derived
+independently, with no visibility into what an earlier chunk already
+wrote, so the same symbol can get patterned more than once — six
+separate patterns exist for `ClientSession` alone (`gf_clientsess` plus
+three suffixed variants, `gf_clisess` plus one). Merge only renames a
+colliding id (see gapfill.py's `_merge_patterns`); it was never designed
+to notice that two differently-named patterns match the same thing, so
+none of the six collapsed. Second, and downstream of the first:
+candidates went from 815 to 2,795, with 908 collapsed as duplicates
+during prefilter versus 118 in the pre-gap-fill baseline — the same
+lines are being matched repeatedly by redundant patterns rather than
+once each. Prefilter's stage C absorbs the duplication before
+adjudication sees it, so detection output isn't wrong, but adjudication
+cost scales with candidate count, and this run paid for matching
+`ClientSession` six times over instead of once.
+
+**The two anti-Goodhart checks' track record, including the run that
+finally succeeded.** Across four consecutive `chunk_000` responses, both
+checks hard-failed on valid output — $2.88 spent before either was
+downgraded to a warning (§10 above documents each case: `|`-counting,
+symbol-counting on a two-symbol pattern, a dotted path with a spelling
+variant). On the merged output that eventually produced the 206/124/0
+split above, both checks — now warnings, still computed, still
+reported — flagged nothing. Four hard-fails, zero warnings, on a run
+whose actual defects (six redundant `ClientSession` patterns) were
+exactly the kind of thing an anti-Goodhart check might have caught and
+didn't, because duplication across chunks was never what either check
+looked for. The distinction that held up: the checks on this project
+that have earned a permanent place test a fact about an artifact
+(a regex compiles, a fact block is non-empty, a candidate has a
+verdict); these two tried to infer intent from naming and grouping, and
+were wrong every time they fired.
