@@ -52,7 +52,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         fixgen_chunk_size=fixgen.DEFAULT_CHUNK_SIZE, verify_install=True,
         package_version_override=None, factblock_path=None, vocabulary_path=None,
         factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None, cache_ttl="5m",
-        gapfill=False, gapfill_confirmed=False):
+        gapfill=False, gapfill_confirmed=False, gapfill_chunk_size=gapfill_stage.DEFAULT_CHUNK_SIZE):
     """Runs the full pipeline. Never writes anything outside `workdir` --
     repo access goes exclusively through RepoReader, which has no write
     method. Returns a dict with every intermediate artifact plus the
@@ -88,15 +88,17 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     stages/adjudicate.py and stages/fixgen.py for why a single-chunk run
     can't benefit from its own cache write regardless of TTL.
 
-    `gapfill`/`gapfill_confirmed`: `gapfill` defaults False -- stage 2's
-    output is used exactly as before unless explicitly turned on.
-    Turning it on with `gapfill_confirmed` still False computes the
-    target set and estimated cost, prints it, and stops by raising
-    GapfillNeedsConfirmation rather than making the call -- this project
-    never spends real API cost on an inferred yes (see stages/gapfill.py
-    for the one-pass gap-fill this runs when confirmed). Both flags are
-    no-ops if the target set turns out empty (stage 2 already covered
-    everything after the structural pre-filter)."""
+    `gapfill`/`gapfill_confirmed`/`gapfill_chunk_size`: `gapfill` defaults
+    False -- stage 2's output is used exactly as before unless
+    explicitly turned on. Turning it on with `gapfill_confirmed` still
+    False computes the target set, the planned chunks, and an estimated
+    cost, prints it, and stops by raising GapfillNeedsConfirmation
+    rather than making any call -- this project never spends real API
+    cost on an inferred yes (see stages/gapfill.py for the chunked gap-
+    fill pass this runs when confirmed, and why chunking by target-fact
+    count rather than raising max_tokens is the fix for a large target
+    set). All three are no-ops if the target set turns out empty (stage
+    2 already covered everything after the structural pre-filter)."""
     preflight.check_inputs(repo_root, guide_path, workdir,
                             factblock_path=factblock_path, vocabulary_path=vocabulary_path)
     os.makedirs(workdir, exist_ok=True)
@@ -179,19 +181,28 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
                       "structural pre-filter -- nothing to do.")
         else:
             plan_report = "\n".join(
-                gapfill_stage.estimate_cost_report(guide_text, vocab, fb, targets, model=model)
+                gapfill_stage.estimate_cost_report(
+                    guide_text, vocab, fb, targets, chunk_size=gapfill_chunk_size, model=model,
+                )
             )
             if not gapfill_confirmed:
                 print_fn(plan_report)
                 raise GapfillNeedsConfirmation(plan_report)
-            print_fn(f"[gapfill] deriving patterns for {len(targets)} target fact(s)...")
+            n_chunks = len(gapfill_stage.plan_chunks(targets, gapfill_chunk_size))
+            print_fn(f"[gapfill] deriving patterns for {len(targets)} target fact(s) "
+                      f"({n_chunks} chunk(s))...")
             vocab, gapfill_report, coverage_rows = gapfill_stage.run(
-                client, guide_text, fb, vocab, coverage_rows, workdir, cache_ttl=cache_ttl,
+                client, guide_text, fb, vocab, coverage_rows, workdir,
+                chunk_size=gapfill_chunk_size, cache_ttl=cache_ttl,
             )
             _write_json(os.path.join(workdir, "vocabulary_after_gapfill.json"), vocab)
             print_fn(f"      [gapfill] {len(gapfill_report['new_patterns'])} new pattern(s), "
                       f"{len(gapfill_report['declined'])} declined, "
                       f"{len(gapfill_report['unresolved'])} unresolved")
+            if gapfill_report["renamed_on_merge"]:
+                print_fn(f"      [gapfill] {len(gapfill_report['renamed_on_merge'])} pattern "
+                          f"id(s) renamed on merge (collided across chunks): "
+                          f"{gapfill_report['renamed_on_merge']}")
 
     coverage_summary = {"non_breaking": 0, "no_identifier": 0, "unsearchable": 0, "covered": 0, "partial": 0, "uncovered": 0}
     for row in coverage_rows:

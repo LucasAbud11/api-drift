@@ -2,9 +2,9 @@ import argparse
 import sys
 from argparse import BooleanOptionalAction
 
-from . import llm, pipeline, preflight, validate, writer
+from . import guards, llm, pipeline, preflight, validate, writer
 from .llm import AnthropicLLMClient, LLMError
-from .stages import factblock, fixgen
+from .stages import factblock, fixgen, gapfill
 
 
 def main(argv=None):
@@ -63,6 +63,11 @@ def main(argv=None):
     run_p.add_argument("--gapfill-yes", action="store_true",
                         help="Confirm the gap-fill plan printed by --gapfill and actually "
                              "make the call. Ignored if --gapfill is off.")
+    run_p.add_argument("--gapfill-chunk-size", type=int, default=None,
+                        help="Target facts per gap-fill call -- gap-fill's output is one "
+                             "pattern-or-decline per target fact, so a larger guide with "
+                             "more gaps needs more chunks, not a higher max_tokens. "
+                             f"Default: {gapfill.DEFAULT_CHUNK_SIZE}.")
     run_p.add_argument("--cache-ttl", choices=["5m", "1h"], default="5m",
                         help="Prompt-cache TTL for adjudication/fix-generation's system "
                              "prompt (default: 5m). '1h' costs a higher cache-write premium "
@@ -89,6 +94,7 @@ def main(argv=None):
             workdir = f"./.api-drift-run/{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
 
         factblock_chunk_size = args.factblock_chunk_size or factblock.DEFAULT_CHUNK_SIZE
+        gapfill_chunk_size = args.gapfill_chunk_size or gapfill.DEFAULT_CHUNK_SIZE
 
         if args.dry_run:
             # No client is ever constructed on this path -- not just
@@ -98,16 +104,44 @@ def main(argv=None):
             # call" literally.
             try:
                 preflight.check_guide(args.guide)
-                if args.factblock:
-                    print(f"--dry-run: --factblock={args.factblock!r} is set -- stage 1 "
-                          f"would be loaded from disk, not derived, so there is no chunk "
-                          f"plan or cost to estimate. Nothing to do.")
-                    return
                 with open(args.guide, encoding="utf-8") as f:
                     guide_text = f.read()
             except preflight.PreflightError as e:
                 print(f"\nSTOPPED: {e}\n", file=sys.stderr)
                 sys.exit(1)
+
+            if args.gapfill:
+                # Gap-fill's plan depends on coverage, which depends on
+                # BOTH a fact block and a vocabulary already existing --
+                # --dry-run never derives either (that's the one API
+                # call this mode exists to avoid), so a gap-fill plan is
+                # only computable here when both are already on disk.
+                if not (args.factblock and args.vocabulary):
+                    print("--dry-run --gapfill: gap-fill's plan needs a coverage computation, "
+                          "which needs both a fact block and a vocabulary already derived -- "
+                          "pass --factblock and --vocabulary (both loaded from disk, no API "
+                          "call) to estimate a gap-fill chunk plan. Nothing to estimate "
+                          "without both.")
+                    return
+                try:
+                    fb = validate.validate_factblock_file(args.factblock)
+                    vocab = validate.validate_vocabulary_file(args.vocabulary)
+                except ValueError as e:
+                    print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+                    sys.exit(1)
+                coverage_rows = guards.compute_fact_pattern_coverage(fb, vocab)
+                targets = gapfill.build_targets(coverage_rows)
+                for line in gapfill.estimate_cost_report(
+                    guide_text, vocab, fb, targets, chunk_size=gapfill_chunk_size, model=args.model,
+                ):
+                    print(line)
+                return
+
+            if args.factblock:
+                print(f"--dry-run: --factblock={args.factblock!r} is set -- stage 1 "
+                      f"would be loaded from disk, not derived, so there is no chunk "
+                      f"plan or cost to estimate. Nothing to do.")
+                return
             for line in factblock.format_dry_run_report(guide_text, factblock_chunk_size,
                                                           model=args.model):
                 print(line)
@@ -136,6 +170,7 @@ def main(argv=None):
                 cache_ttl=args.cache_ttl,
                 gapfill=args.gapfill,
                 gapfill_confirmed=args.gapfill_yes,
+                gapfill_chunk_size=gapfill_chunk_size,
             )
         except preflight.PreflightError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)

@@ -1,16 +1,17 @@
 """Offline tests for gap-fill (apidrift/stages/gapfill.py): target-set
-construction from the coverage guard's own output, the offline cost
-estimate, idempotent single-pass persistence, pattern-id collision
-detection on merge, and the declined/unresolved bookkeeping. No
-network, no LLM calls -- a scripted fake client answers the one call a
-pass makes.
+construction from the coverage guard's own output, chunk planning, the
+offline cost estimate, idempotent per-chunk persistence, pattern-id
+collision handling on merge (hard fail against the pre-existing
+vocabulary, auto-renumber across gap-fill's own chunks), and the
+declined/unresolved bookkeeping. No network, no LLM calls -- a scripted
+fake client answers whichever chunks actually need deriving.
 """
 import json
 import os
 
 import pytest
 
-from apidrift import guards
+from apidrift import guards, llm
 from apidrift.stages import gapfill
 
 
@@ -19,6 +20,10 @@ from apidrift.stages import gapfill
 # ---------------------------------------------------------------------
 
 class FakeGapfillClient:
+    """`response` is either one response reused for every chunk, or a
+    dict keyed by stage name (e.g. "gapfill_chunk_000") for scripting
+    different chunks differently -- same shape ScriptedLLMClient uses
+    elsewhere in this test suite."""
     def __init__(self, response):
         self._response = response
         self.calls = []
@@ -26,9 +31,33 @@ class FakeGapfillClient:
     def complete(self, stage, system_text, user_text, schema, cache_system=False,
                  cache_ttl="5m", max_tokens=8000, effort="high"):
         self.calls.append({"stage": stage, "system_text": system_text, "user_text": user_text,
+                            "cache_system": cache_system,
                             "usage": {"input_tokens": 100, "output_tokens": 50,
                                       "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}})
-        return self._response() if callable(self._response) else self._response
+        # A single-response dict has "patterns"/"declined" directly; a
+        # per-stage script is a dict of {stage_name: response}.
+        if isinstance(self._response, dict) and "patterns" not in self._response:
+            resp = self._response[stage]
+        else:
+            resp = self._response
+        return resp() if callable(resp) else resp
+
+
+class TruncatingLLMClient:
+    """Always raises llm.TruncatedResponseError, exactly like the real
+    AnthropicLLMClient does when stop_reason == 'max_tokens' -- used to
+    check gap-fill wraps the error with chunk-specific guidance rather
+    than letting the bare SDK-shaped message through."""
+    def __init__(self):
+        self.calls = []
+
+    def complete(self, stage, system_text, user_text, schema, cache_system=False,
+                 cache_ttl="5m", max_tokens=8000, effort="high"):
+        self.calls.append(stage)
+        raise llm.TruncatedResponseError(
+            f"[{stage}] the model's response was cut off at the {max_tokens}-token "
+            f"max_tokens limit before it finished."
+        )
 
 
 def _fb(package_name, texts):
@@ -110,7 +139,8 @@ def test_estimate_cost_report_makes_no_call_and_reports_target_count():
     lines = gapfill.estimate_cost_report("guide text " * 50, vocabulary, factblock, targets)
     joined = "\n".join(lines)
     assert "1 target fact(s)" in joined
-    assert "no API call made yet" in joined
+    assert "1 planned chunk(s)" in joined
+    assert "no API calls made yet" in joined
 
 
 def test_estimate_cost_report_includes_dollar_estimate_for_known_model():
@@ -231,19 +261,22 @@ def test_run_id_collision_with_existing_vocabulary_raises(tmp_path):
         gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
 
 
-def test_run_persists_pass_file_and_report(tmp_path):
+def test_run_persists_chunk_file_merged_file_and_report(tmp_path):
     factblock, vocabulary, rows, workdir = _setup(tmp_path)
     response = {"patterns": [{"name": "gf_widgetsess", "regex": r"\bWidgetSession\b"}], "declined": []}
     client = FakeGapfillClient(response)
     gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
 
-    assert os.path.isfile(os.path.join(workdir, "gapfill", "pass_000.json"))
+    assert os.path.isfile(os.path.join(workdir, "gapfill", "chunk_000.json"))
+    assert os.path.isfile(os.path.join(workdir, "gapfill", "merged.json"))
     with open(os.path.join(workdir, "gapfill", "report.json")) as f:
         report = json.load(f)
     assert report["new_patterns"] == ["gf_widgetsess"]
+    assert report["chunk_count"] == 1
+    assert report["renamed_on_merge"] == []
 
 
-def test_run_invalid_gapfill_output_raises_and_leaves_no_pass_file(tmp_path):
+def test_run_invalid_gapfill_output_raises_and_leaves_no_chunk_file(tmp_path):
     factblock, vocabulary, rows, workdir = _setup(tmp_path)
     # A pattern that violates the anti-Goodhart alternation cap -- must
     # hard-fail via validate_gapfill_dict, not get silently accepted or
@@ -256,4 +289,154 @@ def test_run_invalid_gapfill_output_raises_and_leaves_no_pass_file(tmp_path):
 
     with pytest.raises(ValueError):
         gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
-    assert not os.path.isfile(os.path.join(workdir, "gapfill", "pass_000.json"))
+    assert not os.path.isfile(os.path.join(workdir, "gapfill", "chunk_000.json"))
+
+
+# ---------------------------------------------------------------------
+# Chunking: plan, multi-chunk merge/renumbering, resume, truncation
+# ---------------------------------------------------------------------
+
+def _targets(n):
+    """n distinct target facts, each with its own single searchable,
+    uncovered span -- built directly as build_targets' own output shape
+    rather than through a real coverage computation, since these tests
+    are about chunk planning/merging, not span matching."""
+    return {i: {"text": f"fact {i} text", "spans": [f"Symbol{i}"]} for i in range(1, n + 1)}
+
+
+def test_plan_chunks_splits_by_size_in_fact_order():
+    chunks = gapfill.plan_chunks(_targets(7), chunk_size=3)
+    assert [sorted(c) for c in chunks] == [[1, 2, 3], [4, 5, 6], [7]]
+
+
+def test_plan_chunks_empty_targets_is_zero_chunks():
+    assert gapfill.plan_chunks({}, chunk_size=3) == []
+
+
+def test_plan_chunks_all_facts_present_exactly_once():
+    targets = _targets(11)
+    chunks = gapfill.plan_chunks(targets, chunk_size=4)
+    all_numbers = [n for c in chunks for n in c]
+    assert sorted(all_numbers) == sorted(targets)
+
+
+def _multi_setup(tmp_path, n_facts):
+    texts = [f"`Symbol{i}` construction changed." for i in range(1, n_facts + 1)]
+    factblock = _fb("widget", texts)
+    vocabulary = {"patterns": {"p1": r"\bwidget\.Client\b"}}
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    return factblock, vocabulary, rows, str(tmp_path)
+
+
+def test_run_splits_into_multiple_chunks_and_makes_one_call_each(tmp_path):
+    factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=5)
+    script = {
+        "gapfill_chunk_000": {
+            "patterns": [
+                {"name": "gf_symbol1", "regex": r"\bSymbol1\b"},
+                {"name": "gf_symbol2", "regex": r"\bSymbol2\b"},
+            ],
+            "declined": [],
+        },
+        "gapfill_chunk_001": {
+            "patterns": [{"name": "gf_symbol3", "regex": r"\bSymbol3\b"}],
+            "declined": [{"fact": 4, "span": "Symbol4", "reason": "no qualifying context stated"}],
+        },
+        "gapfill_chunk_002": {"patterns": [], "declined": []},
+    }
+    client = FakeGapfillClient(script)
+
+    merged, report, new_rows = gapfill.run(
+        client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=2,
+    )
+
+    assert sorted(c["stage"] for c in client.calls) == [
+        "gapfill_chunk_000", "gapfill_chunk_001", "gapfill_chunk_002",
+    ]
+    assert report["chunk_count"] == 3
+    assert set(report["new_patterns"]) == {"gf_symbol1", "gf_symbol2", "gf_symbol3"}
+    assert report["declined"] == [{"fact": 4, "span": "Symbol4", "reason": "no qualifying context stated"}]
+    # fact 5 (Symbol5) got neither a pattern nor a decline from chunk_002.
+    assert report["unresolved"] == [{"fact": 5, "span": "Symbol5"}]
+    assert "gf_symbol1" in merged["patterns"] and "gf_symbol3" in merged["patterns"]
+
+
+def test_run_caches_system_prompt_when_more_than_one_chunk(tmp_path):
+    factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=3)
+    script = {
+        "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_symbol2", "regex": r"\bSymbol2\b"}], "declined": []},
+        "gapfill_chunk_002": {"patterns": [{"name": "gf_symbol3", "regex": r"\bSymbol3\b"}], "declined": []},
+    }
+    client = FakeGapfillClient(script)
+    gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1)
+
+    assert all(c["cache_system"] for c in client.calls)
+    # Every chunk's system_text is byte-identical -- only user_text
+    # (the chunk's own target-fact slice) should vary, which is what
+    # makes a cache write from chunk 0 redeemable by chunk 1 onward.
+    system_texts = {c["system_text"] for c in client.calls}
+    assert len(system_texts) == 1
+
+
+def test_run_does_not_cache_system_prompt_for_a_single_chunk_default_ttl(tmp_path):
+    factblock, vocabulary, rows, workdir = _setup(tmp_path)
+    response = {"patterns": [{"name": "gf_widgetsess", "regex": r"\bWidgetSession\b"}], "declined": []}
+    client = FakeGapfillClient(response)
+    gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
+
+    assert client.calls[0]["cache_system"] is False
+
+
+def test_run_renumbers_pattern_id_colliding_across_chunks(tmp_path):
+    factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=2)
+    # Both chunks independently pick the same id for a different symbol
+    # -- an expected consequence of deriving each chunk with no
+    # visibility into what id any other chunk chose, not a model defect.
+    script = {
+        "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol", "regex": r"\bSymbol1\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_symbol", "regex": r"\bSymbol2\b"}], "declined": []},
+    }
+    client = FakeGapfillClient(script)
+
+    merged, report, _ = gapfill.run(
+        client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1,
+    )
+
+    assert "gf_symbol" in merged["patterns"]
+    assert "gf_symbol_2" in merged["patterns"]
+    assert merged["patterns"]["gf_symbol"] == r"\bSymbol1\b"
+    assert merged["patterns"]["gf_symbol_2"] == r"\bSymbol2\b"
+    assert report["renamed_on_merge"] == [{"from": "gf_symbol", "to": "gf_symbol_2"}]
+
+
+def test_run_resume_only_calls_for_incomplete_chunks(tmp_path):
+    factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=2)
+    script = {
+        "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_symbol2", "regex": r"\bSymbol2\b"}], "declined": []},
+    }
+    client = FakeGapfillClient(script)
+    gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1)
+    assert len(client.calls) == 2
+
+    # Delete chunk 1's file only -- a resumed run must re-derive exactly
+    # that one chunk, never chunk 0 again.
+    os.remove(os.path.join(workdir, "gapfill", "chunk_001.json"))
+    client2 = FakeGapfillClient(script)
+    merged, report, _ = gapfill.run(
+        client2, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1,
+    )
+    assert [c["stage"] for c in client2.calls] == ["gapfill_chunk_001"]
+    assert "gf_symbol1" in merged["patterns"] and "gf_symbol2" in merged["patterns"]
+
+
+def test_run_truncation_error_names_the_chunk_and_suggests_lowering_chunk_size(tmp_path):
+    factblock, vocabulary, rows, workdir = _setup(tmp_path)
+    client = TruncatingLLMClient()
+
+    with pytest.raises(llm.TruncatedResponseError, match="gapfill_chunk_000"):
+        gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
+    # The retry-guidance in the wrapped message names the actual flag.
+    with pytest.raises(llm.TruncatedResponseError, match="--gapfill-chunk-size"):
+        gapfill.run(TruncatingLLMClient(), "guide text", factblock, vocabulary, rows, workdir)

@@ -42,7 +42,7 @@ def _script():
         "vocabulary": {
             "patterns": [{"name": "p1", "regex": r"\bWidgetOldThing\b"}],
         },
-        "gapfill_pass_000": {
+        "gapfill_chunk_000": {
             "patterns": [{"name": "gf_widgetsess", "regex": r"\bWidgetSession\b"}],
             "declined": [],
         },
@@ -82,7 +82,7 @@ def test_gapfill_without_confirmation_stops_before_any_gapfill_call(tmp_path):
         )
 
     assert "1 target fact(s)" in exc_info.value.plan_report
-    assert "no API call made yet" in exc_info.value.plan_report
+    assert "no API calls made yet" in exc_info.value.plan_report
     assert not any(c.startswith("gapfill") for c in client.calls)
     assert not os.path.isdir(os.path.join(workdir, "gapfill"))
 

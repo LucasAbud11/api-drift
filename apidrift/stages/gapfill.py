@@ -1,6 +1,6 @@
-"""Gap-fill: one scoped derivation pass for facts stage 2's vocabulary
-derivation never wrote a pattern for. Confirmed on a real guide (the MCP
-v1->v2 migration guide, 819 facts): 269 of 320 searchable-but-uncovered
+"""Gap-fill: chunked derivation for facts stage 2's vocabulary derivation
+never wrote a pattern for. Confirmed on a real guide (the MCP v1->v2
+migration guide, 819 facts): 269 of 320 searchable-but-uncovered
 identifier spans are real, guide-stated API surface with zero token
 overlap with any of the 115 derived patterns -- stage 2 never attempted
 them, not a near-miss. `guards.compute_fact_pattern_coverage` already
@@ -9,8 +9,18 @@ with no covering pattern; that computation is this stage's entire input.
 It is handed the exact per-fact uncovered-span list, never asked to
 re-derive what's missing.
 
-One pass only -- no iteration yet. See build_targets/run for the
-pre-filter and the single derivation call; a future loop would recompute
+Chunked by target-fact count, same idempotent-per-chunk-file design
+adjudicate.py already uses: gap-fill's output is one pattern-or-decline
+per target fact, the same "count of items in bounds output size" shape
+adjudication has (unlike factblock's guide-section/token-budget
+splitting) -- a single call over 323 target facts truncated at
+max_tokens=16000, confirming output scales with target count. Raising
+max_tokens is not the fix (it also risks crossing the SDK's non-
+streaming request-duration ceiling, which is why llm.py streams every
+call already); splitting the target set is.
+
+One gap-fill PASS only -- no iteration yet. See build_targets/run for
+the pre-filter and the chunked derivation; a future loop would recompute
 coverage after this pass and repeat until it stops improving or a cap is
 reached, but that isn't built here.
 """
@@ -59,6 +69,30 @@ SCHEMA = {
 
 MAX_TOKENS = 16000
 
+# Picked by anchoring to the two existing chunked stages' own item/token
+# ratios, since neither is an exact match on its own:
+#   - adjudicate.py: 40 candidates per chunk at max_tokens=8000 (~200
+#     output tokens/item) for a SIMPLER per-item judgment -- one triage
+#     verdict, no cross-referencing against 100+ existing patterns, no
+#     multi-rule constraint checking.
+#   - fixgen.py: 15 sites per chunk at max_tokens=8000 (~533 tokens/item)
+#     for a HEAVIER per-item judgment -- a real line-level diff plus a
+#     reason, closer in weight to what gap-fill's decline reasoning and
+#     anti-Goodhart/qualification self-checking actually require.
+# Gap-fill's max_tokens is double either (16000, kept from stage 2's own
+# budget rather than lowered, since lowering it further would only
+# shrink the wall this chunking is already meant to move). Scaling
+# fixgen's heavier per-item ratio (chosen over adjudicate's lighter one,
+# since gap-fill's per-fact judgment -- dedup against the existing
+# vocabulary, the 3-branch alternation cap, the id-must-reference-the-
+# symbol check, generic-noun qualification -- is closer to fixgen's
+# weight than adjudicate's) to the doubled budget gives ~30 items/chunk.
+# 323 target facts / 30 is 11 chunks -- more calls than a looser number
+# would need, but correctness over call count: a chunk that's too small
+# wastes a fraction of a cache-read; a chunk that's too large truncates
+# and the whole chunk's work is lost.
+DEFAULT_CHUNK_SIZE = 30
+
 
 def _estimate_tokens(text):
     """Same rough ~4-chars/token heuristic as factblock.py's identically-
@@ -104,64 +138,116 @@ def _render_existing_vocabulary(vocabulary):
     return "\n".join(lines) if lines else "(none)"
 
 
-def _system_text(vocabulary):
+def plan_chunks(targets, chunk_size=DEFAULT_CHUNK_SIZE):
+    """Slices `targets` into an ordered list of chunk dicts (each a
+    {fact_number: {"text", "spans"}} sub-mapping of `targets`), at most
+    `chunk_size` target facts each, sorted by fact number for
+    determinism. Mirrors adjudicate.py's _chunks -- gap-fill's output is
+    one pattern-or-decline per target fact, the same "N items in, N
+    verdicts out" shape adjudication has, not factblock's token-budget-
+    driven guide-section splitting."""
+    numbers = sorted(targets)
+    return [
+        {n: targets[n] for n in numbers[i:i + chunk_size]}
+        for i in range(0, len(numbers), chunk_size)
+    ]
+
+
+def _system_text(guide_text, factblock, vocabulary):
+    """Everything that does NOT vary between chunks of the same gap-fill
+    pass: the base vocabulary-derivation rules, the gap-fill addendum
+    (with the existing vocabulary rendered into it), the package name,
+    and the full guide text. Deliberately built as the SYSTEM prompt,
+    not folded into user_text, specifically so it sits in the cacheable
+    prefix -- llm.py's cache_system caches the whole system block, and a
+    chunk's own varying target-fact slice is the only thing that
+    changes call to call within one pass, so this ordering is what
+    makes a cache write from chunk 0 actually redeemable by chunk 1
+    onward."""
     addendum = _ADDENDUM.replace("{EXISTING_VOCABULARY}", _render_existing_vocabulary(vocabulary))
-    return vocabulary_stage.SYSTEM_PROMPT + "\n\n---\n\n" + addendum
-
-
-def _user_text(guide_text, factblock, targets):
     return (
-        f"Primary package: {factblock['package_name']}\n\n"
-        f"TARGET FACTS ({len(targets)}) -- each with the exact identifier spans a "
-        f"deterministic coverage check found no covering pattern for:\n\n"
-        f"{_render_targets_text(targets)}\n\n"
+        vocabulary_stage.SYSTEM_PROMPT + "\n\n---\n\n" + addendum +
+        f"\n\n---\n\nPrimary package: {factblock['package_name']}\n\n"
         f"ORIGINAL GUIDE TEXT (for reference/context only):\n{guide_text}"
     )
 
 
-def estimate_cost_report(guide_text, vocabulary, factblock, targets, model=None):
-    """Pure, offline -- makes no API call. Same scope-limited honesty as
-    factblock.format_dry_run_report: input tokens only (guide text,
-    existing vocabulary, target facts' own text, the addendum prompt),
-    never model output or thinking, neither knowable before the call
-    actually runs. Returns a list of lines to print."""
-    guide_tokens = _estimate_tokens(guide_text)
-    vocab_tokens = _estimate_tokens(_render_existing_vocabulary(vocabulary))
-    targets_tokens = _estimate_tokens(_render_targets_text(targets))
-    addendum_tokens = _estimate_tokens(_ADDENDUM)
-    total = guide_tokens + vocab_tokens + targets_tokens + addendum_tokens
+def _user_text(chunk_targets, idx, total_chunks):
+    return (
+        f"TARGET FACTS -- chunk {idx + 1} of {total_chunks} ({len(chunk_targets)} fact(s) "
+        f"in this chunk), each with the exact identifier spans a deterministic coverage "
+        f"check found no covering pattern for:\n\n"
+        f"{_render_targets_text(chunk_targets)}"
+    )
+
+
+def estimate_cost_report(guide_text, vocabulary, factblock, targets,
+                          chunk_size=DEFAULT_CHUNK_SIZE, model=None):
+    """Pure, offline -- makes no API call. Reports the planned chunk
+    list and, when `model` is given, a cost estimate that accounts for
+    prompt caching across chunks: the shared prefix (base rules +
+    addendum + existing vocabulary + package name + guide text) is
+    identical every chunk and sits entirely in system_text, so it's
+    paid once at cache-write price and read back at the much cheaper
+    cache-read price by every chunk after the first. Never includes
+    model output/thinking -- neither is knowable before a chunk
+    actually runs. Used both for --dry-run (with a loaded factblock and
+    vocabulary, no client needed) and for the confirmation plan
+    pipeline.run prints before a real --gapfill call."""
+    chunks = plan_chunks(targets, chunk_size)
+    shared_tokens = (
+        _estimate_tokens(vocabulary_stage.SYSTEM_PROMPT)
+        + _estimate_tokens(_ADDENDUM)
+        + _estimate_tokens(_render_existing_vocabulary(vocabulary))
+        + _estimate_tokens(guide_text)
+    )
 
     lines = [
-        f"GAP-FILL PLAN -- {len(targets)} target fact(s), no API call made yet:",
-        f"  guide text:            ~{guide_tokens} tokens",
-        f"  existing vocabulary:   ~{vocab_tokens} tokens ({len(vocabulary['patterns'])} patterns)",
-        f"  target facts:          ~{targets_tokens} tokens",
-        f"  gap-fill addendum:     ~{addendum_tokens} tokens",
-        f"  estimated total input: ~{total} tokens (excludes the base vocabulary_system.md "
-        f"prompt -- identical text to stage 2's own system prompt, so cacheable -- and "
-        f"model output/thinking, neither knowable before the call runs)",
+        f"GAP-FILL PLAN -- {len(targets)} target fact(s), {len(chunks)} planned chunk(s) "
+        f"of up to {chunk_size} each, no API calls made yet:",
     ]
+    varying_total = 0
+    for idx, chunk_targets in enumerate(chunks):
+        chunk_tokens = _estimate_tokens(_render_targets_text(chunk_targets))
+        varying_total += chunk_tokens
+        lines.append(f"  [{idx + 1}/{len(chunks)}] {len(chunk_targets)} target fact(s)  "
+                      f"(~{chunk_tokens} varying input tokens)")
+    lines.append(f"  shared/cacheable prefix: ~{shared_tokens} tokens (base rules + "
+                  f"gap-fill addendum + existing vocabulary + guide text -- identical "
+                  f"every chunk; paid once at cache-write price, read back at cache-read "
+                  f"price by every later chunk)")
+    lines.append(f"  varying per-chunk input, summed: ~{varying_total} tokens")
+
     if model is not None:
         price = llm.PRICE_PER_MTOK.get(model)
-        if price is not None:
-            est = total / 1_000_000 * price["input_tokens"]
-            lines.append(f"  estimated input-token cost: ~${est:.4f} (before prompt-cache "
-                          f"discounts; actual cost also includes model output)")
-        else:
+        if price is None:
             lines.append(f"  no pricing data for model {model!r} -- cost not estimated")
+        elif not chunks:
+            lines.append("  0 chunks planned -- nothing to cost.")
+        else:
+            cache_write_cost = shared_tokens / 1_000_000 * price["cache_creation_input_tokens"]
+            cache_read_cost = (
+                shared_tokens * (len(chunks) - 1) / 1_000_000 * price["cache_read_input_tokens"]
+            )
+            varying_cost = varying_total / 1_000_000 * price["input_tokens"]
+            est = cache_write_cost + cache_read_cost + varying_cost
+            lines.append(f"  estimated input-token cost: ~${est:.4f} (1 cache write + "
+                          f"{max(len(chunks) - 1, 0)} cache read(s) of the shared prefix, "
+                          f"plus each chunk's own varying input at full price; excludes "
+                          f"model output/thinking)")
     return lines
 
 
-def _gapfill_dir(workdir):
+def _chunk_dir(workdir):
     return os.path.join(workdir, "gapfill")
 
 
-def _pass_path(gf_dir, idx):
-    return os.path.join(gf_dir, f"pass_{idx:03d}.json")
+def _chunk_path(gf_dir, idx):
+    return os.path.join(gf_dir, f"chunk_{idx:03d}.json")
 
 
-def _pass_is_done(gf_dir, idx):
-    path = _pass_path(gf_dir, idx)
+def _chunk_is_done(gf_dir, idx):
+    path = _chunk_path(gf_dir, idx)
     if not os.path.isfile(path):
         return False
     try:
@@ -173,71 +259,142 @@ def _pass_is_done(gf_dir, idx):
     return True
 
 
-def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir, cache_ttl="5m"):
-    """Runs exactly one gap-fill pass (idempotent: a completed pass file
-    is never re-derived on resume, same per-chunk-file convention
-    adjudicate.py/factblock.py already use). Returns
-    (merged_vocabulary, gapfill_report, new_coverage_rows):
+def _merge_patterns(chunk_results, existing_pattern_ids):
+    """Concatenates every chunk's patterns -- nothing dropped. Returns
+    ({name: regex}, [(original_name, final_name), ...]) for the renamed
+    ones.
 
-    - merged_vocabulary: `vocabulary` with this pass's new patterns added
-      (a fresh dict; `vocabulary` itself is never mutated). Collision
-      with an existing pattern id is a hard failure, not a silent
-      rename -- ids must stay unique across the merged vocabulary the
-      same way validate_vocabulary already requires within one
-      derivation.
-    - gapfill_report: {"target_fact_count", "new_patterns", "declined",
-      "unresolved"}. "unresolved" is every target (fact, span) pair this
-      pass neither covered nor explicitly declined -- distinct from
-      "declined" (an explicit, reasoned no) and expected to be nonzero
-      on a real large guide after a single pass; a future loop would
-      retry exactly this set.
+    Two different collision cases, two different responses:
+    - A pattern id equal to one already in the PRE-EXISTING vocabulary
+      is a hard failure, unchanged from the single-call design: ids
+      must stay unique across the merged vocabulary, and a gap-fill
+      chunk naming something after a pattern that was already there
+      before gap-fill ran is a real, more concerning signal, not a
+      structural artifact of chunking.
+    - A pattern id colliding with another GAP-FILL CHUNK's own new
+      pattern is not a defect -- each chunk is derived independently,
+      with zero visibility into what id any other chunk picked, so two
+      chunks coincidentally choosing the same short abbreviation is an
+      expected consequence of splitting one derivation into several
+      calls. Renamed with a numeric suffix appended to the ORIGINAL id
+      (never replaced wholesale), so the "id must reference its own
+      regex" property validate_gapfill_dict already checked per-chunk
+      still holds after the rename -- the suffix doesn't erase the
+      original content the check matched against."""
+    existing = set(existing_pattern_ids)
+    seen_new = set()
+    merged = {}
+    renamed = []
+    for cr in chunk_results:
+        for item in cr["patterns"]:
+            name, regex = item["name"], item["regex"]
+            if name in existing:
+                raise ValueError(
+                    f"gap-fill pattern id '{name}' collides with an existing vocabulary "
+                    f"pattern id -- ids must stay unique across the merged vocabulary, "
+                    f"same as validate_vocabulary already requires within a single "
+                    f"derivation. (A collision between two gap-fill CHUNKS' own new "
+                    f"patterns is renumbered automatically, not failed -- this is a "
+                    f"different case: the model named something after a pattern that was "
+                    f"already there before gap-fill ran.)"
+                )
+            final_name = name
+            if final_name in seen_new:
+                i = 2
+                while f"{name}_{i}" in seen_new or f"{name}_{i}" in existing:
+                    i += 1
+                final_name = f"{name}_{i}"
+                renamed.append((name, final_name))
+            seen_new.add(final_name)
+            merged[final_name] = regex
+    return merged, renamed
+
+
+def _merge_declined(chunk_results):
+    declined = []
+    for cr in chunk_results:
+        declined.extend(cr["declined"])
+    return declined
+
+
+def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
+        chunk_size=DEFAULT_CHUNK_SIZE, cache_ttl="5m"):
+    """Runs this gap-fill pass's chunks (idempotent: a completed chunk
+    file is never re-derived on resume, same per-chunk-file convention
+    adjudicate.py/factblock.py already use -- a failure partway through
+    costs exactly the chunks that hadn't finished, not the whole pass).
+    Returns (merged_vocabulary, gapfill_report, new_coverage_rows):
+
+    - merged_vocabulary: `vocabulary` with every chunk's new patterns
+      added (a fresh dict; `vocabulary` itself is never mutated). See
+      _merge_patterns for the two different collision responses.
+    - gapfill_report: {"target_fact_count", "chunk_count", "new_patterns",
+      "renamed_on_merge", "declined", "unresolved"}. "unresolved" is
+      every target (fact, span) pair no chunk either covered or
+      explicitly declined -- distinct from "declined" (an explicit,
+      reasoned no) and expected to be nonzero on a real large guide
+      after one pass; a future loop would retry exactly this set.
     - new_coverage_rows: guards.compute_fact_pattern_coverage recomputed
       against merged_vocabulary, so a caller doesn't have to recompute
       it a third time.
 
-    Callers are expected to have already shown the caller a cost
-    estimate (see estimate_cost_report) and gotten an explicit
-    go-ahead before calling this -- this function itself always makes
-    the call (once, for the one pass it runs) if there's no completed
-    pass file yet. `build_targets(coverage_rows)` returning {} means
+    Callers are expected to have already shown a cost estimate (see
+    estimate_cost_report) and gotten an explicit go-ahead before calling
+    this -- this function itself always makes every not-yet-completed
+    chunk's call. `build_targets(coverage_rows)` returning {} means
     there is nothing to do; callers should check that before calling
-    run() at all."""
+    run() at all (plan_chunks on an empty target set returns zero
+    chunks, so this function degrades to a no-op merge either way, but
+    the cost estimate has nothing to show)."""
     targets = build_targets(coverage_rows)
-    gf_dir = _gapfill_dir(workdir)
+    gf_dir = _chunk_dir(workdir)
     os.makedirs(gf_dir, exist_ok=True)
 
-    idx = 0
-    if _pass_is_done(gf_dir, idx):
-        with open(_pass_path(gf_dir, idx)) as f:
-            result = json.load(f)
-    else:
-        result = client.complete(
-            stage=f"gapfill_pass_{idx:03d}",
-            system_text=_system_text(vocabulary),
-            user_text=_user_text(guide_text, factblock, targets),
-            schema=SCHEMA,
-            cache_system=True,
-            cache_ttl=cache_ttl,
-            max_tokens=MAX_TOKENS,
-            effort="high",
-        )
-        validate.validate_gapfill_dict(result, what=f"gapfill pass {idx}")
-        path = _pass_path(gf_dir, idx)
+    chunks = plan_chunks(targets, chunk_size)
+    system_text = _system_text(guide_text, factblock, vocabulary)
+    # A single chunk can never redeem its own cache write -- same gate
+    # adjudicate.py uses. Cache anyway on a non-default TTL: that's the
+    # signal the caller intends to redeem it from a LATER run.
+    cache_system = len(chunks) > 1 or cache_ttl != "5m"
+
+    for idx, chunk_targets in enumerate(chunks):
+        if _chunk_is_done(gf_dir, idx):
+            continue
+        try:
+            result = client.complete(
+                stage=f"gapfill_chunk_{idx:03d}",
+                system_text=system_text,
+                user_text=_user_text(chunk_targets, idx, len(chunks)),
+                schema=SCHEMA,
+                cache_system=cache_system,
+                cache_ttl=cache_ttl,
+                max_tokens=MAX_TOKENS,
+                effort="high",
+            )
+        except llm.TruncatedResponseError as e:
+            raise llm.TruncatedResponseError(
+                f"{e} This chunk covers {len(chunk_targets)} target fact(s) (gap-fill "
+                f"chunk {idx + 1}/{len(chunks)}). Lower --gapfill-chunk-size (currently "
+                f"{chunk_size}) so it splits into smaller chunks instead of raising "
+                f"max_tokens again -- gap-fill's output scales with target fact count, so "
+                f"a bigger ceiling just moves the wall this chunking exists to avoid."
+            ) from e
+        validate.validate_gapfill_dict(result, what=f"gapfill chunk_{idx:03d}")
+
+        path = _chunk_path(gf_dir, idx)
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
             json.dump(result, f, indent=2)
         os.replace(tmp, path)
 
-    new_patterns = {}
-    for item in result["patterns"]:
-        name, regex = item["name"], item["regex"]
-        if name in vocabulary["patterns"] or name in new_patterns:
-            raise ValueError(
-                f"gap-fill pattern id '{name}' collides with an existing vocabulary "
-                f"pattern id -- ids must stay unique across the merged vocabulary, same "
-                f"as validate_vocabulary already requires within a single derivation"
-            )
-        new_patterns[name] = regex
+    chunk_results = []
+    for idx in range(len(chunks)):
+        path = _chunk_path(gf_dir, idx)
+        with open(path) as f:
+            chunk_results.append(validate.validate_gapfill_dict(json.load(f), what=path))
+
+    new_patterns, renamed = _merge_patterns(chunk_results, vocabulary["patterns"].keys())
+    declined = _merge_declined(chunk_results)
 
     merged_patterns = dict(vocabulary["patterns"])
     merged_patterns.update(new_patterns)
@@ -245,9 +402,17 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir, cache
     merged_vocabulary["patterns"] = merged_patterns
     validate.validate_vocabulary(merged_vocabulary, what="merged (post-gapfill) vocabulary")
 
+    merged_path = os.path.join(gf_dir, "merged.json")
+    with open(merged_path, "w") as f:
+        json.dump(
+            {"patterns": [{"name": n, "regex": r} for n, r in new_patterns.items()],
+             "declined": declined},
+            f, indent=2,
+        )
+
     new_coverage_rows = guards.compute_fact_pattern_coverage(factblock, merged_vocabulary)
 
-    declined_pairs = {(d["fact"], d["span"]) for d in result["declined"]}
+    declined_pairs = {(d["fact"], d["span"]) for d in declined}
     unresolved = []
     for row in new_coverage_rows:
         if row["number"] not in targets:
@@ -258,8 +423,10 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir, cache
 
     gapfill_report = {
         "target_fact_count": len(targets),
+        "chunk_count": len(chunks),
         "new_patterns": sorted(new_patterns),
-        "declined": result["declined"],
+        "renamed_on_merge": [{"from": a, "to": b} for a, b in renamed],
+        "declined": declined,
         "unresolved": unresolved,
     }
     with open(os.path.join(gf_dir, "report.json"), "w") as f:
