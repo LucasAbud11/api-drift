@@ -962,3 +962,62 @@ that have earned a permanent place test a fact about an artifact
 (a regex compiles, a fact block is non-empty, a candidate has a
 verdict); these two tried to infer intent from naming and grouping, and
 were wrong every time they fired.
+
+**Correction to the finding above: dedup proves the redundancy
+explanation for the candidate jump was wrong.** Deduplicating the 206
+merged patterns collapsed 23 of them across 16 redundant groups — and
+candidate count did not move, 2,795 before and 2,795 after. Stated
+plainly, this had to be true: merging `(?:a)|(?:b)` preserves the full
+union both members already matched, so dedup can only shrink pattern
+count and prompt size, never candidate volume. "Redundant patterns are
+matching the same lines repeatedly," the explanation the previous entry
+gave for 815 → 2,795, does not survive contact with this test. Something
+else produces that volume, and deduplication never touches it.
+
+**Where the 2,795 candidates actually come from: four patterns, not
+chunking redundancy.** Per-pattern counts from the real run's
+`candidates.json`: `gf_tpdecor` 745 (26.7% of all candidates),
+`gf_uristrlit` 489 (17.5%), `gf_mcpenv` 355 (12.7%), `gf_textmime` 77
+(2.8%) — 1,666 candidates, 60% of the run's total, from four patterns.
+The comparison point: `p1_fastmcp`, the largest pre-existing (stage-2)
+pattern, produces 423, every one a real `FastMCP` usage. All four
+gap-fill patterns match a content SHAPE rather than a migration-relevant
+symbol — by the run author's own inspection: `gf_uristrlit` matches any
+`https://` string literal, including `BEACON_URL =
+"https://attacker.com/beacon"` in the vendored eval corpus this scanner
+ships as test fixtures; `gf_mcpenv` matches any `MCP_*`-shaped
+environment variable name, including invented ones like
+`MCP_BYPASS_AUTH`; `gf_textmime` matches `"text/plain"`/
+`"application/json"` wherever they appear; `gf_tpdecor` matches
+`@app.tool()`, present in essentially every MCP server ever written.
+
+**This is the Goodhart failure the anti-Goodhart checks were built to
+catch, aimed at the wrong shape.** Both the symbol cap and the id check
+test whether one pattern spans too many SYMBOLS. The actual cheat here
+is the opposite shape: one pattern naming a single thing that appears
+everywhere, satisfying the coverage checker for whichever fact it was
+written against while generating candidates by the hundreds.
+`check_vocabulary_yield` exists specifically to catch an overbroad
+single pattern, and its own two trip conditions split cleanly on this
+run: the absolute ceiling (2,795 > `max_total`=2000) is crossed, but
+that alone never identifies a culprit; the single-pattern-dominance
+check, which does, never fires — `gf_tpdecor`'s 745 candidates clear the
+guard's floor (25) but land at 26.7% of the pool, under its 35% share
+threshold, and the other three overbroad patterns dilute the same
+denominator further, each individually staying under the line while
+collectively accounting for most of the run's volume. This is exactly
+the failure mode `check_vocabulary_yield`'s own docstring names for a
+different run (`max_single_pattern_floor`/`share` "sized to the study's
+diluted-host worst case... a floor that high means the guard can never
+fire no matter how lopsided the vocabulary is") arriving in practice
+rather than in the abstract, on a pool inflated by gap-fill's own output
+volume rather than a diluted host.
+
+**The one-pass gap-fill result is two-sided, and the earlier entry
+recorded only the positive half.** It found the confirmed missing
+symbol — `ClientSession` went from zero candidates to all three
+production sites plus the import. It also introduced four patterns
+that, on this candidate breakdown, would roughly triple adjudication
+cost (1,666 of 2,795 candidates, against a pre-gap-fill baseline of 118
+total) while contributing nothing migration-relevant. Both are true of
+the same run, and the entry recording only the first is incomplete.
