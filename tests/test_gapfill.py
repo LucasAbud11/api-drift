@@ -223,7 +223,7 @@ def test_run_declined_and_unresolved_are_distinct(tmp_path):
     assert report["unresolved"] == []
 
 
-def test_run_records_id_check_warnings_without_failing(tmp_path):
+def test_run_records_anti_goodhart_warnings_without_failing(tmp_path):
     # An id that doesn't read as an abbreviation of its own regex is
     # non-fatal -- the pattern is still merged in, and the flag shows up
     # in the report for a human to see, not as a raised error.
@@ -234,18 +234,37 @@ def test_run_records_id_check_warnings_without_failing(tmp_path):
     merged, report, _ = gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
 
     assert "gf_totallyunrelated" in merged["patterns"]
-    assert len(report["id_check_warnings"]) == 1
-    assert report["id_check_warnings"][0]["pattern"] == "gf_totallyunrelated"
+    assert len(report["anti_goodhart_warnings"]) == 1
+    assert report["anti_goodhart_warnings"][0]["pattern"] == "gf_totallyunrelated"
+    assert report["anti_goodhart_warnings"][0]["check"] == "id_check"
 
 
-def test_run_id_check_clean_pattern_has_no_warnings(tmp_path):
+def test_run_clean_pattern_has_no_anti_goodhart_warnings(tmp_path):
     factblock, vocabulary, rows, workdir = _setup(tmp_path)
     response = {"patterns": [{"name": "gf_widgetsess", "regex": r"\bWidgetSession\b"}], "declined": []}
     client = FakeGapfillClient(response)
 
     _, report, _ = gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
 
-    assert report["id_check_warnings"] == []
+    assert report["anti_goodhart_warnings"] == []
+
+
+def test_run_records_symbol_cap_warning_without_failing(tmp_path):
+    # A pattern over the distinct-symbol cap is also non-fatal now --
+    # merged in, flagged, not raised.
+    factblock, vocabulary, rows, workdir = _setup(tmp_path)
+    response = {
+        "patterns": [{"name": "gf_widgetkinds",
+                       "regex": r"\b(WidgetOne|WidgetTwo|WidgetThree|WidgetFour)\b"}],
+        "declined": [],
+    }
+    client = FakeGapfillClient(response)
+
+    merged, report, _ = gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
+
+    assert "gf_widgetkinds" in merged["patterns"]
+    checks = {w["check"] for w in report["anti_goodhart_warnings"]}
+    assert "symbol_cap" in checks
 
 
 def test_run_unresolved_when_target_left_untouched(tmp_path):
@@ -303,16 +322,17 @@ def test_run_persists_chunk_file_merged_file_and_report(tmp_path):
 
 def test_run_invalid_gapfill_output_raises_and_leaves_no_chunk_file(tmp_path):
     factblock, vocabulary, rows, workdir = _setup(tmp_path)
-    # A pattern that violates the anti-Goodhart alternation cap -- must
-    # hard-fail via validate_gapfill_dict, not get silently accepted or
-    # partially written.
+    # A pattern that doesn't compile as a regex -- both anti-Goodhart
+    # checks are warnings now (see validate.py), so this is the shape
+    # that still must hard-fail via validate_gapfill_dict, not get
+    # silently accepted or partially written.
     response = {
-        "patterns": [{"name": "gf_misc", "regex": r"\b(WidgetOne|WidgetTwo|WidgetThree|WidgetFour)\b"}],
+        "patterns": [{"name": "gf_bad", "regex": r"\bWidgetSession("}],
         "declined": [],
     }
     client = FakeGapfillClient(response)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="does not compile"):
         gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
     assert not os.path.isfile(os.path.join(workdir, "gapfill", "chunk_000.json"))
 
@@ -459,19 +479,20 @@ def test_run_resume_only_calls_for_incomplete_chunks(tmp_path):
 def test_run_resume_after_a_later_chunk_fails_validation_does_not_recharge_the_earlier_one(tmp_path):
     # The real scenario this guards against: chunk 0's call succeeds and
     # is paid for and persisted; chunk 1's call also succeeds (gets
-    # billed) but its OWN response fails validate_gapfill_dict (here: an
-    # alternation over the branch cap -- any hard-fail shape exercises
-    # the same path). chunk_001.json is therefore never written -- the
-    # write only happens after validation passes. A resumed run must
-    # not re-request chunk 0 (already valid, already paid for) and must
+    # billed) but its OWN response fails validate_gapfill_dict (here: a
+    # regex that doesn't compile -- both anti-Goodhart checks are
+    # warnings now, so this is what still exercises a hard-fail).
+    # chunk_001.json is therefore never written -- the write only
+    # happens after validation passes. A resumed run must not
+    # re-request chunk 0 (already valid, already paid for) and must
     # only retry chunk 1.
     factblock, vocabulary, rows, workdir = _multi_setup(tmp_path, n_facts=2)
     bad_script = {
         "gapfill_chunk_000": {"patterns": [{"name": "gf_symbol1", "regex": r"\bSymbol1\b"}], "declined": []},
-        "gapfill_chunk_001": {"patterns": [{"name": "gf_bad", "regex": r"\b(WidgetOne|WidgetTwo|WidgetThree|WidgetFour)\b"}], "declined": []},
+        "gapfill_chunk_001": {"patterns": [{"name": "gf_bad", "regex": r"\bSymbol2("}], "declined": []},
     }
     client = FakeGapfillClient(bad_script)
-    with pytest.raises(ValueError, match="distinct symbols"):
+    with pytest.raises(ValueError, match="does not compile"):
         gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir, chunk_size=1)
 
     assert os.path.isfile(os.path.join(workdir, "gapfill", "chunk_000.json"))

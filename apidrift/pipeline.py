@@ -203,12 +203,12 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
                 print_fn(f"      [gapfill] {len(gapfill_report['renamed_on_merge'])} pattern "
                           f"id(s) renamed on merge (collided across chunks): "
                           f"{gapfill_report['renamed_on_merge']}")
-            if gapfill_report["id_check_warnings"]:
-                print_fn(f"      [gapfill] WARNING: {len(gapfill_report['id_check_warnings'])} "
-                          f"pattern(s) flagged by the id check (non-fatal, still merged in -- "
-                          f"see gapfill/report.json for the full reason on each):")
-                for w in gapfill_report["id_check_warnings"]:
-                    print_fn(f"        {w['pattern']} ({w['regex']!r})")
+            if gapfill_report["anti_goodhart_warnings"]:
+                print_fn(f"      [gapfill] WARNING: {len(gapfill_report['anti_goodhart_warnings'])} "
+                          f"pattern(s) flagged by an anti-Goodhart check (non-fatal, still merged "
+                          f"in -- see gapfill/report.json for the full reason on each):")
+                for w in gapfill_report["anti_goodhart_warnings"]:
+                    print_fn(f"        [{w['check']}] {w['pattern']} ({w['regex']!r})")
 
     coverage_summary = {"non_breaking": 0, "no_identifier": 0, "unsearchable": 0, "covered": 0, "partial": 0, "uncovered": 0}
     for row in coverage_rows:

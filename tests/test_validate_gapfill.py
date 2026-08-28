@@ -101,66 +101,119 @@ def test_bare_dotted_generic_call_fails():
 
 
 # ---------------------------------------------------------------------
-# Anti-Goodhart: max DISTINCT SYMBOLS, not max `|` occurrences.
+# Anti-Goodhart: BOTH checks are warnings now, neither hard-fails.
 #
-# The first implementation counted every `|` in the regex, which
-# conflated two different things: how many unrelated target symbols a
-# pattern covers (the actual Goodhart risk) and how much alternation
-# SYNTAX it uses to match one or a few symbols across several contexts.
-# A pattern legitimately anchoring `certifi`/`truststore` to both an
-# import statement and a quoted string needs 5 `|` for 2 real symbols;
-# the old counting rejected it as "5 branches." These tests pin the
-# real, cost-confirmed cases: the certifi/truststore pattern must pass,
-# an unrelated 4-symbol kitchen sink must still fail, and one symbol
-# matched in several syntactic contexts must pass regardless of how
-# many `|` that takes.
+# The symbol cap started by counting every `|` in the regex, which
+# conflated match CONTEXT with target SYMBOL and rejected a pattern
+# legitimately anchoring certifi/truststore to both an import statement
+# and a quoted string (5 `|`, 2 real symbols) as "5 branches." Counting
+# distinct symbols instead fixed that case -- but a FOURTH real firing
+# showed the same conflation one level down: a dotted/qualified path
+# written with a spelling variant (`mcp.types.jsonrpc` vs
+# `mcp_types.jsonrpc`) gets split into path components and each one
+# counted as an independent symbol. Four real firings, four false
+# positives, zero real Goodhart catches -- both checks are now
+# non-blocking; see the block comment above GAPFILL_MAX_SYMBOLS in
+# validate.py for the full account.
 # ---------------------------------------------------------------------
 
-def test_pattern_within_symbol_cap_passes():
-    validate.validate_gapfill_dict(_result(patterns=[
-        {"name": "gf_clientsecret", "regex": r"\b(client_secret_basic|client_secret_post|private_key_jwt)\b"},
-    ]))
+def _checks(warnings):
+    return {w["check"] for w in warnings}
 
 
-def test_pattern_over_symbol_cap_fails():
+def test_pattern_within_symbol_cap_has_no_symbol_cap_warning():
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[
+            {"name": "gf_clientsecret", "regex": r"\b(client_secret_basic|client_secret_post|private_key_jwt)\b"},
+        ]),
+        warnings=warnings,
+    )
+    assert "symbol_cap" not in _checks(warnings)
+
+
+def test_pattern_over_symbol_cap_warns_but_does_not_raise():
     # The exact Goodhart shape this cap exists to catch: one broad
     # alternation whose branches are unrelated target facts' own
     # identifiers, satisfying the coverage checker for all of them at
-    # once without a real per-symbol pattern for any of them.
+    # once without a real per-symbol pattern for any of them. Still just
+    # a warning -- must not raise.
     kitchen_sink = r"\b(ClientSession|RootModel|TypeAliasType|ErrorData)\b"
-    with pytest.raises(ValueError, match="4 distinct symbols"):
-        validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_misc", "regex": kitchen_sink}]))
+    warnings = []
+    result = validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_misc", "regex": kitchen_sink}]),
+        warnings=warnings,
+    )
+    assert result["patterns"][0]["name"] == "gf_misc"
+    assert "symbol_cap" in _checks(warnings)
+    cap_warning = next(w for w in warnings if w["check"] == "symbol_cap")
+    assert "4 distinct symbols" in cap_warning["reason"]
 
 
-def test_two_symbols_in_two_syntactic_contexts_each_passes():
-    # The real false-positive that motivated this fix, the exact
-    # rejected regex: covers exactly two symbols (certifi, truststore),
-    # each named twice for two match contexts (an import line, a
-    # quoted string) -- 5 `|` in the regex, 2 distinct symbols, well
-    # under the cap of 3.
+def test_two_symbols_in_two_syntactic_contexts_each_has_no_symbol_cap_warning():
+    # The second real false-positive, the exact rejected regex: covers
+    # exactly two symbols (certifi, truststore), each named twice for
+    # two match contexts (an import line, a quoted string) -- 5 `|` in
+    # the regex, 2 distinct symbols, well under the cap of 3. (The id
+    # check may separately flag this id -- a 2-symbol id is its own
+    # known limitation, see the id-check section below -- this test is
+    # scoped to the symbol cap specifically.)
     regex = r"""(?:import|from)\s+(?:certifi|truststore)\b|["'](?:certifi|truststore)["']"""
-    validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_certtruststore", "regex": regex}]))
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_certtruststore", "regex": regex}]),
+        warnings=warnings,
+    )
+    assert "symbol_cap" not in _checks(warnings)
 
 
-def test_one_symbol_in_four_syntactic_contexts_passes():
+def test_one_symbol_in_four_syntactic_contexts_has_no_warnings_at_all():
     # One real target symbol, matched via an attribute access, a call,
     # an import, and a quoted string -- 4 distinct syntactic shapes, 1
-    # distinct symbol. Must pass regardless of how many `|` or contexts
-    # that takes.
-    validate.validate_gapfill_dict(_result(patterns=[{
-        "name": "gf_rootmodel",
-        "regex": r"\.RootModel\b|\bRootModel\(|from\s+\S+\s+import\s+RootModel|[\"']RootModel[\"']",
-    }]))
+    # distinct symbol, and an id that names it outright. Must not warn
+    # on either check regardless of how many `|` or contexts that takes.
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{
+            "name": "gf_rootmodel",
+            "regex": r"\.RootModel\b|\bRootModel\(|from\s+\S+\s+import\s+RootModel|[\"']RootModel[\"']",
+        }]),
+        warnings=warnings,
+    )
+    assert warnings == []
 
 
 def test_symbol_cap_ignores_import_from_keywords():
     # `import`/`from` are match-shape vocabulary, not target symbols --
     # a pattern anchoring 3 real symbols to an import statement must not
-    # be penalized for also containing those two keywords.
-    validate.validate_gapfill_dict(_result(patterns=[{
-        "name": "gf_threeimports",
-        "regex": r"(?:import|from)\s+(?:widgetone|widgettwo|widgetthree)\b",
-    }]))
+    # be penalized, on the symbol cap specifically, for also containing
+    # those two keywords.
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{
+            "name": "gf_threeimports",
+            "regex": r"(?:import|from)\s+(?:widgetone|widgettwo|widgetthree)\b",
+        }]),
+        warnings=warnings,
+    )
+    assert "symbol_cap" not in _checks(warnings)
+
+
+def test_dotted_path_with_spelling_variant_warns_but_does_not_raise():
+    # The fourth real false-positive, the exact rejected regex: covers
+    # two targets (`mcp.types.jsonrpc`, `mcp.types.methods`) written as
+    # a dotted path with a spelling variant (`.types`/`_types`) -- the
+    # extractor splits the path into components (mcp, types, _types,
+    # jsonrpc, methods) and counts each as a symbol. Still just a
+    # warning -- must not raise.
+    regex = r"\bmcp(?:\.types|_types)\.(?:jsonrpc|methods)\b|from\s+mcp[\w.]*\s+import[^\n]*\b(?:jsonrpc|methods)\b"
+    warnings = []
+    result = validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_mcptypes", "regex": regex}]),
+        warnings=warnings,
+    )
+    assert result["patterns"][0]["name"] == "gf_mcptypes"
+    assert "symbol_cap" in _checks(warnings)
 
 
 # ---------------------------------------------------------------------
@@ -169,8 +222,7 @@ def test_symbol_cap_ignores_import_from_keywords():
 # abbreviates ONE symbol) twice at real cost: a correct id for an
 # alternation of related symbols often names the shared concept instead
 # of any one member (e.g. 'gf_sslcertenv' for
-# `SSL_CERT_FILE`/`SSL_CERT_DIR` -- neither contains "env"). The
-# alternation cap below is the actual hard-fail; this check only flags.
+# `SSL_CERT_FILE`/`SSL_CERT_DIR` -- neither contains "env").
 # ---------------------------------------------------------------------
 
 def test_id_not_reading_as_an_abbreviation_warns_but_does_not_raise():
@@ -193,6 +245,7 @@ def test_id_not_reading_as_an_abbreviation_is_recorded_in_warnings():
     assert len(warnings) == 1
     assert warnings[0]["pattern"] == "gf_requestid"
     assert warnings[0]["regex"] == r"\bClientSession\s*\("
+    assert warnings[0]["check"] == "id_check"
     assert "abbreviation" in warnings[0]["reason"]
 
 

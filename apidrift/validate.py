@@ -298,29 +298,35 @@ def validate_vocabulary_file(path):
 # generic-method check never even looks at it), and would make every
 # target fact register as covered.
 #
-# Two checks below target this, but only ONE hard-fails. The symbol-
-# count cap is structural -- how many distinct target symbols a pattern
-# names is a fact about the regex, not a judgment call, and it directly
-# caps the blast radius of the exact failure shape described above, so
-# there's nothing to be wrong about IN PRINCIPLE. Its first
-# implementation counted `|` occurrences instead of distinct symbols,
-# which is a different, wrong thing: `(?:import|from)\s+
-# (?:certifi|truststore)\b|["'](?:certifi|truststore)["']` covers
-# exactly two symbols (certifi, truststore), each named twice for two
-# match contexts (an import line, a quoted string) -- and was rejected
-# as "5 branches." Counting distinct symbols instead of `|` is the fix
-# below; the cap itself (3) never needed to change, only what it counts.
+# Both checks below are WARNINGS, not hard-fails -- neither stops a
+# run; both are collected into `warnings` (see validate_gapfill_dict)
+# for a human to read in the pass report. This was not the original
+# design: both started as hard-fails, and both were walked back after
+# real gap-fill output kept tripping them on valid patterns --
+# individually, not as a blanket "heuristics are unreliable" call.
 #
-# The id-must-reference-a-symbol check is a heuristic, and real gap-fill
-# output broke its premise twice, at real cost ($1.22 combined): the
-# check assumes an id abbreviates ONE symbol, but a correct id for an
-# alternation of several RELATED symbols often names the shared concept
-# instead -- 'gf_sslcertenv' for `SSL_CERT_FILE`/`SSL_CERT_DIR` is right
-# (both are SSL cert env vars) even though neither constant contains
-# "env". Loosening the matcher further would only weaken it toward
-# accepting anything, which defeats the point -- so it stays a WARNING:
-# still computed, still surfaced (gapfill.py records it in the pass
-# report for human review), never a reason to block a valid chunk.
+# The symbol-count cap counts distinct identifier-shaped tokens in the
+# regex and fires past GAPFILL_MAX_SYMBOLS. Its first implementation
+# counted `|` occurrences, which conflated match CONTEXT with target
+# SYMBOL and rejected `(?:import|from)\s+(?:certifi|truststore)\b|["']
+# (?:certifi|truststore)["']` (2 real symbols, 5 pipes) as "5 branches."
+# Switching to counting distinct symbols (below) fixed that specific
+# case, but a FOURTH real firing exposed the same conflation one level
+# down: `\bmcp(?:\.types|_types)\.(?:jsonrpc|methods)\b|from\s+mcp[\w.]*
+# \s+import[^\n]*\b(?:jsonrpc|methods)\b` covers two targets
+# (`mcp.types.jsonrpc`, `mcp.types.methods`) written as a dotted path
+# with a spelling variant (`.types`/`_types`) -- the extractor splits
+# the path into components and counts each one (`mcp`, `types`,
+# `jsonrpc`, `methods`, plus the `_types` variant) as if they were
+# independent symbols. A dotted/qualified path is structurally the same
+# ambiguity a CamelCase symbol has for the id check below: no cheap,
+# reliable way to tell "these tokens are one qualified name" from
+# "these are several unrelated names" by shape alone. Four real firings,
+# four false positives, zero real Goodhart catches -- at $2.88 in
+# wasted spend -- is the actual field data on whether this check's
+# false-positive rate is low enough to justify blocking a paid call on.
+# It isn't. Both checks stay computed (their signal is still worth a
+# human's five seconds when it's right) and stay non-blocking.
 GAPFILL_MAX_SYMBOLS = 3
 # Picked, not derived: gap-fill's OWN target set already groups facts
 # that are individually flagged as separately lacking coverage, not
@@ -461,29 +467,27 @@ def _distinct_symbols(regex):
 
 
 def _validate_gapfill_pattern_anti_goodhart(name, regex, what, warnings=None):
-    """The symbol-count cap hard-fails via _fail, same as every other
-    check in this file. The id check does not: it appends a warning
-    dict to `warnings` (when given; silently a no-op otherwise) instead
-    of raising. See the block comment above GAPFILL_MAX_SYMBOLS for why
-    -- the id check's premise (an id abbreviates ONE symbol) is
-    sometimes wrong for a legitimate multi-symbol alternation, and two
-    real false-fails on valid gap-fill output are the reason this is a
-    warning and not a third hard-fail."""
+    """Both checks append a warning dict ({"pattern", "regex", "check",
+    "reason"}) to `warnings` (when given; silently a no-op otherwise) --
+    neither raises. See the block comment above GAPFILL_MAX_SYMBOLS for
+    why: both started as hard-fails and both were downgraded after real
+    gap-fill output kept tripping them on valid patterns."""
     symbols = _distinct_symbols(regex)
     if len(symbols) > GAPFILL_MAX_SYMBOLS:
-        _fail(
-            what,
-            f"gap-fill pattern '{name}' ({regex!r}) covers {len(symbols)} distinct "
-            f"symbols ({', '.join(sorted(symbols))}), over the gap-fill cap of "
-            f"{GAPFILL_MAX_SYMBOLS}. If these are genuinely the same call shape from "
-            f"the same fact or sibling facts, that's still capped here deliberately -- "
-            f"split into more than one pattern. If some of them don't actually belong "
-            f"together, decline the ones that don't fit (see the 'declined' bucket) "
-            f"rather than folding them into one pattern to shrink the decline count. "
-            f"(This counts distinct SYMBOLS, not `|` occurrences -- the same symbol "
-            f"matched in several syntactic contexts, e.g. an import line and a quoted "
-            f"string, counts once.)",
-        )
+        if warnings is not None:
+            warnings.append({
+                "pattern": name,
+                "regex": regex,
+                "check": "symbol_cap",
+                "reason": (
+                    f"covers {len(symbols)} distinct symbols ({', '.join(sorted(symbols))}), "
+                    f"over the advisory cap of {GAPFILL_MAX_SYMBOLS}. Often correct anyway "
+                    f"for one qualified/dotted target written with a spelling variant (e.g. "
+                    f"`mcp.types.jsonrpc` vs `mcp_types.jsonrpc`) -- the extractor counts "
+                    f"path components as separate symbols. Worth a look if these AREN'T "
+                    f"variants of the same one or two targets."
+                ),
+            })
     tokens = _regex_identifier_tokens(regex)
     remainder = _id_remainder(name)
     if tokens and (
@@ -494,6 +498,7 @@ def _validate_gapfill_pattern_anti_goodhart(name, regex, what, warnings=None):
             warnings.append({
                 "pattern": name,
                 "regex": regex,
+                "check": "id_check",
                 "reason": (
                     f"id does not read as an abbreviation of any single symbol in its "
                     f"own regex text. Often correct anyway for an alternation of "
@@ -511,10 +516,11 @@ GAPFILL_DECLINED_FIELDS = ["fact", "span", "reason"]
 
 def validate_gapfill_dict(data, what="gapfill result", warnings=None):
     """`warnings`, if given, is a list this function APPENDS non-fatal
-    id-check flags to ({"pattern", "regex", "reason"} dicts) -- it never
-    stops validation and is never read back out of `data` itself.
-    Passing None (the default) just discards them; a caller that wants
-    to surface them (gapfill.py's run(), for its pass report) passes its
+    anti-Goodhart flags to ({"pattern", "regex", "check", "reason"}
+    dicts, "check" one of "symbol_cap"/"id_check") -- it never stops
+    validation and is never read back out of `data` itself. Passing
+    None (the default) just discards them; a caller that wants to
+    surface them (gapfill.py's run(), for its pass report) passes its
     own list."""
     if not isinstance(data, dict):
         _fail(what, "top level is not a JSON object")

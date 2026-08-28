@@ -329,17 +329,19 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
       added (a fresh dict; `vocabulary` itself is never mutated). See
       _merge_patterns for the two different collision responses.
     - gapfill_report: {"target_fact_count", "chunk_count", "new_patterns",
-      "renamed_on_merge", "declined", "unresolved", "id_check_warnings"}.
+      "renamed_on_merge", "declined", "unresolved", "anti_goodhart_warnings"}.
       "unresolved" is every target (fact, span) pair no chunk either
       covered or explicitly declined -- distinct from "declined" (an
       explicit, reasoned no) and expected to be nonzero on a real large
       guide after one pass; a future loop would retry exactly this set.
-      "id_check_warnings" is every pattern validate_gapfill_dict's id
-      check flagged as not reading like an abbreviation of any single
-      symbol in its own regex -- non-fatal (see validate.py's
+      "anti_goodhart_warnings" is every pattern either of
+      validate_gapfill_dict's two anti-Goodhart checks (the distinct-
+      symbol cap, the id-reads-as-an-abbreviation check) flagged --
+      non-fatal for both (see validate.py's
       _validate_gapfill_pattern_anti_goodhart), still merged in, worth a
-      human glancing at because the check's own false-positive rate on
-      legitimate multi-symbol-alternation ids is real, not zero.
+      human glancing at: both checks' real-world false-positive rate on
+      valid patterns has been high enough that neither blocks a run
+      anymore, but the signal is still often right.
     - new_coverage_rows: guards.compute_fact_pattern_coverage recomputed
       against merged_vocabulary, so a caller doesn't have to recompute
       it a third time.
@@ -394,12 +396,12 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
         os.replace(tmp, path)
 
     chunk_results = []
-    id_check_warnings = []
+    anti_goodhart_warnings = []
     for idx in range(len(chunks)):
         path = _chunk_path(gf_dir, idx)
         with open(path) as f:
             chunk_results.append(
-                validate.validate_gapfill_dict(json.load(f), what=path, warnings=id_check_warnings)
+                validate.validate_gapfill_dict(json.load(f), what=path, warnings=anti_goodhart_warnings)
             )
 
     new_patterns, renamed = _merge_patterns(chunk_results, vocabulary["patterns"].keys())
@@ -437,7 +439,7 @@ def run(client, guide_text, factblock, vocabulary, coverage_rows, workdir,
         "renamed_on_merge": [{"from": a, "to": b} for a, b in renamed],
         "declined": declined,
         "unresolved": unresolved,
-        "id_check_warnings": id_check_warnings,
+        "anti_goodhart_warnings": anti_goodhart_warnings,
     }
     with open(os.path.join(gf_dir, "report.json"), "w") as f:
         json.dump(gapfill_report, f, indent=2)
