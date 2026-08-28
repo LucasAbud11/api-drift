@@ -223,6 +223,31 @@ def test_run_declined_and_unresolved_are_distinct(tmp_path):
     assert report["unresolved"] == []
 
 
+def test_run_records_id_check_warnings_without_failing(tmp_path):
+    # An id that doesn't read as an abbreviation of its own regex is
+    # non-fatal -- the pattern is still merged in, and the flag shows up
+    # in the report for a human to see, not as a raised error.
+    factblock, vocabulary, rows, workdir = _setup(tmp_path)
+    response = {"patterns": [{"name": "gf_totallyunrelated", "regex": r"\bWidgetSession\b"}], "declined": []}
+    client = FakeGapfillClient(response)
+
+    merged, report, _ = gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
+
+    assert "gf_totallyunrelated" in merged["patterns"]
+    assert len(report["id_check_warnings"]) == 1
+    assert report["id_check_warnings"][0]["pattern"] == "gf_totallyunrelated"
+
+
+def test_run_id_check_clean_pattern_has_no_warnings(tmp_path):
+    factblock, vocabulary, rows, workdir = _setup(tmp_path)
+    response = {"patterns": [{"name": "gf_widgetsess", "regex": r"\bWidgetSession\b"}], "declined": []}
+    client = FakeGapfillClient(response)
+
+    _, report, _ = gapfill.run(client, "guide text", factblock, vocabulary, rows, workdir)
+
+    assert report["id_check_warnings"] == []
+
+
 def test_run_unresolved_when_target_left_untouched(tmp_path):
     factblock, vocabulary, rows, workdir = _setup(tmp_path)
     # The model returns nothing at all for the one target fact -- neither

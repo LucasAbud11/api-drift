@@ -296,8 +296,22 @@ def validate_vocabulary_file(path):
 # identifiers, whether or not they share any real syntactic shape. That
 # pattern compiles, isn't a bare dotted call (so the existing
 # generic-method check never even looks at it), and would make every
-# target fact register as covered. The two extra checks below exist
-# because nothing else in this file would catch it.
+# target fact register as covered.
+#
+# Two checks below target this, but only ONE hard-fails. The alternation
+# cap is structural -- a branch count is a fact about the regex, not a
+# judgment call, and it directly caps the blast radius of the exact
+# failure shape described above, so there's nothing to be wrong about.
+# The id-must-reference-a-symbol check is a heuristic, and real gap-fill
+# output broke its premise twice, at real cost ($1.22 combined): the
+# check assumes an id abbreviates ONE symbol, but a correct id for an
+# alternation of several RELATED symbols often names the shared concept
+# instead -- 'gf_sslcertenv' for `SSL_CERT_FILE`/`SSL_CERT_DIR` is right
+# (both are SSL cert env vars) even though neither constant contains
+# "env". Loosening the matcher further would only weaken it toward
+# accepting anything, which defeats the point -- so it stays a WARNING:
+# still computed, still surfaced (gapfill.py records it in the pass
+# report for human review), never a reason to block a valid chunk.
 GAPFILL_MAX_ALTERNATIVES = 3
 # Picked, not derived: gap-fill's OWN target set already groups facts
 # that are individually flagged as separately lacking coverage, not
@@ -308,10 +322,7 @@ GAPFILL_MAX_ALTERNATIVES = 3
 # legitimate small group (e.g. two or three sibling constants named in
 # the SAME fact, like `client_secret_basic`/`client_secret_post`) still
 # fits, while a kitchen-sink alternation spanning a double-digit target
-# list cannot -- and low enough that satisfying the id-must-reference-
-# the-symbol check below (~12 characters, per vocabulary_system.md's own
-# id-length guidance) stays physically plausible for every branch, which
-# stops being true well before branch counts reach the double digits.
+# list cannot.
 
 
 def _regex_identifier_tokens(regex):
@@ -435,7 +446,15 @@ def _count_alternation_branches(regex):
     return n
 
 
-def _validate_gapfill_pattern_anti_goodhart(name, regex, what):
+def _validate_gapfill_pattern_anti_goodhart(name, regex, what, warnings=None):
+    """The alternation cap hard-fails via _fail, same as every other
+    check in this file. The id check does not: it appends a warning
+    dict to `warnings` (when given; silently a no-op otherwise) instead
+    of raising. See the block comment above GAPFILL_MAX_ALTERNATIVES for
+    why -- the id check's premise (an id abbreviates ONE symbol) is
+    sometimes wrong for a legitimate multi-symbol alternation, and two
+    real false-fails on valid gap-fill output are the reason this is a
+    warning and not a third hard-fail."""
     branches = _count_alternation_branches(regex)
     if branches > GAPFILL_MAX_ALTERNATIVES:
         _fail(
@@ -454,28 +473,32 @@ def _validate_gapfill_pattern_anti_goodhart(name, regex, what):
         len(remainder) < GAPFILL_ID_MIN_REMAINDER
         or not any(_id_names_symbol(remainder, _split_word_parts(t)) for t in tokens)
     ):
-        _fail(
-            what,
-            f"gap-fill pattern '{name}' ({regex!r}) -- id does not read as an "
-            f"abbreviation of any symbol in its own regex text. Every gap-fill "
-            f"pattern's id must name the specific symbol it targets (e.g. "
-            f"'gf_restmplref' for a `ResourceTemplateReference` pattern -- "
-            f"res+tmpl+ref against Resource+Template+Reference, in order) -- an id "
-            f"that can't be read back this way is exactly the shape a pattern written "
-            f"to satisfy the coverage checker, rather than to name a real symbol, "
-            f"would have. This is a secondary signal, not the primary defense -- the "
-            f"{GAPFILL_MAX_ALTERNATIVES}-branch alternation cap above is what actually "
-            f"keeps one pattern from covering many unrelated target facts; this check "
-            f"only catches a pattern (of any branch count) whose id doesn't say what "
-            f"it matches.",
-        )
+        if warnings is not None:
+            warnings.append({
+                "pattern": name,
+                "regex": regex,
+                "reason": (
+                    f"id does not read as an abbreviation of any single symbol in its "
+                    f"own regex text. Often correct anyway for an alternation of "
+                    f"related symbols that share a concept the id names instead of any "
+                    f"one member (e.g. 'gf_sslcertenv' for "
+                    f"`SSL_CERT_FILE`/`SSL_CERT_DIR`) -- flagged for human review, not "
+                    f"blocked. Worth a second look if it ISN'T that shape."
+                ),
+            })
 
 
 GAPFILL_BUCKET_KEYS = ["patterns", "declined"]
 GAPFILL_DECLINED_FIELDS = ["fact", "span", "reason"]
 
 
-def validate_gapfill_dict(data, what="gapfill result"):
+def validate_gapfill_dict(data, what="gapfill result", warnings=None):
+    """`warnings`, if given, is a list this function APPENDS non-fatal
+    id-check flags to ({"pattern", "regex", "reason"} dicts) -- it never
+    stops validation and is never read back out of `data` itself.
+    Passing None (the default) just discards them; a caller that wants
+    to surface them (gapfill.py's run(), for its pass report) passes its
+    own list."""
     if not isinstance(data, dict):
         _fail(what, "top level is not a JSON object")
     for key in GAPFILL_BUCKET_KEYS:
@@ -500,7 +523,7 @@ def validate_gapfill_dict(data, what="gapfill result"):
                          f"requires for a full vocabulary")
         seen_names.add(name)
         _validate_pattern_regex(name, regex, what)
-        _validate_gapfill_pattern_anti_goodhart(name, regex, what)
+        _validate_gapfill_pattern_anti_goodhart(name, regex, what, warnings=warnings)
 
     declined = data["declined"]
     if not isinstance(declined, list):

@@ -1,8 +1,10 @@
 """Offline tests for the gap-fill two-bucket contract (validate.py):
 shape checks shared with validate_vocabulary via _validate_pattern_regex,
 and the two checks specific to gap-fill's narrower, more exploitable
-prompt -- max alternation branches and id-must-reference-symbol. No
-network, no LLM calls.
+prompt -- max alternation branches (hard-fail) and id-reads-as-an-
+abbreviation (warning only, collected via the `warnings` list param, not
+raised -- see validate_gapfill_dict's docstring). No network, no LLM
+calls.
 """
 import pytest
 
@@ -138,8 +140,97 @@ def test_alternation_cap_ignores_escaped_literal_pipe():
 
 
 # ---------------------------------------------------------------------
-# Anti-Goodhart: id must reference the symbol it targets
+# Anti-Goodhart: id-reads-as-an-abbreviation -- a WARNING, not a
+# hard-fail. Real gap-fill output broke the check's premise (an id
+# abbreviates ONE symbol) twice at real cost: a correct id for an
+# alternation of related symbols often names the shared concept instead
+# of any one member (e.g. 'gf_sslcertenv' for
+# `SSL_CERT_FILE`/`SSL_CERT_DIR` -- neither contains "env"). The
+# alternation cap below is the actual hard-fail; this check only flags.
 # ---------------------------------------------------------------------
+
+def test_id_not_reading_as_an_abbreviation_warns_but_does_not_raise():
+    # An id naming a symbol that's simply absent from its own regex --
+    # not an abbreviation of anything the pattern actually matches.
+    # Must not raise: this is exactly the shape the check flags, not
+    # blocks.
+    result = validate.validate_gapfill_dict(_result(patterns=[
+        {"name": "gf_requestid", "regex": r"\bClientSession\s*\("},
+    ]))
+    assert result["patterns"][0]["name"] == "gf_requestid"
+
+
+def test_id_not_reading_as_an_abbreviation_is_recorded_in_warnings():
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_requestid", "regex": r"\bClientSession\s*\("}]),
+        warnings=warnings,
+    )
+    assert len(warnings) == 1
+    assert warnings[0]["pattern"] == "gf_requestid"
+    assert warnings[0]["regex"] == r"\bClientSession\s*\("
+    assert "abbreviation" in warnings[0]["reason"]
+
+
+def test_group_naming_id_over_related_alternation_warns_but_does_not_raise():
+    # The real false positive that motivated downgrading this check: a
+    # correct id naming the shared concept across an alternation of
+    # related symbols, where the concept word appears in NEITHER member
+    # ('env' is in neither `SSL_CERT_FILE` nor `SSL_CERT_DIR`). The
+    # matcher still can't tell this apart from a genuinely vague id --
+    # that's the whole reason this is a warning and not a hard-fail:
+    # must be recorded for a human to see, must NOT stop the run.
+    warnings = []
+    result = validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_sslcertenv", "regex": r"\b(SSL_CERT_FILE|SSL_CERT_DIR)\b"}]),
+        warnings=warnings,
+    )
+    assert result["patterns"][0]["name"] == "gf_sslcertenv"
+    assert len(warnings) == 1
+    assert warnings[0]["pattern"] == "gf_sslcertenv"
+
+
+def test_generic_id_over_multi_symbol_alternation_warns_for_every_pattern():
+    # A vague, category-style id that can't be traced back to what the
+    # pattern actually matches, tried against EVERY branch of a
+    # multi-symbol alternation -- still just a warning now, recorded for
+    # each pattern that trips it.
+    kitchen_sink = r"\b(ClientSession|RootModel|title)\b"
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[
+            {"name": "gf_misc", "regex": kitchen_sink},
+        ]),
+        warnings=warnings,
+    )
+    assert len(warnings) == 1
+    warnings2 = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_pattern1", "regex": kitchen_sink}]),
+        warnings=warnings2,
+    )
+    assert len(warnings2) == 1
+
+
+def test_id_check_warnings_defaults_to_discarded():
+    # No `warnings` list given -- must not raise AttributeError or
+    # anything else; the flag is just dropped.
+    validate.validate_gapfill_dict(_result(patterns=[
+        {"name": "gf_misc", "regex": r"\bRootModel\b"},
+    ]))
+
+
+def test_id_check_rejects_a_remainder_too_short_to_mean_anything():
+    # A one-character abbreviation is "in order somewhere" in nearly any
+    # word -- too short to plausibly be naming a specific symbol. Still
+    # just a warning.
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_r", "regex": r"\bRootModel\b"}]),
+        warnings=warnings,
+    )
+    assert len(warnings) == 1
+
 
 def test_id_referencing_its_symbol_passes():
     # A single-word symbol, id equals it whole.
@@ -171,41 +262,13 @@ def test_id_referencing_its_symbol_passes():
     ]))
 
 
-def test_id_not_referencing_its_symbol_fails():
-    # An id naming a symbol that's simply absent from its own regex --
-    # not an abbreviation of anything the pattern actually matches.
-    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
-        validate.validate_gapfill_dict(_result(patterns=[
-            {"name": "gf_requestid", "regex": r"\bClientSession\s*\("},
-        ]))
-
-
-def test_generic_id_over_multi_symbol_alternation_fails():
-    # The other half of the same Goodhart shape: a vague, category-style
-    # id that can't be traced back to what the pattern actually
-    # matches, tried against EVERY branch of a multi-symbol alternation
-    # -- exactly what a pattern optimizing for the checker rather than
-    # naming a real symbol would look like.
-    kitchen_sink = r"\b(ClientSession|RootModel|title)\b"
-    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
-        validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_misc", "regex": kitchen_sink}]))
-    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
-        validate.validate_gapfill_dict(_result(patterns=[{"name": "gf_pattern1", "regex": kitchen_sink}]))
-
-
 def test_id_check_ignores_short_regex_syntax_noise():
     # A pattern's regex source can contain short alnum runs that are pure
     # regex syntax residue (e.g. a repetition count) -- these must not
-    # count as tokens the id needs to reference.
-    validate.validate_gapfill_dict(_result(patterns=[
-        {"name": "gf_rootmodel", "regex": r"\bRootModel[s]{1,2}\b"},
-    ]))
-
-
-def test_id_check_rejects_a_remainder_too_short_to_mean_anything():
-    # A one-character abbreviation is "in order somewhere" in nearly any
-    # word -- too short to plausibly be naming a specific symbol.
-    with pytest.raises(ValueError, match="id does not read as an abbreviation"):
-        validate.validate_gapfill_dict(_result(patterns=[
-            {"name": "gf_r", "regex": r"\bRootModel\b"},
-        ]))
+    # count as tokens the id needs to reference (and must not warn).
+    warnings = []
+    validate.validate_gapfill_dict(
+        _result(patterns=[{"name": "gf_rootmodel", "regex": r"\bRootModel[s]{1,2}\b"}]),
+        warnings=warnings,
+    )
+    assert warnings == []

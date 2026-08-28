@@ -127,3 +127,32 @@ def test_gapfill_confirmed_merges_new_pattern_through_to_candidates(tmp_path):
         cov = json.load(f)
     assert cov["summary"]["partial"] == 0
     assert cov["summary"]["uncovered"] == 0
+
+
+def test_gapfill_id_check_warning_is_printed_but_does_not_stop_the_run(tmp_path):
+    # A pattern id that doesn't read as an abbreviation of its own
+    # regex is non-fatal (see validate.py's _validate_gapfill_pattern_
+    # anti_goodhart) -- the run must still complete, the pattern must
+    # still merge in, and the warning must reach print_fn so a human
+    # running this for real sees it.
+    repo_root, guide_path = _setup_repo(tmp_path)
+    workdir = str(tmp_path / "workdir")
+    script = _script()
+    script["gapfill_chunk_000"] = {
+        "patterns": [{"name": "gf_totallyunrelated", "regex": r"\bWidgetSession\b"}],
+        "declined": [],
+    }
+    script["adjudicate_chunk_000"]["proposed_sites"][0]["pattern"] = "gf_totallyunrelated"
+    client = ScriptedLLMClient(script)
+
+    printed = []
+    result = pipeline.run(
+        repo_root=repo_root, guide_path=guide_path, workdir=workdir, client=client,
+        force=True, skip_fix_generation=True, verify_install=False,
+        gapfill=True, gapfill_confirmed=True, print_fn=printed.append,
+    )
+
+    assert "gf_totallyunrelated" in result["vocabulary"]["patterns"]
+    joined = "\n".join(printed)
+    assert "WARNING" in joined
+    assert "gf_totallyunrelated" in joined
