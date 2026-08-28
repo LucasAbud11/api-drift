@@ -1,5 +1,6 @@
 import argparse
 import sys
+from argparse import BooleanOptionalAction
 
 from . import llm, pipeline, preflight, validate, writer
 from .llm import AnthropicLLMClient, LLMError
@@ -52,6 +53,16 @@ def main(argv=None):
                         help="Print the planned fact-block chunk list (guide section, approx "
                              "input tokens) and an estimated cost, then exit without making "
                              "any API call.")
+    run_p.add_argument("--gapfill", action=BooleanOptionalAction, default=False,
+                        help="After stage 2, run one scoped derivation pass for facts left "
+                             "partial/uncovered by the structural pre-filter (see "
+                             "apidrift/stages/gapfill.py). Off by default -- existing runs "
+                             "are unchanged. Prints the target fact count and an estimated "
+                             "cost and stops (no call made) unless --gapfill-yes is also "
+                             "given.")
+    run_p.add_argument("--gapfill-yes", action="store_true",
+                        help="Confirm the gap-fill plan printed by --gapfill and actually "
+                             "make the call. Ignored if --gapfill is off.")
     run_p.add_argument("--cache-ttl", choices=["5m", "1h"], default="5m",
                         help="Prompt-cache TTL for adjudication/fix-generation's system "
                              "prompt (default: 5m). '1h' costs a higher cache-write premium "
@@ -123,12 +134,18 @@ def main(argv=None):
                 factblock_chunk_size=factblock_chunk_size,
                 model=args.model,
                 cache_ttl=args.cache_ttl,
+                gapfill=args.gapfill,
+                gapfill_confirmed=args.gapfill_yes,
             )
         except preflight.PreflightError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)
             sys.exit(1)
         except LLMError as e:
             print(f"\nSTOPPED: {e}\n", file=sys.stderr)
+            sys.exit(1)
+        except pipeline.GapfillNeedsConfirmation as e:
+            print(f"\n{e.plan_report}\n", file=sys.stderr)
+            print("Re-run with --gapfill-yes to proceed.", file=sys.stderr)
             sys.exit(1)
         except pipeline.GuardFailure as e:
             print(f"\nSTOPPED: {e.reason}\n", file=sys.stderr)

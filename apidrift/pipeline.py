@@ -13,6 +13,7 @@ import re
 from . import guards, preflight, validate, verify as verify_module
 from .reposafe import RepoReader
 from .stages import adjudicate, factblock, fixgen, grep, prefilter, report, vocabulary
+from .stages import gapfill as gapfill_stage
 
 
 class GuardFailure(Exception):
@@ -23,6 +24,20 @@ class GuardFailure(Exception):
         super().__init__(reason)
         self.reason = reason
         self.diagnostic_report = diagnostic_report
+
+
+class GapfillNeedsConfirmation(Exception):
+    """Raised when --gapfill is on, a target set is non-empty, and
+    --gapfill-yes was not also given. Carries the plan report (target
+    fact count, estimated cost) so the caller can show it and stop --
+    mirrors GuardFailure's shape (a reason plus a report to print) but
+    is a different kind of stop: this is not a correctness check
+    failing, it's the deliberate pause this project's own convention
+    requires before a real, paid API call -- print the plan, wait for an
+    explicit go-ahead, never spend on an inferred yes."""
+    def __init__(self, plan_report):
+        super().__init__("gap-fill plan ready for review -- re-run with --gapfill-yes to proceed")
+        self.plan_report = plan_report
 
 
 def _write_json(path, data):
@@ -36,7 +51,8 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         package_name_override=None, print_fn=print, skip_fix_generation=False,
         fixgen_chunk_size=fixgen.DEFAULT_CHUNK_SIZE, verify_install=True,
         package_version_override=None, factblock_path=None, vocabulary_path=None,
-        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None, cache_ttl="5m"):
+        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None, cache_ttl="5m",
+        gapfill=False, gapfill_confirmed=False):
     """Runs the full pipeline. Never writes anything outside `workdir` --
     repo access goes exclusively through RepoReader, which has no write
     method. Returns a dict with every intermediate artifact plus the
@@ -70,7 +86,17 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     ("5m" default, or "1h"). Only worth raising when running several
     repos against the same loaded --factblock within the hour -- see
     stages/adjudicate.py and stages/fixgen.py for why a single-chunk run
-    can't benefit from its own cache write regardless of TTL."""
+    can't benefit from its own cache write regardless of TTL.
+
+    `gapfill`/`gapfill_confirmed`: `gapfill` defaults False -- stage 2's
+    output is used exactly as before unless explicitly turned on.
+    Turning it on with `gapfill_confirmed` still False computes the
+    target set and estimated cost, prints it, and stops by raising
+    GapfillNeedsConfirmation rather than making the call -- this project
+    never spends real API cost on an inferred yes (see stages/gapfill.py
+    for the one-pass gap-fill this runs when confirmed). Both flags are
+    no-ops if the target set turns out empty (stage 2 already covered
+    everything after the structural pre-filter)."""
     preflight.check_inputs(repo_root, guide_path, workdir,
                             factblock_path=factblock_path, vocabulary_path=vocabulary_path)
     os.makedirs(workdir, exist_ok=True)
@@ -145,6 +171,28 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     # from a chunk. Shares its matching logic with check_vocabulary_coverage
     # below via compute_fact_pattern_coverage; neither reimplements it.
     coverage_rows = guards.compute_fact_pattern_coverage(fb, vocab)
+
+    if gapfill:
+        targets = gapfill_stage.build_targets(coverage_rows)
+        if not targets:
+            print_fn("      [gapfill] no partial/uncovered facts remain after the "
+                      "structural pre-filter -- nothing to do.")
+        else:
+            plan_report = "\n".join(
+                gapfill_stage.estimate_cost_report(guide_text, vocab, fb, targets, model=model)
+            )
+            if not gapfill_confirmed:
+                print_fn(plan_report)
+                raise GapfillNeedsConfirmation(plan_report)
+            print_fn(f"[gapfill] deriving patterns for {len(targets)} target fact(s)...")
+            vocab, gapfill_report, coverage_rows = gapfill_stage.run(
+                client, guide_text, fb, vocab, coverage_rows, workdir, cache_ttl=cache_ttl,
+            )
+            _write_json(os.path.join(workdir, "vocabulary_after_gapfill.json"), vocab)
+            print_fn(f"      [gapfill] {len(gapfill_report['new_patterns'])} new pattern(s), "
+                      f"{len(gapfill_report['declined'])} declined, "
+                      f"{len(gapfill_report['unresolved'])} unresolved")
+
     coverage_summary = {"non_breaking": 0, "no_identifier": 0, "unsearchable": 0, "covered": 0, "partial": 0, "uncovered": 0}
     for row in coverage_rows:
         coverage_summary[row["status"]] += 1

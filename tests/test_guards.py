@@ -144,14 +144,26 @@ def test_vocabulary_coverage_still_covers_via_a_real_non_package_token():
 def test_vocabulary_coverage_package_name_alone_is_not_coverage():
     # A fact whose only identifier IS the bare package name has no real
     # signal to search for -- a pattern that merely imports/references
-    # the package must not count as covering it.
+    # the package must not count as covering it. Before
+    # classify_span_searchability's package_self_reference category, this
+    # landed in "uncovered" (a real gap the guard would flag, requiring
+    # --force). That was itself the wrong verdict for a different reason
+    # -- the token is excluded as a matchable candidate on both sides
+    # (see _pattern_tokens' `exclude`), so the fact could never reach
+    # "covered" no matter what patterns existed. It's "unsearchable" now:
+    # not falsely covered, but also not a real gap the guard should
+    # block a run over.
     factblock = {
         "package_name": "mcp",
         "facts": [{"number": 1, "text": "`mcp` behavior changes in an unspecified way."}],
     }
     vocabulary = {"patterns": {"p1": r"import mcp"}}
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    assert rows[0]["status"] == "unsearchable"
+    assert rows[0]["spans"][0]["category"] == "package_self_reference"
+
     result = guards.check_vocabulary_coverage(factblock, vocabulary)
-    assert not result.ok
+    assert result.ok
 
 
 def test_compute_fact_pattern_coverage_row_shape_is_uniform():
@@ -242,11 +254,21 @@ def test_vocabulary_coverage_skips_non_breaking_and_shape_facts():
 # pattern could meaningfully cover these, so counting their absence as a
 # gap measured an unreachable target. These tests pin each category this
 # classifier recognizes, and -- just as important -- pin the shapes that
-# must NOT be caught by it: a real identifier, however plain, stays
-# "searchable" even if no sane vocabulary would ever write a pattern for
-# it, because that restraint is a vocabulary judgment
-# (vocabulary_system.md's anti-genericity rule), not a searchability
-# property this filter is allowed to launder away.
+# must NOT be caught by it: a real, bespoke identifier, however plain,
+# stays "searchable" even if no sane vocabulary would ever write a
+# pattern for it (e.g. `ClientSession`), because that restraint is a
+# vocabulary judgment (vocabulary_system.md's anti-genericity rule), not
+# a searchability property this filter is allowed to launder away.
+#
+# A bare Python BUILTIN name (`TypeError`, `isinstance`, ...) is the one
+# deliberate exception to "no name-based special case," added for
+# gap-fill: it's not that no pattern COULD match `TypeError` -- it's that
+# doing so would match every line in the host codebase already using the
+# language's own exception type, so sending it to gap-fill as if it were
+# a real vocabulary gap would burn a call chasing something no vocabulary
+# should ever cover. Still structural, not identity-based: the test is
+# membership in `dir(builtins)`, a mechanical, enumerable fact about the
+# span's exact text, not a hand-picked list of "words we don't like."
 
 def test_classify_version_specifiers_as_unsearchable():
     for span in ["<3", ">=2.11,<3", ">=0.27.1,<1.0.0", '"mcp>=2,<3"', '"mcp==1.28.1"', ">=310"]:
@@ -315,15 +337,40 @@ def test_classify_does_not_flag_single_letter_identifiers():
 
 
 def test_classify_does_not_flag_a_bare_identifier_by_name():
-    # The whole point: no name-based special case. `TypeError` alone is a
-    # perfectly ordinary, structurally valid identifier -- it stays
-    # searchable, and remains a real (if deliberately unaddressed)
+    # A real, bespoke identifier stays searchable no matter how plain --
+    # `ClientSession` remains a real (if deliberately unaddressed)
     # candidate in the covered/partial/uncovered accounting, exactly the
     # same as any other bare word a vocabulary chose not to write a
-    # pattern for.
-    assert guards.classify_span_searchability("TypeError") is None
-    assert guards.classify_span_searchability("ValueError") is None
+    # pattern for. This is NOT the same claim as "no name is ever
+    # special-cased" -- see test_classify_bare_python_builtins_as_unsearchable
+    # directly below for the one deliberate exception.
     assert guards.classify_span_searchability("ClientSession") is None
+    assert guards.classify_span_searchability("RootModel") is None
+
+
+def test_classify_bare_python_builtins_as_unsearchable():
+    for span in ["TypeError", "ValueError", "RuntimeError", "isinstance", "AttributeError"]:
+        assert guards.classify_span_searchability(span) == "python_builtin", span
+
+
+def test_classify_does_not_flag_dunder_names_as_python_builtin():
+    # dir(builtins) includes module dunders (__name__, __loader__, ...) --
+    # excluded deliberately, since a dunder is a structurally different
+    # kind of identifier a guide might legitimately want a pattern for.
+    assert guards.classify_span_searchability("__init__") is None
+    assert guards.classify_span_searchability("__loader__") is None
+
+
+def test_classify_package_self_reference_as_unsearchable():
+    assert guards.classify_span_searchability("mcp", package_name="mcp") == "package_self_reference"
+    assert guards.classify_span_searchability("MCP", package_name="mcp") == "package_self_reference"
+    # Underscore-insensitive, same normalization compute_fact_pattern_coverage
+    # already applies to both a fact's tokens and a pattern's own tokens.
+    assert guards.classify_span_searchability("my_pkg", package_name="my_pkg") == "package_self_reference"
+    assert guards.classify_span_searchability("mypkg", package_name="my_pkg") == "package_self_reference"
+    # A different word, or no package_name given at all, must not match.
+    assert guards.classify_span_searchability("mcpserver", package_name="mcp") is None
+    assert guards.classify_span_searchability("mcp") is None
 
 
 def test_classify_does_not_flag_real_code_constructs():
@@ -399,3 +446,38 @@ def test_compute_fact_pattern_coverage_mixed_unsearchable_and_uncovered():
     }
     rows = guards.compute_fact_pattern_coverage(factblock, {"patterns": {}})
     assert rows[0]["status"] == "uncovered"
+
+
+def test_compute_fact_pattern_coverage_python_builtin_only_is_unsearchable():
+    # A fact whose only identifier span is a bare Python builtin must land
+    # in "unsearchable", not "uncovered" -- gap-fill's whole reason for
+    # existing is a per-fact target list, and a fact like this one is not
+    # a real target: no vocabulary should ever write a standalone
+    # `TypeError` pattern.
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "Calling the loader with a bad path now raises "
+                                   "`TypeError` instead of returning nothing."},
+        ],
+    }
+    rows = guards.compute_fact_pattern_coverage(factblock, {"patterns": {}})
+    assert rows[0]["status"] == "unsearchable"
+    by_span = {s["span"]: s for s in rows[0]["spans"]}
+    assert by_span["TypeError"]["category"] == "python_builtin"
+
+
+def test_compute_fact_pattern_coverage_package_self_reference_only_is_unsearchable():
+    # A fact whose only identifier span is the bare package name itself
+    # can never reach "covered" (the token is excluded as a matchable
+    # candidate on both sides -- see _pattern_tokens' `exclude`), so it
+    # must not be counted as an "uncovered" gap either.
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "`widget` now requires Python 3.10 or newer."},
+        ],
+    }
+    rows = guards.compute_fact_pattern_coverage(factblock, {"patterns": {"p1": r"\bwidget\b"}})
+    assert rows[0]["status"] == "unsearchable"
+    assert rows[0]["spans"][0]["category"] == "package_self_reference"

@@ -5,6 +5,7 @@ Both guards stop the run (nonzero) unless --force, and both print the full
 derived artifact plus the numbers that triggered the stop -- never just a
 verdict.
 """
+import builtins
 import re
 from dataclasses import dataclass, field
 
@@ -306,6 +307,22 @@ _METHOD_PATH_RE = re.compile(
 # words.
 _PROSE_STRIP_CHARS = "\"'`.,:;!?"
 
+# Every name `builtins` exposes -- exceptions (TypeError, ValueError, ...),
+# warnings, and callables (isinstance, len, str, ...) -- minus dunders
+# (__name__, __doc__, __loader__, ...), which are a structurally different
+# kind of identifier a guide might legitimately want a pattern for. This is
+# gap-fill's first pre-filter: a span naming a bare Python builtin can never
+# usefully be grepped for standalone (a pattern for `TypeError` matches
+# every line in the host codebase that already used the language's own
+# exception type, migration or not) -- see the comment above
+# `_VERSION_SPEC_RE` for the same reasoning applied to version constraints,
+# error codes, and the rest. Purely structural, like every other category
+# here: never keyed off which identifier it is, only whether its exact text
+# is a name Python itself already defines.
+_PYTHON_BUILTIN_NAMES = frozenset(
+    name for name in dir(builtins) if not name.startswith("__")
+)
+
 
 def _dequote(span):
     span = span.strip()
@@ -334,12 +351,36 @@ def _looks_like_prose(span):
     return any(w[0].islower() for w in alpha_words)
 
 
-def classify_span_searchability(span):
+def classify_span_searchability(span, package_name=None):
     """Returns the name of the unsearchability category this span
     structurally matches, or None if it's a plausible Python source token
     (and therefore stays in the normal covered/partial/uncovered scoring).
     See the block comment above _VERSION_SPEC_RE for why this exists and
-    why it never checks the span's identity, only its shape."""
+    why it never checks the span's identity, only its shape -- with two
+    exceptions, both still structural in the sense that neither depends
+    on what the identifier means, only on an enumerable/computable fact
+    about it:
+
+    - "python_builtin": the span's exact text is a name Python's own
+      `builtins` module already defines (TypeError, isinstance, str,
+      ...). Membership in `dir(builtins)` is itself a mechanical,
+      general-purpose test -- not MCP-specific, not hand-curated.
+    - "package_self_reference": the span, once normalized the same way
+      `compute_fact_pattern_coverage` normalizes both a fact's tokens
+      and a pattern's own tokens (stripped, lowercased, underscores
+      removed), equals the package name. `compute_fact_pattern_coverage`
+      already excludes the package-name token as a matchable candidate
+      on BOTH sides (a bare `mcp` token grants no coverage signal
+      against any pattern, even one that legitimately imports `mcp`) --
+      so a fact whose only identifier span is the bare package name can
+      never reach "covered" no matter what patterns exist. Flagging it
+      here stops gap-fill (or a human) from chasing that as if it were a
+      real gap; it's a property of how coverage is computed, not a
+      missing pattern.
+
+    `package_name` is optional and raw (not pre-normalized) -- pass
+    None (the default) to skip the second check entirely, e.g. when
+    testing this function standalone with no factblock in scope."""
     dq = _dequote(span)
 
     if _VERSION_SPEC_RE.match(dq):
@@ -351,6 +392,20 @@ def classify_span_searchability(span):
     if type_parts and all(p in _BUILTIN_TYPE_NAMES for p in type_parts) and \
             any(p not in ("none", "nonetype") for p in type_parts):
         return "builtin_type"
+
+    # Checked after builtin_type, not before: a bare `str`/`float`/`bool`
+    # (or a `|`-union of them) is already caught above, and that category
+    # is the more specific/informative one to keep reporting for those --
+    # this check exists for the builtins _BUILTIN_TYPE_NAMES doesn't cover
+    # (TypeError, isinstance, len, ...).
+    if dq in _PYTHON_BUILTIN_NAMES:
+        return "python_builtin"
+
+    if package_name:
+        normalized_pkg = package_name.strip().lower().replace("_", "")
+        normalized_span = dq.strip().lower().replace("_", "")
+        if normalized_pkg and normalized_span == normalized_pkg:
+            return "package_self_reference"
 
     if _DATE_LITERAL_RE.match(dq):
         return "date_literal"
@@ -414,8 +469,10 @@ def compute_fact_pattern_coverage(factblock, vocabulary):
       - "no_identifier" -- names no concrete backtick-quoted identifier;
         nothing for a syntactic pattern to represent either way.
       - "unsearchable"  -- names only identifier spans that are
-        structurally not Python source tokens (see above); nothing a
-        grep pattern could ever be expected to cover.
+        structurally not Python source tokens, a bare Python builtin
+        name, or a self-reference to the package name itself (see
+        classify_span_searchability); nothing a grep pattern could ever
+        be expected to cover.
       - "covered"       -- every SEARCHABLE identifier span has at least
         one covering pattern (a fact with no searchable spans left never
         reaches this status -- it's "unsearchable" instead).
@@ -449,7 +506,7 @@ def compute_fact_pattern_coverage(factblock, vocabulary):
 
         span_rows = []
         for span, tokens in id_spans:
-            category = classify_span_searchability(span)
+            category = classify_span_searchability(span, package_name=package_name)
             if category is not None:
                 span_rows.append({
                     "span": span, "covering": [], "searchable": False, "category": category,

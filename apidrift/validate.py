@@ -190,6 +190,49 @@ def _bare_dotted_call_alternatives(regex):
 _BARE_GLOBAL_FLAG_RE = re.compile(r"\(\?[aiLmsux]+\)")
 
 
+def _validate_pattern_regex(name, regex, what):
+    """The per-pattern checks every vocabulary pattern must pass,
+    regardless of which stage produced it: compiles, no bare global
+    inline flag, no bare unqualified generic-method-call match. Factored
+    out of validate_vocabulary so validate_gapfill_dict can require the
+    exact same discipline of gap-fill's own output without duplicating
+    it -- gap-fill patterns get merged into the same vocabulary and run
+    through the same combined regex, so nothing about what makes a
+    pattern safe is different for them."""
+    if _is_blank(regex):
+        _fail(what, f"pattern '{name}' is missing or blank")
+    try:
+        re.compile(regex)
+    except re.error as e:
+        _fail(what, f"pattern '{name}' does not compile as a regex: {e}\nregex: {regex!r}")
+    if _BARE_GLOBAL_FLAG_RE.search(regex):
+        _fail(
+            what,
+            f"pattern '{name}' ({regex!r}) uses a bare global inline flag (e.g. `(?i)`). "
+            f"It compiles alone, but every pattern gets wrapped in `(?:...)` and joined "
+            f"with the rest of the vocabulary into one combined regex downstream -- at "
+            f"that point a global flag anywhere but position 0 of the WHOLE combined "
+            f"expression is a compile error, not just a warning. Use the scoped form "
+            f"instead, e.g. `(?i:...)` around only the part that needs it -- it has no "
+            f"such restriction at any nesting position.",
+        )
+    bare_alternatives = _bare_dotted_call_alternatives(regex)
+    generic_hits = [a for a in bare_alternatives if a.lower() in GENERIC_METHOD_NAMES]
+    if generic_hits:
+        _fail(
+            what,
+            f"pattern '{name}' ({regex!r}) is a bare, unqualified method-call match "
+            f"-- {', '.join(sorted(set(generic_hits)))} would match that method name "
+            f"on ANY Python object (dict.get, requests.Response.json(), re.search, "
+            f"list.count, ...), not just this package's calls. This is the exact "
+            f"overmatch failure the vocabulary-derivation prompt is instructed to "
+            f"avoid -- add a namespace/class/import-path qualifier the guide's own "
+            f"command name implies (e.g. `TS.GET` -> `\\.ts\\(\\)\\.get\\(`), or a "
+            f"required co-occurring token from the guide's own example, rather than "
+            f"matching the trailing word alone.",
+        )
+
+
 def validate_vocabulary(data, what="vocabulary"):
     if not isinstance(data, dict):
         _fail(what, "top level is not a JSON object")
@@ -199,38 +242,7 @@ def validate_vocabulary(data, what="vocabulary"):
     if not isinstance(patterns, dict) or len(patterns) == 0:
         _fail(what, "'patterns' must be a non-empty object mapping name -> regex string")
     for name, regex in patterns.items():
-        if _is_blank(regex):
-            _fail(what, f"pattern '{name}' is missing or blank")
-        try:
-            re.compile(regex)
-        except re.error as e:
-            _fail(what, f"pattern '{name}' does not compile as a regex: {e}\nregex: {regex!r}")
-        if _BARE_GLOBAL_FLAG_RE.search(regex):
-            _fail(
-                what,
-                f"pattern '{name}' ({regex!r}) uses a bare global inline flag (e.g. `(?i)`). "
-                f"It compiles alone, but every pattern gets wrapped in `(?:...)` and joined "
-                f"with the rest of the vocabulary into one combined regex downstream -- at "
-                f"that point a global flag anywhere but position 0 of the WHOLE combined "
-                f"expression is a compile error, not just a warning. Use the scoped form "
-                f"instead, e.g. `(?i:...)` around only the part that needs it -- it has no "
-                f"such restriction at any nesting position.",
-            )
-        bare_alternatives = _bare_dotted_call_alternatives(regex)
-        generic_hits = [a for a in bare_alternatives if a.lower() in GENERIC_METHOD_NAMES]
-        if generic_hits:
-            _fail(
-                what,
-                f"pattern '{name}' ({regex!r}) is a bare, unqualified method-call match "
-                f"-- {', '.join(sorted(set(generic_hits)))} would match that method name "
-                f"on ANY Python object (dict.get, requests.Response.json(), re.search, "
-                f"list.count, ...), not just this package's calls. This is the exact "
-                f"overmatch failure the vocabulary-derivation prompt is instructed to "
-                f"avoid -- add a namespace/class/import-path qualifier the guide's own "
-                f"command name implies (e.g. `TS.GET` -> `\\.ts\\(\\)\\.get\\(`), or a "
-                f"required co-occurring token from the guide's own example, rather than "
-                f"matching the trailing word alone.",
-            )
+        _validate_pattern_regex(name, regex, what)
 
     try:
         re.compile("|".join(f"(?:{p})" for p in patterns.values()))
@@ -260,6 +272,205 @@ def validate_vocabulary_file(path):
     except json.JSONDecodeError as e:
         _fail(path, f"not valid JSON ({e})")
     return validate_vocabulary(data, what=path)
+
+
+# ---------------------------------------------------------------------
+# Gap-fill two-bucket contract -- same discipline as the adjudication/
+# fixgen two/three-bucket contracts below: a result must declare both
+# buckets even if one is empty, never defaulted. `patterns` gets every
+# check validate_vocabulary already applies to a pattern (via
+# _validate_pattern_regex, shared rather than duplicated) PLUS two checks
+# specific to gap-fill, below.
+#
+# Why gap-fill gets its own, STRICTER checks that plain vocabulary
+# derivation doesn't: pass-0 derivation is handed the whole guide and
+# asked for good coverage across it -- a single pattern legitimately
+# grouping many genuinely-related symbols (e.g. eighteen removed type
+# names that all disappeared the same way) is exactly what "COVERAGE PER
+# PATTERN, NOT PER FACT" in vocabulary_system.md asks for. Gap-fill is a
+# narrower, more exploitable prompt: it is handed a specific list of
+# facts already known to lack coverage and told, in effect, "these lack
+# patterns." That framing rewards satisfying the checker over writing a
+# real pattern -- the cheapest way to make N facts stop looking like
+# gaps is one broad alternation whose branches are the N facts' own
+# identifiers, whether or not they share any real syntactic shape. That
+# pattern compiles, isn't a bare dotted call (so the existing
+# generic-method check never even looks at it), and would make every
+# target fact register as covered. The two extra checks below exist
+# because nothing else in this file would catch it.
+GAPFILL_MAX_ALTERNATIVES = 3
+# Picked, not derived: gap-fill's OWN target set already groups facts
+# that are individually flagged as separately lacking coverage, not
+# facts a human bundled because they share a call shape -- unlike
+# pass-0's "TS.GET/JSON.SET/FT.SEARCH share a namespaced-command shape"
+# groupings, gap-fill has no equivalent structural signal that N target
+# facts belong in one pattern together. 3 is small enough that a
+# legitimate small group (e.g. two or three sibling constants named in
+# the SAME fact, like `client_secret_basic`/`client_secret_post`) still
+# fits, while a kitchen-sink alternation spanning a double-digit target
+# list cannot -- and low enough that satisfying the id-must-reference-
+# the-symbol check below (~12 characters, per vocabulary_system.md's own
+# id-length guidance) stays physically plausible for every branch, which
+# stops being true well before branch counts reach the double digits.
+
+
+def _regex_own_words(regex):
+    """A rough, regex-syntax-agnostic word split of a pattern's own
+    source. Deliberately simpler than guards.py's _pattern_tokens (which
+    has to be precise about escape sequences for accurate fact<->pattern
+    coverage matching) -- this only needs to answer "does this pattern's
+    id trace back to recognizable text in its own regex," a much cruder
+    bar, and living in validate.py (which nothing in apidrift imports)
+    keeps this file free of the guards.py<->validate.py import cycle
+    that reusing _pattern_tokens directly would create."""
+    cleaned = re.sub(r"\\[A-Za-z0-9]", " ", regex)
+    return {w.lower().replace("_", "") for w in re.findall(r"[A-Za-z0-9_]{2,}", cleaned)}
+
+
+def _longest_common_substring_len(a, b):
+    """Longest run of contiguous characters common to both strings.
+    Both operands here are short (a pattern id, ~12 chars per
+    vocabulary_system.md's own guidance; a regex-derived word, rarely
+    more than ~20) so the O(len(a)*len(b)) DP is cheap. Used instead of
+    plain substring containment because a realistic short id truncates a
+    longer word rather than repeating it whole (e.g. id 'gf_clientsess'
+    for a `ClientSession` pattern) -- neither direction of `in` holds
+    once a stage prefix like 'gf_' sits in front of the truncation, even
+    though the id plainly does name the symbol."""
+    if not a or not b:
+        return 0
+    prev = [0] * (len(b) + 1)
+    best = 0
+    for ca in a:
+        curr = [0] * (len(b) + 1)
+        for j, cb in enumerate(b, start=1):
+            if ca == cb:
+                curr[j] = prev[j - 1] + 1
+                best = max(best, curr[j])
+        prev = curr
+    return best
+
+
+GAPFILL_ID_OVERLAP_MIN = 4
+
+
+def _count_alternation_branches(regex):
+    """Total `|`-separated alternatives anywhere in the pattern, at ANY
+    nesting depth -- unlike _split_top_level_alternatives above (which
+    only counts a depth-0 `|`, because that check specifically cares
+    whether a branch is an independent WHOLE-PATTERN alternative, the
+    shape a bare generic method name has to have to overmatch on its
+    own), gap-fill's cap cares how many distinct things one pattern can
+    match at all. `\\b(A|B|C)\\b` offers three alternatives exactly as
+    much as a top-level `A|B|C` would, and the grouped form is how this
+    vocabulary's own existing patterns are written (p7_removedtyp,
+    p12_unions, ...), so counting only depth-0 pipes would miss the
+    exact shape a gap-fill kitchen-sink pattern is written in."""
+    n, i, length = 1, 0, len(regex)
+    while i < length:
+        ch = regex[i]
+        if ch == "\\" and i + 1 < length:
+            i += 2
+            continue
+        if ch == "|":
+            n += 1
+        i += 1
+    return n
+
+
+def _validate_gapfill_pattern_anti_goodhart(name, regex, what):
+    branches = _count_alternation_branches(regex)
+    if branches > GAPFILL_MAX_ALTERNATIVES:
+        _fail(
+            what,
+            f"gap-fill pattern '{name}' ({regex!r}) has {branches} alternation "
+            f"branches, over the gap-fill cap of {GAPFILL_MAX_ALTERNATIVES}. "
+            f"If these branches genuinely share one call shape from the same fact or "
+            f"sibling facts, that's still capped here deliberately -- split into more "
+            f"than one pattern. If some of them don't actually belong together, decline "
+            f"the ones that don't fit (see the 'declined' bucket) rather than folding "
+            f"them into one pattern to shrink the decline count.",
+        )
+    id_norm = name.lower().replace("_", "")
+    words = [w for w in _regex_own_words(regex) if len(w) >= 3]
+    if words and not any(
+        _longest_common_substring_len(id_norm, w) >= min(GAPFILL_ID_OVERLAP_MIN, len(w))
+        for w in words
+    ):
+        _fail(
+            what,
+            f"gap-fill pattern '{name}' ({regex!r}) -- id does not reference any "
+            f"recognizable word from its own regex text. Every gap-fill pattern's id "
+            f"must name the specific symbol it targets (e.g. 'gf_rootmodel' for a "
+            f"RootModel pattern) -- an id that can't be traced back to its own "
+            f"pattern's content is exactly the shape a pattern written to satisfy the "
+            f"coverage checker, rather than to name a real symbol, would have.",
+        )
+
+
+GAPFILL_BUCKET_KEYS = ["patterns", "declined"]
+GAPFILL_DECLINED_FIELDS = ["fact", "span", "reason"]
+
+
+def validate_gapfill_dict(data, what="gapfill result"):
+    if not isinstance(data, dict):
+        _fail(what, "top level is not a JSON object")
+    for key in GAPFILL_BUCKET_KEYS:
+        if key not in data:
+            _fail(what, f"missing required top-level key '{key}' (a result must declare "
+                         f"both buckets even if one is empty -- the whole point of the "
+                         f"decline channel is that 'no pattern' and 'never addressed' "
+                         f"must never be indistinguishable again)")
+
+    patterns = data["patterns"]
+    if not isinstance(patterns, list):
+        _fail(what, f"'patterns' must be a list of {{name, regex}} objects, got "
+                     f"{type(patterns).__name__}")
+    seen_names = set()
+    for idx, item in enumerate(patterns):
+        if not isinstance(item, dict) or "name" not in item or "regex" not in item:
+            _fail(what, f"'patterns[{idx}]' malformed: expected {{'name', 'regex'}}, got {item!r}")
+        name, regex = item["name"], item["regex"]
+        if name in seen_names:
+            _fail(what, f"duplicate pattern id '{name}' within this gap-fill pass -- "
+                         f"every id must be unique, same as validate_vocabulary already "
+                         f"requires for a full vocabulary")
+        seen_names.add(name)
+        _validate_pattern_regex(name, regex, what)
+        _validate_gapfill_pattern_anti_goodhart(name, regex, what)
+
+    declined = data["declined"]
+    if not isinstance(declined, list):
+        _fail(what, f"'declined' must be a list of {{fact, span, reason}} objects, got "
+                     f"{type(declined).__name__}")
+    for idx, item in enumerate(declined):
+        if not isinstance(item, dict):
+            _fail(what, f"'declined[{idx}]' is not an object")
+        for field in GAPFILL_DECLINED_FIELDS:
+            if field not in item:
+                _fail(what, f"'declined[{idx}]' missing required field '{field}'")
+            if field == "fact":
+                if not isinstance(item["fact"], int):
+                    _fail(what, f"'declined[{idx}].fact' must be an int, got "
+                                 f"{type(item['fact']).__name__}")
+            elif _is_blank(item[field]):
+                _fail(what, f"'declined[{idx}].{field}' is missing, null, or blank")
+    return data
+
+
+def validate_gapfill_file(path):
+    """Same discipline as validate_vocabulary_file -- used to resume a
+    run by loading an already-completed gap-fill pass instead of
+    re-deriving it."""
+    with open(path) as f:
+        raw = f.read()
+    if raw.strip() == "":
+        _fail(path, "file is empty")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        _fail(path, f"not valid JSON ({e})")
+    return validate_gapfill_dict(data, what=path)
 
 
 # ---------------------------------------------------------------------
