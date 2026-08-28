@@ -249,6 +249,120 @@ def _token_covers(token, pattern_stripped_tokens):
     return token.replace("_", "") in pattern_stripped_tokens
 
 
+# A span that names a real Python source construct -- an identifier, a
+# dotted attribute path, a call, a decorator -- is a fair target for a grep
+# pattern, even if this vocabulary happens not to have one for it (that's a
+# vocabulary judgment call, tracked as a real "uncovered" gap, not a defect
+# in the metric). A span that is guide PROSE ABOUT Python source -- a
+# version-range constraint, a raw JSON-RPC error number, a bare `str`/
+# `float` type name, an HTTP header spelled with hyphens, a `tools/list`
+# wire path, a full quoted runtime-symptom sentence -- can never plausibly
+# appear as that literal token in real source, so scoring it as an
+# "uncovered" gap measures an unreachable target. This classifier is purely
+# structural (the shape of the span text), never keyed off which specific
+# identifier it is -- `TypeError` on its own is a normal, valid identifier
+# and stays searchable even though a pattern for it would be a bad idea;
+# that restraint is vocabulary_system.md's anti-genericity rule doing its
+# job, not a gap this filter should paper over.
+_VERSION_SPEC_RE = re.compile(
+    r"""^
+    (?:[A-Za-z_][A-Za-z0-9_.\-]*\s*)?                        # optional leading package/dep name
+    (?:>=|<=|==|!=|~=|>|<)\s*[0-9][0-9A-Za-z.]*              # first constraint
+    (?:\s*,\s*(?:>=|<=|==|!=|~=|>|<)\s*[0-9][0-9A-Za-z.]*)*  # further comma-joined constraints
+    $""",
+    re.VERBOSE,
+)
+
+_NUMERIC_CODE_RE = re.compile(r"^-?[0-9]+$")
+
+_BUILTIN_TYPE_NAMES = {
+    "str", "int", "float", "bool", "bytes", "bytearray", "complex",
+    "list", "dict", "tuple", "set", "frozenset", "object", "type",
+    "none", "nonetype",
+}
+
+_DATE_LITERAL_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+
+# Letters/digits joined by hyphens with no other punctuation -- the shape of
+# an HTTP header name (`Mcp-Name`, `MCP-Protocol-Version`) or similar wire
+# token. A hyphen is not a legal character inside a Python identifier (it
+# parses as subtraction), so a span with this exact shape can never be the
+# literal text of a Python name -- only a string constant naming one, which
+# a guide backtick-span never spells out with its own quotes.
+_WIRE_HEADER_TOKEN_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+$")
+
+# A bare (`tools/list`) or leading-slash (`/authorize`, `/etc/passwd`)
+# slash-separated path -- a JSON-RPC method name or a URL route, neither of
+# which is a Python identifier shape either.
+_METHOD_PATH_RE = re.compile(
+    r"^(?:/[A-Za-z_][A-Za-z0-9_]*(?:/[A-Za-z_][A-Za-z0-9_]*)*"
+    r"|[A-Za-z_][A-Za-z0-9_]*(?:/[A-Za-z_][A-Za-z0-9_]*)+)$"
+)
+
+# Characters a whitespace-delimited "word" is stripped of before judging
+# whether it's a plain English word -- deliberately NOT brackets/parens, so
+# a real type expression (`Callable[..., Any]`, `Callable[[], str | None]`)
+# never gets misread as prose just because it contains bracket-adjacent
+# words.
+_PROSE_STRIP_CHARS = "\"'`.,:;!?"
+
+
+def _dequote(span):
+    span = span.strip()
+    if len(span) >= 2 and span[0] == span[-1] and span[0] in ('"', "'"):
+        return span[1:-1]
+    return span
+
+
+def _looks_like_prose(span):
+    """True when the span reads as an English sentence/phrase rather than
+    a code token -- a quoted error message (`"Method not found"`) or an
+    exception-plus-message symptom (`TypeError: Invalid "auth" argument`).
+    Requires at least two whitespace-separated alphabetic words (after
+    stripping only quote/sentence punctuation, never brackets/parens, from
+    each word's edges) AND at least one of them lowercase-leading --
+    real prose has connective words (`has`, `no`, `request`, `argument`);
+    a bare union of capitalized class names (`Foo | Bar | Baz`) does not,
+    and must not be caught here."""
+    alpha_words = []
+    for chunk in span.split():
+        core = chunk.strip(_PROSE_STRIP_CHARS)
+        if len(core) >= 2 and core.isalpha():
+            alpha_words.append(core)
+    if len(alpha_words) < 2:
+        return False
+    return any(w[0].islower() for w in alpha_words)
+
+
+def classify_span_searchability(span):
+    """Returns the name of the unsearchability category this span
+    structurally matches, or None if it's a plausible Python source token
+    (and therefore stays in the normal covered/partial/uncovered scoring).
+    See the block comment above _VERSION_SPEC_RE for why this exists and
+    why it never checks the span's identity, only its shape."""
+    dq = _dequote(span)
+
+    if _VERSION_SPEC_RE.match(dq):
+        return "version_specifier"
+    if _NUMERIC_CODE_RE.match(dq):
+        return "numeric_code"
+
+    type_parts = [p.strip().lower() for p in dq.split("|")]
+    if type_parts and all(p in _BUILTIN_TYPE_NAMES for p in type_parts) and \
+            any(p not in ("none", "nonetype") for p in type_parts):
+        return "builtin_type"
+
+    if _DATE_LITERAL_RE.match(dq):
+        return "date_literal"
+    if _WIRE_HEADER_TOKEN_RE.match(dq):
+        return "wire_header_token"
+    if _METHOD_PATH_RE.match(dq):
+        return "method_path"
+    if _looks_like_prose(span):
+        return "multiword_prose"
+    return None
+
+
 def compute_fact_pattern_coverage(factblock, vocabulary):
     """The fact<->pattern coverage relation, as structured data -- no
     report text, no pass/fail verdict. This is the one place the
@@ -281,21 +395,40 @@ def compute_fact_pattern_coverage(factblock, vocabulary):
     could represent -- excluded from the pass/fail requirement, reported
     separately rather than miscounted as a real gap.
 
+    A span can also name something that is real guide content but
+    structurally can never be a Python source token in the first place --
+    a version-range constraint, a raw JSON-RPC error number, a bare
+    builtin type name, a hyphenated wire/header token, a slash-separated
+    method path, or a full quoted runtime-symptom sentence (see
+    classify_span_searchability). Those spans are pulled out of the
+    covered/partial/uncovered scoring entirely -- a pattern cannot
+    meaningfully cover them, so counting the absence of one as a gap
+    would measure an unreachable target -- and are reported in their own
+    "searchable": False bucket instead, exactly like non_breaking/
+    no_identifier facts are pulled out of the per-span reckoning.
+
     Returns a list of per-fact row dicts, in factblock order:
     {"number", "text", "status", "spans"}. `status` is one of:
       - "non_breaking"  -- the fact itself states it's not a breaking
         change (guards._is_non_breaking_fact); no pattern is expected.
       - "no_identifier" -- names no concrete backtick-quoted identifier;
         nothing for a syntactic pattern to represent either way.
-      - "covered"       -- every identifier span has at least one
-        covering pattern.
-      - "partial"       -- some spans covered, some not.
-      - "uncovered"      -- names identifiers but not one span is covered
-        by any derived pattern.
+      - "unsearchable"  -- names only identifier spans that are
+        structurally not Python source tokens (see above); nothing a
+        grep pattern could ever be expected to cover.
+      - "covered"       -- every SEARCHABLE identifier span has at least
+        one covering pattern (a fact with no searchable spans left never
+        reaches this status -- it's "unsearchable" instead).
+      - "partial"       -- some searchable spans covered, some not.
+      - "uncovered"      -- names searchable identifiers but not one is
+        covered by any derived pattern.
     `spans` is always a list (empty for non_breaking/no_identifier, one
-    entry per identifier span otherwise): {"span", "covering"} where
+    entry per identifier span otherwise): {"span", "covering", "searchable",
+    "category"}. `searchable` is False for a structurally-unsearchable
+    span (in which case `category` names why and `covering` is always
+    `[]`) and True otherwise (in which case `category` is None and
     `covering` is the sorted list of pattern names whose regex source
-    plausibly represents that span (empty if none do)."""
+    plausibly represents that span, empty if none do)."""
     package_name = (factblock.get("package_name") or "").strip().lower().replace("_", "")
     exclude = {package_name} if package_name else set()
 
@@ -315,8 +448,14 @@ def compute_fact_pattern_coverage(factblock, vocabulary):
             continue
 
         span_rows = []
-        fact_gap = False
         for span, tokens in id_spans:
+            category = classify_span_searchability(span)
+            if category is not None:
+                span_rows.append({
+                    "span": span, "covering": [], "searchable": False, "category": category,
+                })
+                continue
+
             distinctive = [t for t in tokens if t not in validate.GENERIC_METHOD_NAMES] or tokens
             # No "or distinctive" fallback here, unlike the generic-word
             # filter above: a span whose only token IS the package name
@@ -345,13 +484,19 @@ def compute_fact_pattern_coverage(factblock, vocabulary):
                 for name, words in pattern_words.items()
                 if _token_covers(tok, words)
             }
-            if not covering:
-                fact_gap = True
-            span_rows.append({"span": span, "covering": sorted(covering)})
+            span_rows.append({
+                "span": span, "covering": sorted(covering), "searchable": True, "category": None,
+            })
 
-        status = "uncovered" if all(not r["covering"] for r in span_rows) else (
-            "partial" if fact_gap else "covered"
-        )
+        searchable_rows = [r for r in span_rows if r["searchable"]]
+        if not searchable_rows:
+            status = "unsearchable"
+        elif all(not r["covering"] for r in searchable_rows):
+            status = "uncovered"
+        elif all(r["covering"] for r in searchable_rows):
+            status = "covered"
+        else:
+            status = "partial"
         rows.append({"number": num, "text": text, "status": status, "spans": span_rows})
 
     return rows
@@ -370,8 +515,16 @@ def render_fact_pattern_coverage_report(rows):
         if row["status"] == "non_breaking":
             report_lines.append(f"  [{row['number']:>3}] (explicitly non-breaking -- no pattern expected) {row['text'][:90]}")
             continue
+        if row["status"] == "unsearchable":
+            report_lines.append(f"  [{row['number']:>3}] (identifiers named are not searchable Python tokens) {row['text'][:90]}")
+            for sr in row["spans"]:
+                report_lines.append(f"        `{sr['span']}` -> UNSEARCHABLE ({sr['category']})")
+            continue
         report_lines.append(f"  [{row['number']:>3}] {row['status'].upper()}: {row['text'][:90]}")
         for sr in row["spans"]:
+            if not sr["searchable"]:
+                report_lines.append(f"        `{sr['span']}` -> UNSEARCHABLE ({sr['category']})")
+                continue
             covering = ", ".join(sr["covering"]) if sr["covering"] else "*** MISSING -- no pattern references it ***"
             report_lines.append(f"        `{sr['span']}` -> {covering}")
     return "\n".join(report_lines)

@@ -230,3 +230,172 @@ def test_vocabulary_coverage_skips_non_breaking_and_shape_facts():
     }
     result = guards.check_vocabulary_coverage(factblock, {"patterns": {"p1": r"\bwidget\b"}})
     assert result.ok
+
+
+# --- searchability pre-filter (classify_span_searchability) ---
+#
+# Roughly a third of the spans check_vocabulary_coverage used to flag as
+# "no covering pattern" were never Python source tokens to begin with --
+# guide prose ABOUT Python source (a version constraint, a JSON-RPC error
+# number, a bare builtin type name, an HTTP header spelled with hyphens, a
+# `tools/list` wire path, a full quoted runtime-symptom sentence). No
+# pattern could meaningfully cover these, so counting their absence as a
+# gap measured an unreachable target. These tests pin each category this
+# classifier recognizes, and -- just as important -- pin the shapes that
+# must NOT be caught by it: a real identifier, however plain, stays
+# "searchable" even if no sane vocabulary would ever write a pattern for
+# it, because that restraint is a vocabulary judgment
+# (vocabulary_system.md's anti-genericity rule), not a searchability
+# property this filter is allowed to launder away.
+
+def test_classify_version_specifiers_as_unsearchable():
+    for span in ["<3", ">=2.11,<3", ">=0.27.1,<1.0.0", '"mcp>=2,<3"', '"mcp==1.28.1"', ">=310"]:
+        assert guards.classify_span_searchability(span) == "version_specifier", span
+
+
+def test_classify_numeric_error_codes_as_unsearchable():
+    for span in ["-32021", "-32600", "0", "32600", "408"]:
+        assert guards.classify_span_searchability(span) == "numeric_code", span
+
+
+def test_classify_bare_builtin_types_as_unsearchable():
+    for span in ["str", "float", "float | None", "str | None", "bool"]:
+        assert guards.classify_span_searchability(span) == "builtin_type", span
+
+
+def test_classify_wire_header_tokens_as_unsearchable():
+    for span in ["Mcp-Name", "MCP-Protocol-Version", "Last-Event-ID", "Mcp-Method"]:
+        assert guards.classify_span_searchability(span) == "wire_header_token", span
+
+
+def test_classify_method_paths_as_unsearchable():
+    for span in ["tools/list", "/authorize", "/etc/passwd", "notifications/tools/list_changed"]:
+        assert guards.classify_span_searchability(span) == "method_path", span
+
+
+def test_classify_date_literals_as_unsearchable():
+    for span in ["2026-07-28", "2025-11-25"]:
+        assert guards.classify_span_searchability(span) == "date_literal", span
+
+
+def test_classify_quoted_runtime_symptoms_as_unsearchable_prose():
+    # The dangerous category: `TypeError` itself must stay searchable (see
+    # the negative test below) but a full symptom sentence quoting it is
+    # prose, not a grep target -- classified by SHAPE (multiple words,
+    # at least one lowercase), never by checking for "TypeError" by name.
+    for span in [
+        '"Method not found"',
+        '"Invalid request parameters"',
+        'TypeError: Invalid "auth" argument',
+        "AttributeError: 'Server' object has no attribute 'list_tools'",
+    ]:
+        assert guards.classify_span_searchability(span) == "multiword_prose", span
+
+
+def test_classify_does_not_flag_dotted_paths():
+    assert guards.classify_span_searchability("mcp.server.mcpserver") is None
+    assert guards.classify_span_searchability("redis.Redis") is None
+
+
+def test_classify_does_not_flag_dunder_names():
+    assert guards.classify_span_searchability("__init__") is None
+    assert guards.classify_span_searchability("__all__") is None
+
+
+def test_classify_does_not_flag_names_with_digits():
+    assert guards.classify_span_searchability("sha256") is None
+    assert guards.classify_span_searchability("utf8") is None
+    assert guards.classify_span_searchability("mcp2") is None
+
+
+def test_classify_does_not_flag_single_letter_identifiers():
+    assert guards.classify_span_searchability("T") is None
+    assert guards.classify_span_searchability("_") is None
+    assert guards.classify_span_searchability("x") is None
+
+
+def test_classify_does_not_flag_a_bare_identifier_by_name():
+    # The whole point: no name-based special case. `TypeError` alone is a
+    # perfectly ordinary, structurally valid identifier -- it stays
+    # searchable, and remains a real (if deliberately unaddressed)
+    # candidate in the covered/partial/uncovered accounting, exactly the
+    # same as any other bare word a vocabulary chose not to write a
+    # pattern for.
+    assert guards.classify_span_searchability("TypeError") is None
+    assert guards.classify_span_searchability("ValueError") is None
+    assert guards.classify_span_searchability("ClientSession") is None
+
+
+def test_classify_does_not_flag_real_code_constructs():
+    assert guards.classify_span_searchability("@mcp.tool()") is None
+    assert guards.classify_span_searchability("initialize()") is None
+    assert guards.classify_span_searchability("encoding=None") is None
+    assert guards.classify_span_searchability('redis.Redis(host="localhost", port=6379)') is None
+
+
+def test_classify_does_not_flag_type_expressions_with_brackets():
+    # A real type expression must never be misread as prose just because
+    # it contains bracket-adjacent words, and a union of real (non-
+    # builtin) class names is a legitimate, if currently ungrepped,
+    # symbol reference -- not builtin-type noise.
+    assert guards.classify_span_searchability("Callable[..., Any]") is None
+    assert guards.classify_span_searchability("Callable[[], str | None]") is None
+    assert guards.classify_span_searchability(
+        "AcceptedElicitation[T] | DeclinedElicitation | CancelledElicitation"
+    ) is None
+
+
+def test_compute_fact_pattern_coverage_unsearchable_status_and_exclusion():
+    # A fact whose only identifier span is structurally unsearchable gets
+    # its own status -- it must never count as "uncovered"/"partial", and
+    # must never trip check_vocabulary_coverage's guard, since there is no
+    # pattern a vocabulary could plausibly write for it.
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "`pydantic` floor raised to `>=2.12` in v2."},
+        ],
+    }
+    vocabulary = {"patterns": {"p1": r"\bpydantic\b"}}
+    rows = guards.compute_fact_pattern_coverage(factblock, vocabulary)
+    by_span = {s["span"]: s for s in rows[0]["spans"]}
+    assert by_span[">=2.12"]["searchable"] is False
+    assert by_span[">=2.12"]["category"] == "version_specifier"
+    assert by_span[">=2.12"]["covering"] == []
+    # `pydantic` is covered, and the only other span is unsearchable, so
+    # the fact is "covered" overall -- not "partial".
+    assert rows[0]["status"] == "covered"
+
+    result = guards.check_vocabulary_coverage(factblock, vocabulary)
+    assert result.ok
+
+
+def test_compute_fact_pattern_coverage_all_spans_unsearchable():
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "The error code is `-32021`."},
+        ],
+    }
+    rows = guards.compute_fact_pattern_coverage(factblock, {"patterns": {}})
+    assert rows[0]["status"] == "unsearchable"
+    assert rows[0]["spans"][0]["searchable"] is False
+
+    # A fact with no searchable spans left is not a coverage gap -- the
+    # guard must not fire on it.
+    result = guards.check_vocabulary_coverage(factblock, {"patterns": {}})
+    assert result.ok
+
+
+def test_compute_fact_pattern_coverage_mixed_unsearchable_and_uncovered():
+    # One unsearchable span and one real, genuinely-uncovered span: status
+    # must be driven by the real span alone ("uncovered"), not "partial" --
+    # the unsearchable span contributes nothing either way.
+    factblock = {
+        "package_name": "widget",
+        "facts": [
+            {"number": 1, "text": "`widget.Baz` now requires `>=2.12`."},
+        ],
+    }
+    rows = guards.compute_fact_pattern_coverage(factblock, {"patterns": {}})
+    assert rows[0]["status"] == "uncovered"

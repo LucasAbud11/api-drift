@@ -83,7 +83,8 @@ def test_pipeline_writes_fact_pattern_coverage_json(tmp_path):
         data = json.load(f)
 
     assert data["summary"] == {
-        "non_breaking": 1, "no_identifier": 0, "covered": 0, "partial": 1, "uncovered": 1,
+        "non_breaking": 1, "no_identifier": 0, "unsearchable": 0,
+        "covered": 0, "partial": 1, "uncovered": 1,
     }
     by_number = {row["number"]: row for row in data["facts"]}
     assert by_number[1]["status"] == "partial"

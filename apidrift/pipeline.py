@@ -145,7 +145,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     # from a chunk. Shares its matching logic with check_vocabulary_coverage
     # below via compute_fact_pattern_coverage; neither reimplements it.
     coverage_rows = guards.compute_fact_pattern_coverage(fb, vocab)
-    coverage_summary = {"non_breaking": 0, "no_identifier": 0, "covered": 0, "partial": 0, "uncovered": 0}
+    coverage_summary = {"non_breaking": 0, "no_identifier": 0, "unsearchable": 0, "covered": 0, "partial": 0, "uncovered": 0}
     for row in coverage_rows:
         coverage_summary[row["status"]] += 1
     _write_json(os.path.join(workdir, "fact_pattern_coverage.json"),
