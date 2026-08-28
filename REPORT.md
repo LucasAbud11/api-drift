@@ -871,3 +871,34 @@ is to be a server rather than drive one. This means the 100%/100%
 figures reported for Target A/B (§5) characterize performance on thin
 server wrappers specifically, not on the migration as a whole, and
 should be read with that scope attached.
+
+**Coverage overstates the detection gap — `cisco-ai-defense/mcp-scanner`.**
+The first fixture that exercises client-side surface: a real MCP client,
+not another thin FastMCP server. The OAuth sites the coverage guard
+reports as gaps are found anyway — `auth.py:30` (`OAuthClientProvider`)
+and `auth.py:31` (`OAuthClientInformationFull`) both surface as
+candidates, 84 candidates total across `p81_oauthprov`/`p84_authcode`/
+`p85_authmeta`/`p86_authfields`. Coverage is computed fact-side: a fact
+can register "partial" because some of its backtick-quoted spans are
+unsearchable spec literals, even while the code site it describes is
+still reached by a different pattern covering a different span from the
+same fact. The 269-fact gap counted earlier in this section therefore
+overstates the detection gap — an upper bound on what stage 2 might be
+missing, not a count of missed sites.
+
+**One confirmed detection miss, in production code.** `ClientSession`
+produces zero candidates out of 815 on this same repo, despite three
+production sites in `mcpscanner/core/scanner.py` — a type annotation at
+line 1382, and constructions at lines 1536 and 1864. 22 facts reference
+`ClientSession`; no derived pattern covers it. This is the first
+measured instance of the stage-2 gap costing real detection rather than
+only a coverage-metric count.
+
+**The model refusal above (`securityfortech/secops-mcp`) reproduced on a
+second, independent security repo.** `mcp-scanner` is defensive tooling
+— Cisco AI Defense's scanner for MCP server misconfiguration — and
+adjudication returned `stop_reason=refusal` again. The repo vendors a
+corpus of deliberately malicious MCP servers as scan fixtures, which
+makes the refusal explicable, but two refusals on two unrelated repos
+whose only shared property is "security tooling" confirms the failure
+mode is domain-driven, not a one-off.
