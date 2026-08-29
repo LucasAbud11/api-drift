@@ -1021,3 +1021,66 @@ that, on this candidate breakdown, would roughly triple adjudication
 cost (1,666 of 2,795 candidates, against a pre-gap-fill baseline of 118
 total) while contributing nothing migration-relevant. Both are true of
 the same run, and the entry recording only the first is incomplete.
+
+**Fixed `check_vocabulary_yield`'s dominance check, offline, against the
+recorded run-scanner-dedup artifacts above.** Replaced the fixed
+share-of-total threshold (0.35) with a fair-share multiple: a pattern's
+share of candidates, multiplied by the number of patterns that actually
+fired. Fixed share had a diluted-denominator hole — as more patterns
+fire, each one's share of the same total shrinks even when its absolute
+overmatch doesn't, so a run with several simultaneously-overbroad
+patterns can dilute all of them under the line at once. Multiplying by
+`n_firing` undoes exactly that dilution: `gf_tooldecor`'s 26.7% of 2,795
+candidates across 70 firing patterns becomes 18.7x fair share, not a
+diluted 27%.
+
+**Verified on real data, not reasoned in the abstract.** Precise
+fair-share multiples, run-scanner-dedup (2,795 candidates, 70 firing
+patterns): `gf_tooldecor` 745 candidates, 18.7x; `gf_uristrlit` 506,
+12.7x; `p1_fastmcp` 423, 10.6x; `gf_mcpenv` 344, 8.6x; `gf_textmime` 76,
+1.9x. `max_fair_share_multiple=12` sits in the only valid window
+(10.6, 12.7] — flags the two gap-fill patterns above `p1_fastmcp`,
+spares `p1_fastmcp` itself. Confirmed silent on `run-youtrack-v2` (top
+multiple 4.7x, 8 firing patterns) and `run-jmeter` (top multiple 1.9x,
+6 firing patterns).
+
+**The measure cannot separate `gf_mcpenv`/`gf_textmime` from
+`p1_fastmcp`, and no volume-based measure can.** Both have fewer
+candidates than `p1_fastmcp` (344 and 76, against 423) in the same run,
+on every volume-derived scalar — share, this multiple, ratio-to-median,
+raw count. Flagging a 344-or-76-candidate pattern without also flagging
+a 423-candidate one in the same run isn't a threshold, it's a
+contradiction: any measure that's a monotonic function of candidate
+count preserves that ordering. This holds for all three measures this
+task set out to compare (ratio-to-median, ratio-to-fair-share,
+absolute-count-with-lower-share) — they're all directly proportional to
+raw count within one run, so they rank patterns identically and differ
+only in what constant they divide by. Separating a shape-matching
+pattern (`gf_mcpenv`: any `MCP_*`-shaped env var name; `gf_textmime`:
+`"text/plain"`/`"application/json"` anywhere) from a genuinely dominant
+symbol match (`p1_fastmcp`: real `FastMCP` usages) needs a signal this
+guard doesn't have — e.g. whether the pattern's regex is anchored to a
+specific symbol or built from an open wildcard/alternation over a class
+of literals. Not built; flagging this rather than tuning the threshold
+until it looked solved.
+
+**Bonus finding: the old check was already misfiring in production.**
+`run-youtrack-adjudicate.log` shows the guard had already flagged
+`p64_modeldump` on `run-youtrack-v2` — 76/130 candidates, 58% share —
+and required a `--force` bypass to proceed. `p64_modeldump` matches
+`.model_dump()`/`.model_validate()`, real pydantic call sites central to
+that migration guide; every one of its 76 candidates is legitimate. The
+old fixed-share check couldn't tell a genuinely common symbol in a
+small vocabulary (8 firing patterns) from an overbroad one, because a
+correct pattern can legitimately cover the majority of a small
+vocabulary's hits. The fair-share multiple fixes this too, incidentally:
+`p64_modeldump`'s multiple is 4.7x, safely under the new 12x line, so
+this run no longer needs `--force` for a false alarm.
+
+228 offline tests pass (3 new, 1 rewritten to reflect the new measure's
+semantics — the old test asserted dominance on a 2-pattern vocabulary,
+where fair-share multiple is mathematically capped at `n_firing`=2 and
+can never reach a threshold calibrated for the 70-pattern regime this
+fix targets). 4 unrelated failures in `test_prompt_cache.py`
+(`ModuleNotFoundError: anthropic`, confirmed pre-existing via `git
+stash`) are an environment gap, not a regression.

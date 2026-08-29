@@ -74,26 +74,66 @@ def check_factblock_coverage(guide_text, factblock, min_ratio=0.30):
 
 
 def check_vocabulary_yield(patterns, candidates, max_total=2000,
-                            max_single_pattern_share=0.35, max_single_pattern_floor=25):
+                            max_fair_share_multiple=12, max_single_pattern_floor=25):
     """Runs after grep. Flags either an absolute candidate-count ceiling
     (matches the volume where the study measured real completion
-    failures) or one pattern alone accounting for most of the candidate
-    set (the exact failure shape found in blind_vocab_experiment: a bare
-    generic identifier like `data=` or `.error(` swamping everything a
-    guide-faithful vocabulary was never trying to overmatch).
+    failures) or one pattern alone accounting for far more than its fair
+    share of the candidate set (the exact failure shape found in
+    blind_vocab_experiment: a bare generic identifier like `data=` or
+    `.error(` swamping everything a guide-faithful vocabulary was never
+    trying to overmatch).
 
-    max_single_pattern_floor was 100, max_single_pattern_share was 0.5 --
-    both sized to the study's diluted-host worst case (1121 total
-    candidates). At the scale of a normal single-repo run (tens to a few
-    hundred raw candidates), a floor that high means the guard can never
-    fire no matter how lopsided the vocabulary is: it just proved this on
-    a real run (tasktiger/redis) where one bare, unqualified pattern took
-    56/143 candidates (39%) -- exactly the failure shape this guard
-    exists to catch -- and passed silently because 56 < 100. 25/0.35 is
-    low enough to catch that at normal-repo scale, while still tolerating
-    a legitimately dominant pattern in a genuinely small candidate set
-    (e.g. a package's own constructor call at 6/10) without a false
-    alarm."""
+    A pattern's "fair share" is total_candidates / number_of_firing_patterns
+    -- what an even split among the patterns that actually matched
+    anything would look like. max_fair_share_multiple is how many times
+    that fair share one pattern is allowed to take before it's flagged.
+    This replaced a fixed share-of-total threshold (0.35) that had a
+    diluted-denominator hole: on run-scanner-dedup (real gap-fill run,
+    2,795 candidates, 70 firing patterns), four gap-fill patterns matched
+    pure syntactic shapes rather than migration-relevant symbols --
+    `gf_tooldecor` (`@x.tool(`/`@x.prompt(`, present in essentially every
+    MCP server), `gf_uristrlit` (any `https://` string literal),
+    `gf_mcpenv` (any `MCP_*`-shaped env var name), `gf_textmime`
+    (`"text/plain"`/`"application/json"` anywhere) -- together 60% of
+    the run's candidate volume, yet each one individually diluted the
+    others' share of the denominator enough that none crossed 35% alone
+    (worst was gf_tooldecor at 26.7%), so the check stayed silent while
+    the run's total also blew the max_total ceiling for an unrelated
+    reason. Multiplying share by the number of firing patterns undoes
+    that dilution: gf_tooldecor's 26.7% among 70 firing patterns is
+    18.7x fair share, not a diluted 27%.
+
+    max_fair_share_multiple=12 is deliberately narrow (valid range on the
+    real data is (10.6, 12.7]) because it sits between two counts that
+    cannot be told apart by candidate volume alone: p1_fastmcp, the same
+    run's largest pre-existing pattern, produced 423 candidates (10.6x
+    fair share) and every one was a real `FastMCP` usage; two of the four
+    gap-fill patterns above it (gf_tooldecor 745/18.7x, gf_uristrlit
+    506/12.7x) get caught, but gf_mcpenv (344/8.6x) and gf_textmime
+    (76/1.9x) sit BELOW p1_fastmcp on every volume-derived measure --
+    share, this multiple, ratio-to-median, all of them, because they are
+    numerically smaller and every one of those measures is monotonic in
+    raw count within a run. No threshold on candidate volume can flag a
+    344-candidate pattern without also flagging a 423-candidate one in
+    the same run: that would require flagging fewer candidates but not
+    more, which is not a threshold, it's a contradiction. Separating
+    gf_mcpenv/gf_textmime from a legitimately dominant pattern needs a
+    different signal -- e.g. whether the pattern's regex is anchored to
+    a specific symbol vs. an open shape -- not built here.
+
+    This also fixed a live false positive: on run-youtrack-v2, the old
+    fixed-share check flagged p64_modeldump (76/130, 58%, a real
+    `.model_dump()`/`.model_validate()` pattern -- pydantic is central to
+    that guide) and had to be bypassed with --force. Its fair-share
+    multiple is 4.7x (8 firing patterns), well under this threshold, so
+    it now passes cleanly. run-jmeter's top pattern (31% of 29
+    candidates, 6 firing patterns) was already correctly unflagged and
+    stays that way at 1.9x.
+
+    max_single_pattern_floor stays 25, unchanged from the previous
+    tuning pass: it still guards a genuinely small candidate set (e.g. a
+    package's own constructor call at 6/10) against a false alarm,
+    independent of the multiple-based check above."""
     per_pattern = {name: 0 for name in patterns}
     for c in candidates:
         name = c.get("_pattern")
@@ -116,13 +156,23 @@ def check_vocabulary_yield(patterns, candidates, max_total=2000,
         )
 
     if total > 0:
-        worst_name, worst_count = max(per_pattern.items(), key=lambda kv: kv[1])
-        if worst_count >= max_single_pattern_floor and worst_count / total >= max_single_pattern_share:
+        n_firing = sum(1 for count in per_pattern.values() if count > 0)
+        fair_share = total / n_firing
+        dominant = sorted(
+            (
+                (name, count, count / fair_share)
+                for name, count in per_pattern.items()
+                if count >= max_single_pattern_floor and count / fair_share >= max_fair_share_multiple
+            ),
+            key=lambda row: -row[1],
+        )
+        if dominant:
+            detail = ", ".join(f"'{name}' {count}/{total} ({mult:.1f}x)" for name, count, mult in dominant)
             return GuardResult(
                 False,
-                f"pattern '{worst_name}' alone accounts for {worst_count}/{total} "
-                f"candidates ({worst_count/total:.0%}) -- looks overly generic relative "
-                f"to what the guide actually described",
+                f"{len(dominant)} pattern(s) each take far more than their fair share "
+                f"across {n_firing} firing patterns -- {detail} -- look overly generic "
+                f"relative to what the guide actually described",
                 report,
             )
     return GuardResult(True, "", report)

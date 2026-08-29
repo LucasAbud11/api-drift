@@ -40,12 +40,66 @@ def test_candidate_count_ceiling():
 
 
 def test_single_pattern_dominance():
-    patterns = {"generic": r"\.error\(", "specific": r"FooBar\("}
-    candidates = [{"file": f"f{i}.py", "line": 1, "_pattern": "generic"} for i in range(500)]
-    candidates += [{"file": "g.py", "line": 1, "_pattern": "specific"} for _ in range(3)]
+    # 30 patterns split a modest pool evenly; one bare, generic pattern
+    # takes far more than an even split among the patterns that actually
+    # fired -- the failure shape from blind_vocab_experiment.
+    patterns = {"generic": r"\.error\("}
+    patterns.update({f"specific{i}": rf"Foo{i}\(" for i in range(30)})
+    candidates = [{"file": f"f{i}.py", "line": 1, "_pattern": "generic"} for i in range(900)]
+    for i in range(30):
+        candidates += [{"file": "g.py", "line": 1, "_pattern": f"specific{i}"} for _ in range(5)]
     result = guards.check_vocabulary_yield(patterns, candidates, max_total=10000)
     assert not result.ok
     assert "generic" in result.reason
+
+
+def test_dominance_uses_fair_share_not_raw_percentage():
+    # The diluted-denominator failure this measure replaced: several
+    # overbroad patterns each individually stay under any fixed
+    # percentage because they dilute one another's share of the same
+    # denominator, while one legitimately high-volume pattern -- fewer
+    # candidates than the worst overbroad ones, more than the mildest --
+    # must not be caught in the net just for sitting in the middle.
+    # Modeled on the real run-scanner-dedup measurement (298 patterns,
+    # 2,795 candidates): gf_tooldecor/gf_uristrlit overbroad and flagged,
+    # p1_fastmcp legitimate and spared, gf_mcpenv/gf_textmime overbroad
+    # but numerically below p1_fastmcp so a volume-only measure cannot
+    # flag them without also flagging p1_fastmcp -- left unflagged here
+    # too, matching the real guard's documented limitation.
+    patterns = {
+        "gf_tooldecor": r"@\w+\.tool\(",
+        "gf_uristrlit": r"https://",
+        "p1_fastmcp": r"FastMCP",
+        "gf_mcpenv": r"MCP_[A-Z]+",
+        "gf_textmime": r"text/plain",
+    }
+    patterns.update({f"p{i}": rf"specific{i}\(" for i in range(65)})
+    candidates = (
+        [{"file": "f.py", "line": 1, "_pattern": "gf_tooldecor"} for _ in range(745)]
+        + [{"file": "f.py", "line": 1, "_pattern": "gf_uristrlit"} for _ in range(506)]
+        + [{"file": "f.py", "line": 1, "_pattern": "p1_fastmcp"} for _ in range(423)]
+        + [{"file": "f.py", "line": 1, "_pattern": "gf_mcpenv"} for _ in range(344)]
+        + [{"file": "f.py", "line": 1, "_pattern": "gf_textmime"} for _ in range(76)]
+        + [{"file": "f.py", "line": 1, "_pattern": f"p{i}"} for i in range(65) for _ in range(10)]
+    )
+    result = guards.check_vocabulary_yield(patterns, candidates, max_total=10000)
+    assert not result.ok
+    assert "gf_tooldecor" in result.reason
+    assert "gf_uristrlit" in result.reason
+    assert "p1_fastmcp" not in result.reason
+    assert "gf_mcpenv" not in result.reason
+    assert "gf_textmime" not in result.reason
+
+
+def test_dominance_floor_spares_small_pool():
+    # A pattern can be 100% of a tiny pool (a package's own constructor
+    # call) without tripping the guard -- max_single_pattern_floor exists
+    # independently of the fair-share multiple for exactly this case.
+    patterns = {"ctor": r"Widget\(", "other": r"other\("}
+    candidates = [{"file": "f.py", "line": 1, "_pattern": "ctor"} for _ in range(6)]
+    candidates += [{"file": "f.py", "line": 1, "_pattern": "other"} for _ in range(4)]
+    result = guards.check_vocabulary_yield(patterns, candidates)
+    assert result.ok
 
 
 def test_balanced_vocabulary_passes():
