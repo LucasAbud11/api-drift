@@ -48,8 +48,8 @@ def _script():
         },
         "fixgen_chunk_000": {
             "fixes": [{
-                "file": "mod.py", "line": 1,
-                "original_line": "import old_pkg", "proposed_line": "import new_pkg",
+                "file": "mod.py", "line": 1, "end_line": 1,
+                "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
                 "reason": "fact 1: package renamed",
             }],
             "flagged_for_human": [],
@@ -78,7 +78,7 @@ def test_pipeline_runs_fix_generation_end_to_end(tmp_path):
         verify_install=False,
     )
 
-    assert result["fixgen_expanded"]["fixes"][0]["proposed_line"] == "import new_pkg"
+    assert result["fixgen_expanded"]["fixes"][0]["proposed_lines"] == ["import new_pkg"]
     assert result["fixgen_expanded"]["flagged_for_human"] == []
     assert result["verification_report"]["parse_and_line_match"]["ok"] is True
     assert result["verification_report"]["install"]["available"] is False

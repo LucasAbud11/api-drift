@@ -100,12 +100,27 @@ def _read_file(into_root, relpath):
         return f.read()
 
 
+def _check_overlaps(relpath, items):
+    """Raises ApplyError if any two of this file's fixes claim overlapping
+    line ranges -- see verify.py's identical check for why this is a real
+    possibility a block fix introduces that a single-line-only scheme
+    never had to guard against."""
+    ordered = sorted(items, key=lambda i: i["line"])
+    for a, b in zip(ordered, ordered[1:]):
+        if b["line"] <= a["end_line"]:
+            raise ApplyError(
+                f"{relpath}: fixes at line {a['line']}-{a['end_line']} and "
+                f"{b['line']}-{b['end_line']} overlap -- cannot apply both, "
+                f"aborting with zero files modified"
+            )
+
+
 def check_line_matches(into_root, fixes):
-    """Re-reads each fix's target line from --into and confirms it matches
-    the recorded original_line exactly -- deliberately repeats verify.py's
-    tier 1, because --into is a different checkout than the one analysed
-    and may have drifted since. Returns a list of mismatch dicts, empty if
-    every fix matches."""
+    """Re-reads each fix's target block from --into and confirms it
+    matches the recorded original_lines exactly -- deliberately repeats
+    verify.py's tier 1, because --into is a different checkout than the
+    one analysed and may have drifted since. Returns a list of mismatch
+    dicts, empty if every fix matches."""
     mismatches = []
     by_file = {}
     for fix in fixes:
@@ -122,20 +137,23 @@ def check_line_matches(into_root, fixes):
             continue
         lines = _read_file(into_root, relpath).splitlines(keepends=True)
         for item in items:
-            idx = item["line"] - 1
-            if idx < 0 or idx >= len(lines):
+            start_idx = item["line"] - 1
+            end_idx = item["end_line"]
+            if start_idx < 0 or end_idx > len(lines):
                 mismatches.append({
                     "file": relpath, "line": item["line"],
-                    "reason": f"line {item['line']} is out of range for {relpath} "
-                              f"({len(lines)} lines)",
+                    "reason": f"lines {item['line']}-{item['end_line']} are out of range "
+                              f"for {relpath} ({len(lines)} lines)",
                 })
                 continue
-            actual = lines[idx].rstrip("\r\n")
-            expected = item["original_line"].rstrip("\r\n")
-            if actual != expected and actual.strip() != item["original_line"].strip():
+            actual_block = [l.rstrip("\r\n") for l in lines[start_idx:end_idx]]
+            expected_block = [l.rstrip("\r\n") for l in item["original_lines"]]
+            if actual_block != expected_block and \
+                    [l.strip() for l in actual_block] != [l.strip() for l in expected_block]:
                 mismatches.append({
                     "file": relpath, "line": item["line"],
-                    "reason": f"line drifted -- expected {expected!r}, found {actual!r}",
+                    "reason": f"block drifted -- expected {expected_block!r}, "
+                              f"found {actual_block!r}",
                 })
     return mismatches
 
@@ -171,14 +189,24 @@ def apply_fixes(into_root, fixes, dry_run=False):
         original_text = _read_file(into_root, relpath)
         originals[relpath] = original_text
         lines = original_text.splitlines(keepends=True)
+        _check_overlaps(relpath, items)
+        # Descending line order: a block fix can change the line count, so
+        # applying in ascending order (the old single-line-only scheme)
+        # would shift every not-yet-applied fix's index the moment any
+        # earlier fix's replacement has a different length than its
+        # original span. Every fix not yet applied here has a strictly
+        # lower `line` (overlap already ruled out above), so replacing a
+        # later range never moves an earlier one's index.
         new_lines = list(lines)
-        for item in sorted(items, key=lambda i: i["line"]):
-            idx = item["line"] - 1
-            ending = _line_ending_of(lines[idx]) or "\n"
-            new_line = item["proposed_line"]
-            if not new_line.endswith(("\n", "\r\n")):
-                new_line = new_line + ending
-            new_lines[idx] = new_line
+        for item in sorted(items, key=lambda i: i["line"], reverse=True):
+            start_idx = item["line"] - 1
+            end_idx = item["end_line"]
+            ending = _line_ending_of(lines[end_idx - 1]) or "\n"
+            proposed = [
+                pl if pl.endswith(("\n", "\r\n")) else pl + ending
+                for pl in item["proposed_lines"]
+            ]
+            new_lines[start_idx:end_idx] = proposed
         patched_text = "".join(new_lines)
 
         try:

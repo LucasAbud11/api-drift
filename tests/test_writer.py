@@ -103,16 +103,14 @@ def test_check_not_analysis_repo_accepts_different_path(tmp_path):
 def test_check_line_matches_ok(tmp_path):
     repo = str(tmp_path / "repo")
     _init_repo(repo, {"mod.py": "import old_pkg\n"})
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
     assert writer.check_line_matches(repo, fixes) == []
 
 
 def test_check_line_matches_detects_drift(tmp_path):
     repo = str(tmp_path / "repo")
     _init_repo(repo, {"mod.py": "import something_else\n"})
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
     mismatches = writer.check_line_matches(repo, fixes)
     assert len(mismatches) == 1
     assert "drifted" in mismatches[0]["reason"]
@@ -121,8 +119,7 @@ def test_check_line_matches_detects_drift(tmp_path):
 def test_check_line_matches_detects_missing_file(tmp_path):
     repo = str(tmp_path / "repo")
     _init_repo(repo, {"mod.py": "import old_pkg\n"})
-    fixes = [{"file": "gone.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "gone.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
     mismatches = writer.check_line_matches(repo, fixes)
     assert len(mismatches) == 1
     assert "does not exist" in mismatches[0]["reason"]
@@ -131,8 +128,7 @@ def test_check_line_matches_detects_missing_file(tmp_path):
 def test_check_line_matches_detects_out_of_range(tmp_path):
     repo = str(tmp_path / "repo")
     _init_repo(repo, {"mod.py": "import old_pkg\n"})
-    fixes = [{"file": "mod.py", "line": 99, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 99, "end_line": 99, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
     mismatches = writer.check_line_matches(repo, fixes)
     assert len(mismatches) == 1
     assert "out of range" in mismatches[0]["reason"]
@@ -145,8 +141,7 @@ def test_check_line_matches_detects_out_of_range(tmp_path):
 def test_apply_fixes_writes_correct_content(tmp_path):
     repo = str(tmp_path / "repo")
     _init_repo(repo, {"mod.py": "import old_pkg\n\ndef f():\n    return old_pkg.g()\n"})
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
 
     result = writer.apply_fixes(repo, fixes, dry_run=False)
 
@@ -163,10 +158,8 @@ def test_apply_fixes_applies_multiple_fixes_same_file(tmp_path):
     repo = str(tmp_path / "repo")
     _init_repo(repo, {"mod.py": "import old_pkg\nold_pkg.setup()\n"})
     fixes = [
-        {"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-         "proposed_line": "import new_pkg", "reason": "renamed"},
-        {"file": "mod.py", "line": 2, "original_line": "old_pkg.setup()",
-         "proposed_line": "new_pkg.setup()", "reason": "renamed"},
+        {"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"},
+        {"file": "mod.py", "line": 2, "end_line": 2, "original_lines": ["old_pkg.setup()"], "proposed_lines": ["new_pkg.setup()"], "reason": "renamed"},
     ]
 
     result = writer.apply_fixes(repo, fixes, dry_run=False)
@@ -181,8 +174,7 @@ def test_apply_fixes_dry_run_writes_nothing(tmp_path):
     repo = str(tmp_path / "repo")
     original = "import old_pkg\n"
     _init_repo(repo, {"mod.py": original})
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
 
     result = writer.apply_fixes(repo, fixes, dry_run=True)
 
@@ -197,10 +189,8 @@ def test_apply_fixes_aborts_all_on_one_mismatch(tmp_path):
     original_b = "import something_else\n"
     _init_repo(repo, {"a.py": original_a, "b.py": original_b})
     fixes = [
-        {"file": "a.py", "line": 1, "original_line": "import old_pkg",
-         "proposed_line": "import new_pkg", "reason": "renamed"},
-        {"file": "b.py", "line": 1, "original_line": "import old_pkg",
-         "proposed_line": "import new_pkg", "reason": "renamed"},
+        {"file": "a.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"},
+        {"file": "b.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"},
     ]
 
     with pytest.raises(writer.ApplyError, match="do not match"):
@@ -218,10 +208,8 @@ def test_apply_fixes_aborts_on_syntax_break_with_zero_writes(tmp_path):
     original_b = "import old_pkg\n"
     _init_repo(repo, {"a.py": original_a, "b.py": original_b})
     fixes = [
-        {"file": "a.py", "line": 1, "original_line": "import old_pkg",
-         "proposed_line": "import new_pkg", "reason": "renamed"},
-        {"file": "b.py", "line": 1, "original_line": "import old_pkg",
-         "proposed_line": "import new_pkg(((", "reason": "broken"},
+        {"file": "a.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"},
+        {"file": "b.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg((("], "reason": "broken"},
     ]
 
     with pytest.raises(writer.ApplyError, match="fails to parse"):
@@ -238,3 +226,90 @@ def test_apply_fixes_empty_list_is_a_noop(tmp_path):
     _init_repo(repo, {"mod.py": "import old_pkg\n"})
     result = writer.apply_fixes(repo, [], dry_run=False)
     assert result == {"diffs": [], "files_modified": [], "n_fixes": 0}
+
+
+# ---------------------------------------------------------------------
+# Block fixes -- a replacement whose line count differs from its original
+# span. Ascending-order, one-line-in-one-line-out splicing (the old
+# scheme) silently corrupts the file the moment this happens; descending-
+# order application (see writer.py's apply_fixes) is the fix.
+# ---------------------------------------------------------------------
+
+def test_apply_fixes_block_replacement_shrinks_line_count(tmp_path):
+    repo = str(tmp_path / "repo")
+    _init_repo(repo, {"mod.py": "a = 1\nold_pkg.setup(\n    x=1,\n    y=2,\n)\nb = 2\n"})
+    fixes = [{
+        "file": "mod.py", "line": 2, "end_line": 5,
+        "original_lines": ["old_pkg.setup(", "    x=1,", "    y=2,", ")"],
+        "proposed_lines": ["new_pkg.setup(x=1, y=2)"],
+        "reason": "collapsed onto one line",
+    }]
+
+    result = writer.apply_fixes(repo, fixes, dry_run=False)
+
+    with open(os.path.join(repo, "mod.py")) as f:
+        content = f.read()
+    assert content == "a = 1\nnew_pkg.setup(x=1, y=2)\nb = 2\n"
+    assert result["n_fixes"] == 1
+
+
+def test_apply_fixes_block_replacement_grows_line_count(tmp_path):
+    repo = str(tmp_path / "repo")
+    _init_repo(repo, {"mod.py": "a = 1\nold_pkg.setup(x=1, y=2)\nb = 2\n"})
+    fixes = [{
+        "file": "mod.py", "line": 2, "end_line": 2,
+        "original_lines": ["old_pkg.setup(x=1, y=2)"],
+        "proposed_lines": ["new_pkg.setup(", "    x=1,", "    y=2,", ")"],
+        "reason": "expanded onto four lines",
+    }]
+
+    result = writer.apply_fixes(repo, fixes, dry_run=False)
+
+    with open(os.path.join(repo, "mod.py")) as f:
+        content = f.read()
+    assert content == "a = 1\nnew_pkg.setup(\n    x=1,\n    y=2,\n)\nb = 2\n"
+    assert result["n_fixes"] == 1
+
+
+def test_apply_fixes_shrinking_block_does_not_corrupt_a_later_fix_in_the_same_file(tmp_path):
+    # The latent corruption bug named in the design pass: an earlier fix
+    # (lower line number) whose block shrinks the file must not shift the
+    # index a LATER fix (higher line number) still expects. Descending-
+    # order application is what makes this safe -- the later fix is
+    # applied first, while its own line numbers are still valid against
+    # the ORIGINAL file.
+    repo = str(tmp_path / "repo")
+    _init_repo(repo, {"mod.py": "old_pkg.setup(\n    x=1,\n)\nimport old_pkg\n"})
+    fixes = [
+        {"file": "mod.py", "line": 1, "end_line": 3,
+         "original_lines": ["old_pkg.setup(", "    x=1,", ")"],
+         "proposed_lines": ["new_pkg.setup(x=1)"], "reason": "collapsed"},
+        {"file": "mod.py", "line": 4, "end_line": 4,
+         "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
+         "reason": "renamed"},
+    ]
+
+    result = writer.apply_fixes(repo, fixes, dry_run=False)
+
+    with open(os.path.join(repo, "mod.py")) as f:
+        content = f.read()
+    assert content == "new_pkg.setup(x=1)\nimport new_pkg\n"
+    assert result["n_fixes"] == 2
+
+
+def test_apply_fixes_rejects_overlapping_fixes_with_zero_writes(tmp_path):
+    repo = str(tmp_path / "repo")
+    original = "a = 1\nb = 2\nc = 3\n"
+    _init_repo(repo, {"mod.py": original})
+    fixes = [
+        {"file": "mod.py", "line": 1, "end_line": 2,
+         "original_lines": ["a = 1", "b = 2"], "proposed_lines": ["x = 1"], "reason": "r1"},
+        {"file": "mod.py", "line": 2, "end_line": 3,
+         "original_lines": ["b = 2", "c = 3"], "proposed_lines": ["y = 2"], "reason": "r2"},
+    ]
+
+    with pytest.raises(writer.ApplyError, match="overlap"):
+        writer.apply_fixes(repo, fixes, dry_run=False)
+
+    with open(os.path.join(repo, "mod.py")) as f:
+        assert f.read() == original

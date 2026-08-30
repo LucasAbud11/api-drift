@@ -211,8 +211,7 @@ def test_ungrouped_confident_sites_reach_the_model_unaffected(tmp_path):
     proposed = [{"file": "main.py", "line": 1, "snippet": "import old_pkg", "pattern": "1",
                  "reason": "import rename", "related_sites": []}]
     response = {
-        "fixes": [{"file": "main.py", "line": 1, "original_line": "import old_pkg",
-                    "proposed_line": "import new_pkg", "reason": "renamed"}],
+        "fixes": [{"file": "main.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}],
         "flagged_for_human": [],
     }
     client = FakeLLMClient([response])
@@ -220,7 +219,7 @@ def test_ungrouped_confident_sites_reach_the_model_unaffected(tmp_path):
                          uncertain_sites=[], chunk_size=40)
 
     assert len(client.calls) == 1
-    assert merged["fixes"][0]["proposed_line"] == "import new_pkg"
+    assert merged["fixes"][0]["proposed_lines"] == ["import new_pkg"]
 
 
 def test_uncertain_sites_default_to_no_grouping(tmp_path):
@@ -231,8 +230,7 @@ def test_uncertain_sites_default_to_no_grouping(tmp_path):
     proposed = [{"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r",
                  "related_sites": [{"file": "main.py", "line": 2}]}]
     response = {
-        "fixes": [{"file": "main.py", "line": 1, "original_line": "x = 1",
-                    "proposed_line": "x = 10", "reason": "fixed"}],
+        "fixes": [{"file": "main.py", "line": 1, "end_line": 1, "original_lines": ["x = 1"], "proposed_lines": ["x = 10"], "reason": "fixed"}],
         "flagged_for_human": [],
     }
     client = FakeLLMClient([response])
@@ -253,8 +251,8 @@ def test_two_confident_coupled_sites_both_reach_the_model_together(tmp_path):
     ]
     response = {
         "fixes": [
-            {"file": "main.py", "line": 1, "original_line": "x = 1", "proposed_line": "x = 10", "reason": "r"},
-            {"file": "main.py", "line": 2, "original_line": "y = 2", "proposed_line": "y = 20", "reason": "r"},
+            {"file": "main.py", "line": 1, "end_line": 1, "original_lines": ["x = 1"], "proposed_lines": ["x = 10"], "reason": "r"},
+            {"file": "main.py", "line": 2, "end_line": 2, "original_lines": ["y = 2"], "proposed_lines": ["y = 20"], "reason": "r"},
         ],
         "flagged_for_human": [],
     }
@@ -278,8 +276,7 @@ def test_torn_group_is_a_hard_validation_failure(tmp_path):
     # rejected outright, never silently accepted with one site fixed alone
     # (exactly the youtrack-mcp failure shape).
     response = {
-        "fixes": [{"file": "main.py", "line": 1, "original_line": "x = 1",
-                    "proposed_line": "x = 10", "reason": "fixed"}],
+        "fixes": [{"file": "main.py", "line": 1, "end_line": 1, "original_lines": ["x = 1"], "proposed_lines": ["x = 10"], "reason": "fixed"}],
         "flagged_for_human": [{"file": "main.py", "line": 2, "reason": "unrelated decline"}],
     }
     client = FakeLLMClient([response])
@@ -409,3 +406,309 @@ def test_report_renders_span_declined_group_without_duplicating_the_span_entry(t
     # under the group section.
     assert text.count("this line is part of a multi-line statement spanning lines 3-7") == 1
     assert "declined above as a multi-line statement" in text
+
+
+# ---------------------------------------------------------------------
+# Joint resolution -- a group with NO uncertain member but a member the
+# multi-line-span guard would otherwise decline alone (the youtrack-mcp
+# shape) is sent to the model as one coordinated call instead of being
+# auto-declined. Same body shape as AZEROTH_SHAPED_BODY, but both sites
+# are CONFIRMED (proposed), not uncertain -- the exact classification
+# boundary that routes a group to _run_joint_group instead of pass 2's
+# automatic decline.
+# ---------------------------------------------------------------------
+
+AZEROTH_JOINT_BODY = (
+    "import os\n"                        # line 1
+    "\n"                                 # line 2
+    "mcp = FastMCP(\n"                   # line 3 -- multi-line anchor
+    "    \"name\",\n"                    # line 4
+    "    host=host,\n"                   # line 5
+    "    port=port\n"                    # line 6
+    ")\n"                                # line 7
+    "\n"                                 # line 8
+    "if __name__ == \"__main__\":\n"     # line 9
+    "    mcp.run(transport=\"sse\")\n"   # line 10
+)
+
+_JOINT_PROPOSED = [
+    {"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1",
+     "reason": "constructor referencing FastMCP",
+     "related_sites": [{"file": "main.py", "line": 10}]},
+    {"file": "main.py", "line": 10, "snippet": "    mcp.run(transport=\"sse\")", "pattern": "1",
+     "reason": "host/port formerly given to the constructor must now be passed here",
+     "related_sites": [{"file": "main.py", "line": 3}]},
+]
+
+_JOINT_SUCCESS_RESPONSE = {
+    "fixes": [
+        {"file": "main.py", "line": 3, "end_line": 7,
+         "original_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+         "proposed_lines": ["mcp = FastMCP(", "    \"name\",", ")"],
+         "reason": "host/port moved off the constructor"},
+        {"file": "main.py", "line": 10, "end_line": 10,
+         "original_lines": ["    mcp.run(transport=\"sse\")"],
+         "proposed_lines": ["    mcp.run(transport=\"sse\", host=host, port=port)"],
+         "reason": "host/port now passed to run()"},
+    ],
+    "flagged_for_human": [],
+}
+
+
+def test_joint_resolve_group_ships_a_verified_coordinated_fix(tmp_path):
+    reader = _make_repo(tmp_path, body=AZEROTH_JOINT_BODY)
+    client = FakeLLMClient([_JOINT_SUCCESS_RESPONSE])
+
+    merged = fixgen.run(client, reader, _JOINT_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=[], chunk_size=40)
+
+    assert len(client.calls) == 1  # one joint call, no per-site chunk call needed
+    assert client.calls[0]["stage"] == "fixgen_group_main.py_3"
+    assert merged["flagged_for_human"] == []
+    assert len(merged["fixes"]) == 2
+    assert {f["line"] for f in merged["fixes"]} == {3, 10}
+    for f in merged["fixes"]:
+        assert f["group_id"] == "main.py:3"
+
+
+def test_joint_resolve_group_shows_full_statement_span_in_context(tmp_path):
+    reader = _make_repo(tmp_path, body=AZEROTH_JOINT_BODY)
+    client = FakeLLMClient([_JOINT_SUCCESS_RESPONSE])
+
+    fixgen.run(client, reader, _JOINT_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+               uncertain_sites=[], chunk_size=40)
+
+    user_text = client.calls[0]["user_text"]
+    assert "Statement span: lines 3-7" in user_text
+    assert "mcp = FastMCP(" in user_text
+    assert ")" in user_text  # the constructor's closing line is shown too, not just its opener
+
+
+def test_joint_resolve_group_falls_back_to_flagged_when_value_flow_guard_fails(tmp_path):
+    bad_response = {
+        "fixes": [
+            {"file": "main.py", "line": 3, "end_line": 7,
+             "original_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+             "proposed_lines": ["mcp = FastMCP(", "    \"name\",", ")"],
+             "reason": "host/port moved off the constructor"},
+            {"file": "main.py", "line": 10, "end_line": 10,
+             "original_lines": ["    mcp.run(transport=\"sse\")"],
+             "proposed_lines": ["    mcp.run(transport=\"sse\")"],  # host/port never threaded through
+             "reason": "no change needed here"},
+        ],
+        "flagged_for_human": [],
+    }
+    reader = _make_repo(tmp_path, body=AZEROTH_JOINT_BODY)
+    client = FakeLLMClient([bad_response])
+
+    merged = fixgen.run(client, reader, _JOINT_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=[], chunk_size=40)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 2
+    for flag in merged["flagged_for_human"]:
+        assert flag["flag_source"] == "value_flow_guard"
+        assert flag["group_id"] == "main.py:3"
+        assert "host" in flag["reason"] and "port" in flag["reason"]
+
+
+def test_joint_resolve_group_model_declines_jointly(tmp_path):
+    decline_response = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "main.py", "line": 3, "reason": "not confident about the default host value"},
+            {"file": "main.py", "line": 10, "reason": "companion at line 3 was declined"},
+        ],
+    }
+    reader = _make_repo(tmp_path, body=AZEROTH_JOINT_BODY)
+    client = FakeLLMClient([decline_response])
+
+    merged = fixgen.run(client, reader, _JOINT_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=[], chunk_size=40)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 2
+    for flag in merged["flagged_for_human"]:
+        assert flag["flag_source"] == "joint_resolution_declined"
+        assert flag["group_id"] == "main.py:3"
+
+
+def test_joint_resolve_group_torn_response_raises(tmp_path):
+    torn_response = {
+        "fixes": [{
+            "file": "main.py", "line": 3, "end_line": 7,
+            "original_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+            "proposed_lines": ["mcp = FastMCP(", "    \"name\",", ")"],
+            "reason": "host/port moved off the constructor",
+        }],
+        "flagged_for_human": [{"file": "main.py", "line": 10, "reason": "declined anyway"}],
+    }
+    reader = _make_repo(tmp_path, body=AZEROTH_JOINT_BODY)
+    client = FakeLLMClient([torn_response])
+
+    with pytest.raises(ValueError, match="split across buckets"):
+        fixgen.run(client, reader, _JOINT_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                   uncertain_sites=[], chunk_size=40)
+
+
+def test_joint_resolve_group_resumes_without_a_model_call(tmp_path):
+    reader = _make_repo(tmp_path, body=AZEROTH_JOINT_BODY)
+    workdir = str(tmp_path / "wd")
+    fg_dir = os.path.join(workdir, "fixgen")
+    os.makedirs(fg_dir, exist_ok=True)
+    with open(os.path.join(fg_dir, "group_main.py_3.json"), "w") as f:
+        json.dump(_JOINT_SUCCESS_RESPONSE, f)
+
+    client = FakeLLMClient([])  # any call would IndexError -- proves the model is never asked
+    merged = fixgen.run(client, reader, _JOINT_PROPOSED, FACTBLOCK, workdir,
+                         uncertain_sites=[], chunk_size=40)
+
+    assert client.calls == []
+    assert len(merged["fixes"]) == 2
+
+
+def test_joint_resolve_does_not_fire_for_a_group_with_no_span_member(tmp_path):
+    # A group with no uncertain member and no span member at all (both
+    # sites ordinary and single-line) is NOT routed to joint resolution --
+    # it reaches the model independently, same chunk, no group framing,
+    # exactly as test_two_confident_coupled_sites_both_reach_the_model_together
+    # already covers. This just confirms the classification boundary from
+    # the joint-resolution side: no span anywhere in the group means no
+    # "fixgen_group_*" call is ever made.
+    body = "x = 1\ny = 2\n"
+    reader = _make_repo(tmp_path, body=body)
+    proposed = [
+        {"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r1",
+         "related_sites": [{"file": "main.py", "line": 2}]},
+        {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
+         "related_sites": [{"file": "main.py", "line": 1}]},
+    ]
+    response = {
+        "fixes": [
+            {"file": "main.py", "line": 1, "end_line": 1,
+             "original_lines": ["x = 1"], "proposed_lines": ["x = 10"], "reason": "r"},
+            {"file": "main.py", "line": 2, "end_line": 2,
+             "original_lines": ["y = 2"], "proposed_lines": ["y = 20"], "reason": "r"},
+        ],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert len(client.calls) == 1
+    assert not client.calls[0]["stage"].startswith("fixgen_group_")
+    assert len(merged["fixes"]) == 2
+
+
+# ---------------------------------------------------------------------
+# report.py -- rendering for the joint-resolution outcomes above
+# ---------------------------------------------------------------------
+
+def test_report_renders_coordinated_group_badge_on_a_shipped_joint_fix(tmp_path):
+    fixgen_expanded = {
+        "fixes": [
+            {"file": "main.py", "line": 3, "end_line": 7,
+             "original_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+             "proposed_lines": ["mcp = FastMCP(", "    \"name\",", ")"],
+             "reason": "host/port moved off the constructor", "group_id": "main.py:3"},
+            {"file": "main.py", "line": 10, "end_line": 10,
+             "original_lines": ["    mcp.run(transport=\"sse\")"],
+             "proposed_lines": ["    mcp.run(transport=\"sse\", host=host, port=port)"],
+             "reason": "host/port now passed to run()", "group_id": "main.py:3"},
+        ],
+        "flagged_for_human": [],
+    }
+    expanded_merged = {
+        "proposed_sites": [
+            {"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1", "reason": "constructor"},
+            {"file": "main.py", "line": 10, "snippet": "    mcp.run(transport=\"sse\")", "pattern": "1", "reason": "run call"},
+        ],
+        "flag_uncertain": [], "considered_and_rejected": [],
+    }
+    path = report.write(
+        str(tmp_path), expanded_merged, {}, FACTBLOCK, {"patterns": {"p1": "x"}},
+        fixgen_expanded=fixgen_expanded, verification_report=None,
+    )
+    text = open(path).read()
+    assert "## FIX (2)" in text
+    assert text.count("coordinated group main.py:3") == 2
+    assert "## FLAG-FOR-HUMAN (0)" in text
+
+
+def test_report_renders_value_flow_guard_rejection(tmp_path):
+    fixgen_expanded = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "main.py", "line": 3,
+             "reason": "this site's confident-looking joint fix for coordinated group "
+                       "main.py:3 was rejected by the deterministic value-flow guard: "
+                       "value(s) removed with no matching reappearance elsewhere in the "
+                       "group: main.py:3 keyword 'host', main.py:3 keyword 'port'.",
+             "flag_source": "value_flow_guard", "group_id": "main.py:3",
+             "group_members": [
+                 {"file": "main.py", "line": 3, "role": "proposed", "reason": "constructor"},
+                 {"file": "main.py", "line": 10, "role": "proposed", "reason": "run call"},
+             ]},
+            {"file": "main.py", "line": 10,
+             "reason": "this site's confident-looking joint fix for coordinated group "
+                       "main.py:3 was rejected by the deterministic value-flow guard: ...",
+             "flag_source": "value_flow_guard", "group_id": "main.py:3",
+             "group_members": [
+                 {"file": "main.py", "line": 3, "role": "proposed", "reason": "constructor"},
+                 {"file": "main.py", "line": 10, "role": "proposed", "reason": "run call"},
+             ]},
+        ],
+    }
+    expanded_merged = {
+        "proposed_sites": [
+            {"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1", "reason": "constructor"},
+            {"file": "main.py", "line": 10, "snippet": "    mcp.run(transport=\"sse\")", "pattern": "1", "reason": "run call"},
+        ],
+        "flag_uncertain": [], "considered_and_rejected": [],
+    }
+    path = report.write(
+        str(tmp_path), expanded_merged, {}, FACTBLOCK, {"patterns": {"p1": "x"}},
+        fixgen_expanded=fixgen_expanded, verification_report=None,
+    )
+    text = open(path).read()
+    assert "### Coupled edit group" in text
+    assert text.count("declined here -- a jointly-resolved fix was rejected by the value-flow guard") == 2
+    # never rendered a second time under "Model judgment call" -- it's
+    # excluded from model_flagged specifically so it isn't double-listed.
+    assert "### Model judgment call" not in text
+
+
+def test_report_renders_model_own_joint_decline(tmp_path):
+    fixgen_expanded = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "main.py", "line": 3, "reason": "not confident about the default host value",
+             "flag_source": "joint_resolution_declined", "group_id": "main.py:3",
+             "group_members": [
+                 {"file": "main.py", "line": 3, "role": "proposed", "reason": "constructor"},
+                 {"file": "main.py", "line": 10, "role": "proposed", "reason": "run call"},
+             ]},
+            {"file": "main.py", "line": 10, "reason": "companion at line 3 was declined",
+             "flag_source": "joint_resolution_declined", "group_id": "main.py:3",
+             "group_members": [
+                 {"file": "main.py", "line": 3, "role": "proposed", "reason": "constructor"},
+                 {"file": "main.py", "line": 10, "role": "proposed", "reason": "run call"},
+             ]},
+        ],
+    }
+    expanded_merged = {
+        "proposed_sites": [
+            {"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1", "reason": "constructor"},
+            {"file": "main.py", "line": 10, "snippet": "    mcp.run(transport=\"sse\")", "pattern": "1", "reason": "run call"},
+        ],
+        "flag_uncertain": [], "considered_and_rejected": [],
+    }
+    path = report.write(
+        str(tmp_path), expanded_merged, {}, FACTBLOCK, {"patterns": {"p1": "x"}},
+        fixgen_expanded=fixgen_expanded, verification_report=None,
+    )
+    text = open(path).read()
+    assert "### Coupled edit group" in text
+    assert text.count("declined here -- the model itself chose not to resolve this group jointly") == 2
+    assert "### Model judgment call" not in text

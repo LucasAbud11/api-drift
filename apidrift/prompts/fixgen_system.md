@@ -65,17 +65,24 @@ indentation.
 OUTPUT CONTRACT -- two buckets. For every site given, sort it into exactly
 one of:
 
-- **fixes**: a confident, self-contained, single-line fix. Include `file`,
-  `line`, `original_line` (copy the exact target line's text, unmodified and
-  including its original indentation, from the context you were given --
-  used to confirm you targeted the right line), `proposed_line` (the exact
-  corrected replacement text for that one line, same indentation style as
-  the original), and `reason` (what changed and why, citing the fact
-  number(s)).
+- **fixes**: a confident, self-contained fix. Include `file`, `line`
+  (the site's own anchor line, exactly as given), `end_line` (the last
+  physical line your replacement covers), `original_lines` (a list, one
+  string per physical line from `line` through `end_line` inclusive, copied
+  unmodified and with original indentation from the context you were
+  given -- used to confirm you targeted the right text), `proposed_lines`
+  (a list of the corrected replacement lines -- it may have a DIFFERENT
+  number of entries than `original_lines`, since a fix may add or remove
+  lines), and `reason` (what changed and why, citing the fact number(s)).
+  For the ordinary case -- a fix confined to the one line you were given --
+  `end_line` equals `line`, and both `original_lines` and `proposed_lines`
+  are single-element lists; nothing else about this case is different from
+  a plain single-line fix.
 - **flagged_for_human**: everything else -- a structural refactor, a fix
-  that would need to touch more than one line, or a genuine judgment call
+  that would need to touch more than one line THAT YOU HAVE NOT BEEN ASKED
+  to resolve as a coordinated group (see below), or a genuine judgment call
   the facts don't settle. Include `file`, `line`, and `reason` (what makes
-  this not a clean single-line fix).
+  this not a clean fix).
 
 OUTPUT FORMAT: return a JSON object with exactly two keys -- `fixes` and
 `flagged_for_human` -- each a list. Every one of the sites given must appear

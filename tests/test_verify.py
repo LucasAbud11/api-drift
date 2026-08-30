@@ -6,6 +6,8 @@ success path without depending on the environment having network access.
 """
 import os
 
+import pytest
+
 from apidrift import verify
 from apidrift.reposafe import RepoReader
 
@@ -19,8 +21,7 @@ def _make_repo(tmp_path, filename, body):
 
 def test_parse_and_line_match_ok(tmp_path):
     reader = _make_repo(tmp_path, "mod.py", "import old_pkg\n\ndef f():\n    return 1\n")
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
 
     report = verify.check_parse_and_line_match(reader, fixes)
 
@@ -31,8 +32,7 @@ def test_parse_and_line_match_ok(tmp_path):
 
 def test_parse_and_line_match_detects_wrong_original(tmp_path):
     reader = _make_repo(tmp_path, "mod.py", "import old_pkg\n")
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import something_else",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import something_else"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
 
     report = verify.check_parse_and_line_match(reader, fixes)
 
@@ -42,8 +42,7 @@ def test_parse_and_line_match_detects_wrong_original(tmp_path):
 
 def test_parse_and_line_match_detects_syntax_break(tmp_path):
     reader = _make_repo(tmp_path, "mod.py", "import old_pkg\n\ndef f():\n    return 1\n")
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg(((", "reason": "broken"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg((("], "reason": "broken"}]
 
     report = verify.check_parse_and_line_match(reader, fixes)
 
@@ -57,10 +56,8 @@ def test_parse_and_line_match_applies_multiple_fixes_in_one_file_together(tmp_pa
         "import old_pkg\n\ndef f():\n    return old_pkg.thing()\n",
     )
     fixes = [
-        {"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-         "proposed_line": "import new_pkg", "reason": "r1"},
-        {"file": "mod.py", "line": 4, "original_line": "    return old_pkg.thing()",
-         "proposed_line": "    return new_pkg.thing()", "reason": "r2"},
+        {"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "r1"},
+        {"file": "mod.py", "line": 4, "end_line": 4, "original_lines": ["    return old_pkg.thing()"], "proposed_lines": ["    return new_pkg.thing()"], "reason": "r2"},
     ]
 
     report = verify.check_parse_and_line_match(reader, fixes)
@@ -70,8 +67,7 @@ def test_parse_and_line_match_applies_multiple_fixes_in_one_file_together(tmp_pa
 
 
 def test_check_install_no_import_fixes_is_unavailable(tmp_path):
-    fixes = [{"file": "mod.py", "line": 4, "original_line": "    return old_pkg.thing()",
-              "proposed_line": "    return new_pkg.thing()", "reason": "attribute rename"}]
+    fixes = [{"file": "mod.py", "line": 4, "end_line": 4, "original_lines": ["    return old_pkg.thing()"], "proposed_lines": ["    return new_pkg.thing()"], "reason": "attribute rename"}]
 
     report = verify.check_install("new_pkg", fixes, str(tmp_path))
 
@@ -80,8 +76,7 @@ def test_check_install_no_import_fixes_is_unavailable(tmp_path):
 
 
 def test_check_install_pip_failure_degrades_gracefully(tmp_path, monkeypatch):
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
 
     monkeypatch.setattr(verify.venv, "create", lambda path, with_pip=True: None)
 
@@ -104,8 +99,7 @@ def test_check_install_pip_failure_degrades_gracefully(tmp_path, monkeypatch):
 
 
 def test_check_install_success_path_resolves_imports(tmp_path, monkeypatch):
-    fixes = [{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-              "proposed_line": "import new_pkg", "reason": "renamed"}]
+    fixes = [{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}]
 
     monkeypatch.setattr(verify.venv, "create", lambda path, with_pip=True: None)
     monkeypatch.setattr(os.path, "isfile", lambda p: True)
@@ -129,3 +123,68 @@ def test_check_install_success_path_resolves_imports(tmp_path, monkeypatch):
     assert report["available"] is True
     assert report["all_resolved"] is True
     assert calls["n"] == 2  # one install call, one import-check call
+
+
+# ---------------------------------------------------------------------
+# Block fixes -- a replacement whose line count differs from its original
+# span (see test_writer.py's identical scenarios for why this matters).
+# ---------------------------------------------------------------------
+
+def test_parse_and_line_match_handles_block_with_a_different_line_count(tmp_path):
+    reader = _make_repo(tmp_path, "mod.py", "a = 1\nold_pkg.setup(\n    x=1,\n)\nb = 2\n")
+    fixes = [{
+        "file": "mod.py", "line": 2, "end_line": 4,
+        "original_lines": ["old_pkg.setup(", "    x=1,", ")"],
+        "proposed_lines": ["new_pkg.setup(x=1)"],
+        "reason": "collapsed",
+    }]
+
+    report = verify.check_parse_and_line_match(reader, fixes)
+
+    assert report["ok"] is True
+    assert report["items"][0]["line_match_ok"] is True
+
+
+def test_parse_and_line_match_detects_block_mismatch(tmp_path):
+    reader = _make_repo(tmp_path, "mod.py", "a = 1\nold_pkg.setup(\n    x=1,\n)\nb = 2\n")
+    fixes = [{
+        "file": "mod.py", "line": 2, "end_line": 4,
+        "original_lines": ["old_pkg.setup(", "    x=DRIFTED,", ")"],  # wrong middle line
+        "proposed_lines": ["new_pkg.setup(x=1)"],
+        "reason": "collapsed",
+    }]
+
+    report = verify.check_parse_and_line_match(reader, fixes)
+
+    assert report["ok"] is False
+    assert report["items"][0]["line_match_ok"] is False
+
+
+def test_parse_and_line_match_shrinking_block_does_not_corrupt_a_later_fix(tmp_path):
+    reader = _make_repo(tmp_path, "mod.py", "old_pkg.setup(\n    x=1,\n)\nimport old_pkg\n")
+    fixes = [
+        {"file": "mod.py", "line": 1, "end_line": 3,
+         "original_lines": ["old_pkg.setup(", "    x=1,", ")"],
+         "proposed_lines": ["new_pkg.setup(x=1)"], "reason": "collapsed"},
+        {"file": "mod.py", "line": 4, "end_line": 4,
+         "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
+         "reason": "renamed"},
+    ]
+
+    report = verify.check_parse_and_line_match(reader, fixes)
+
+    assert report["ok"] is True
+    assert all(item["line_match_ok"] for item in report["items"])
+
+
+def test_parse_and_line_match_rejects_overlapping_fixes(tmp_path):
+    reader = _make_repo(tmp_path, "mod.py", "a = 1\nb = 2\nc = 3\n")
+    fixes = [
+        {"file": "mod.py", "line": 1, "end_line": 2,
+         "original_lines": ["a = 1", "b = 2"], "proposed_lines": ["x = 1"], "reason": "r1"},
+        {"file": "mod.py", "line": 2, "end_line": 3,
+         "original_lines": ["b = 2", "c = 3"], "proposed_lines": ["y = 2"], "reason": "r2"},
+    ]
+
+    with pytest.raises(ValueError, match="overlap"):
+        verify.check_parse_and_line_match(reader, fixes)

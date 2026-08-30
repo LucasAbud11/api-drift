@@ -26,9 +26,15 @@ def _normalize(line):
     return s
 
 
-def classify_fix(proposed_line, required_line):
-    if proposed_line is None or required_line is None:
+def classify_fix(proposed_lines, required_line):
+    """`proposed_lines`: a fix's own list of replacement lines. Scored
+    against a single-line answer key, so only a single-element list can
+    ever match -- a block (multi-line) proposal is scored as wrong here,
+    same as a null one, since the answer key has no multi-line shape to
+    compare it against."""
+    if proposed_lines is None or required_line is None or len(proposed_lines) != 1:
         return "locally-plausible-but-globally-wrong"
+    proposed_line = proposed_lines[0]
     if proposed_line.rstrip() == required_line.rstrip():
         return "exact-match"
     if _normalize(proposed_line) == _normalize(required_line):
@@ -51,10 +57,10 @@ def score_fixgen(fixgen_expanded, required, legitimate_hedge_keys=frozenset()):
         if required_line is None:
             cls = "unknown-site"
         else:
-            cls = classify_fix(item.get("proposed_line"), required_line)
+            cls = classify_fix(item.get("proposed_lines"), required_line)
         rows.append({
             "key": key, "verdict": "FIX", "class": cls,
-            "proposed_line": item.get("proposed_line"), "required_line": required_line,
+            "proposed_line": item.get("proposed_lines"), "required_line": required_line,
             "reason": item.get("reason"),
         })
     for item in fixgen_expanded["flagged_for_human"]:

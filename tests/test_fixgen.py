@@ -48,8 +48,8 @@ def test_run_produces_validated_merged_fixes(tmp_path):
               "reason": "import of the renamed package"}]
     response = {
         "fixes": [{
-            "file": "pkg/mod.py", "line": 1,
-            "original_line": "import old_pkg", "proposed_line": "import new_pkg",
+            "file": "pkg/mod.py", "line": 1, "end_line": 1,
+            "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
             "reason": "fact 1: package renamed",
         }],
         "flagged_for_human": [],
@@ -60,7 +60,7 @@ def test_run_produces_validated_merged_fixes(tmp_path):
     merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
 
     validate.validate_fixgen_dict(merged)  # does not raise
-    assert merged["fixes"][0]["proposed_line"] == "import new_pkg"
+    assert merged["fixes"][0]["proposed_lines"] == ["import new_pkg"]
     assert os.path.isfile(os.path.join(workdir, "fixgen", "merged.json"))
     assert os.path.isfile(os.path.join(workdir, "fixgen", "chunk_000.json"))
 
@@ -75,8 +75,8 @@ def test_run_raises_on_incomplete_chunk_coverage(tmp_path):
     # silently accepted with the other site missing.
     response = {
         "fixes": [{
-            "file": "pkg/mod.py", "line": 1,
-            "original_line": "import old_pkg", "proposed_line": "import new_pkg",
+            "file": "pkg/mod.py", "line": 1, "end_line": 1,
+            "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
             "reason": "fact 1",
         }],
         "flagged_for_human": [],
@@ -95,8 +95,9 @@ def test_run_resumes_from_a_valid_existing_chunk(tmp_path):
     fg_dir = os.path.join(workdir, "fixgen")
     os.makedirs(fg_dir, exist_ok=True)
     precomputed = {
-        "fixes": [{"file": "pkg/mod.py", "line": 1, "original_line": "import old_pkg",
-                    "proposed_line": "import new_pkg", "reason": "already done"}],
+        "fixes": [{"file": "pkg/mod.py", "line": 1, "end_line": 1,
+                    "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
+                    "reason": "already done"}],
         "flagged_for_human": [],
     }
     with open(os.path.join(fg_dir, "chunk_000.json"), "w") as f:
@@ -114,8 +115,9 @@ def test_run_resumes_from_a_valid_existing_chunk(tmp_path):
 
 def test_expand_duplicates_fans_out_fixes_and_flags():
     merged = {
-        "fixes": [{"file": "a.py", "line": 5, "original_line": "x = old_pkg.f()",
-                    "proposed_line": "x = new_pkg.f()", "reason": "renamed"}],
+        "fixes": [{"file": "a.py", "line": 5, "end_line": 5,
+                    "original_lines": ["x = old_pkg.f()"], "proposed_lines": ["x = new_pkg.f()"],
+                    "reason": "renamed"}],
         "flagged_for_human": [{"file": "a.py", "line": 20, "reason": "structural"}],
     }
     expansion_map = {
@@ -133,14 +135,16 @@ def test_expand_duplicates_fans_out_fixes_and_flags():
     fix_lines = sorted(item["line"] for item in expanded["fixes"])
     assert fix_lines == [5, 9]
     for item in expanded["fixes"]:
-        assert item["proposed_line"] == "x = new_pkg.f()"  # same replacement text
+        assert item["end_line"] == item["line"]
+        assert item["proposed_lines"] == ["x = new_pkg.f()"]  # same replacement text
     flagged_lines = sorted(item["line"] for item in expanded["flagged_for_human"])
     assert flagged_lines == [20, 30]
 
 
 def test_expand_duplicates_passes_through_non_collapsed_sites():
     merged = {
-        "fixes": [{"file": "a.py", "line": 5, "original_line": "x", "proposed_line": "y", "reason": "r"}],
+        "fixes": [{"file": "a.py", "line": 5, "end_line": 5,
+                    "original_lines": ["x"], "proposed_lines": ["y"], "reason": "r"}],
         "flagged_for_human": [],
     }
     expanded = fixgen.expand_duplicates(merged, expansion_map={})
@@ -241,9 +245,9 @@ def test_same_rename_on_single_line_call_still_fixes(tmp_path):
               "pattern": "1", "reason": "constructor of the renamed class"}]
     response = {
         "fixes": [{
-            "file": "pkg/mod.py", "line": 4,
-            "original_line": "    mcp = OldMCP(\"name\")",
-            "proposed_line": "    mcp = NewMCP(\"name\")",
+            "file": "pkg/mod.py", "line": 4, "end_line": 4,
+            "original_lines": ["    mcp = OldMCP(\"name\")"],
+            "proposed_lines": ["    mcp = NewMCP(\"name\")"],
             "reason": "fact 1: class renamed",
         }],
         "flagged_for_human": [],
@@ -255,7 +259,7 @@ def test_same_rename_on_single_line_call_still_fixes(tmp_path):
 
     assert merged["flagged_for_human"] == []
     assert len(merged["fixes"]) == 1
-    assert merged["fixes"][0]["proposed_line"] == "    mcp = NewMCP(\"name\")"
+    assert merged["fixes"][0]["proposed_lines"] == ["    mcp = NewMCP(\"name\")"]
     assert len(client.calls) == 1  # the model WAS asked, unlike the multi-line cases above
 
 
@@ -272,9 +276,9 @@ def test_multiline_and_singleline_sites_mixed_in_one_run(tmp_path):
     ]
     response = {
         "fixes": [{
-            "file": "pkg/mod.py", "line": 1,
-            "original_line": "from old_pkg import OldMCP",
-            "proposed_line": "from new_pkg import NewMCP",
+            "file": "pkg/mod.py", "line": 1, "end_line": 1,
+            "original_lines": ["from old_pkg import OldMCP"],
+            "proposed_lines": ["from new_pkg import NewMCP"],
             "reason": "fact 1",
         }],
         "flagged_for_human": [],
@@ -293,3 +297,152 @@ def test_multiline_and_singleline_sites_mixed_in_one_run(tmp_path):
     assert len(client.calls) == 1
     assert "pkg/mod.py:5" not in client.calls[0]["user_text"]
     assert "pkg/mod.py:1" in client.calls[0]["user_text"]
+
+
+# ---------------------------------------------------------------------
+# validate.py -- block-fix schema (end_line/original_lines/proposed_lines)
+# ---------------------------------------------------------------------
+
+def _valid_fix(**overrides):
+    fix = {"file": "a.py", "line": 1, "end_line": 1,
+           "original_lines": ["x = 1"], "proposed_lines": ["x = 2"], "reason": "r"}
+    fix.update(overrides)
+    return fix
+
+
+def test_validate_fixgen_accepts_ordinary_single_line_shape():
+    data = {"fixes": [_valid_fix()], "flagged_for_human": []}
+    validate.validate_fixgen_dict(data)  # does not raise
+
+
+def test_validate_fixgen_accepts_block_fix_with_a_different_line_count():
+    # proposed_lines may have a different length than original_lines -- a
+    # fix may add or remove lines, unlike the old one-line-in-one-line-out
+    # shape.
+    data = {"fixes": [_valid_fix(
+        end_line=3, original_lines=["a", "b", "c"], proposed_lines=["x"],
+    )], "flagged_for_human": []}
+    validate.validate_fixgen_dict(data)  # does not raise
+
+
+def test_validate_fixgen_rejects_end_line_before_line():
+    data = {"fixes": [_valid_fix(end_line=0)], "flagged_for_human": []}
+    with pytest.raises(ValueError, match="end_line"):
+        validate.validate_fixgen_dict(data)
+
+
+def test_validate_fixgen_rejects_original_lines_count_mismatch_with_span():
+    data = {"fixes": [_valid_fix(end_line=3, original_lines=["a", "b"])], "flagged_for_human": []}
+    with pytest.raises(ValueError, match="original_lines"):
+        validate.validate_fixgen_dict(data)
+
+
+def test_validate_fixgen_rejects_empty_proposed_lines():
+    data = {"fixes": [_valid_fix(proposed_lines=[])], "flagged_for_human": []}
+    with pytest.raises(ValueError, match="proposed_lines"):
+        validate.validate_fixgen_dict(data)
+
+
+def test_validate_fixgen_rejects_blank_line_in_block():
+    data = {"fixes": [_valid_fix(original_lines=[""])], "flagged_for_human": []}
+    with pytest.raises(ValueError, match=r"original_lines\[0\]"):
+        validate.validate_fixgen_dict(data)
+
+
+def test_validate_fixgen_accepts_omitted_group_id():
+    data = {"fixes": [_valid_fix()], "flagged_for_human": []}
+    validate.validate_fixgen_dict(data)  # does not raise -- group_id is optional
+
+
+def test_validate_fixgen_accepts_null_group_id():
+    data = {"fixes": [_valid_fix(group_id=None)], "flagged_for_human": []}
+    validate.validate_fixgen_dict(data)  # does not raise
+
+
+def test_validate_fixgen_accepts_string_group_id():
+    data = {"fixes": [_valid_fix(group_id="a.py:1")], "flagged_for_human": []}
+    validate.validate_fixgen_dict(data)  # does not raise
+
+
+def test_validate_fixgen_rejects_blank_group_id():
+    data = {"fixes": [_valid_fix(group_id="")], "flagged_for_human": []}
+    with pytest.raises(ValueError, match="group_id"):
+        validate.validate_fixgen_dict(data)
+
+
+# ---------------------------------------------------------------------
+# _check_group_value_flow -- deterministic, model-free safety net for a
+# jointly-resolved group's fixes. See fixgen.py's own docstring for why
+# this exists: a coordinated edit can parse fine, pass ordinary line-match
+# verification, and still silently drop a value.
+# ---------------------------------------------------------------------
+
+def _group_fix(file, line, end_line, original_lines, proposed_lines):
+    return {"file": file, "line": line, "end_line": end_line,
+            "original_lines": original_lines, "proposed_lines": proposed_lines,
+            "reason": "r", "group_id": "g"}
+
+
+def test_value_flow_guard_passes_when_value_correctly_threaded():
+    group = [
+        _group_fix("main.py", 3, 7,
+                   ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+                   ["mcp = FastMCP(", "    \"name\",", ")"]),
+        _group_fix("main.py", 16, 16,
+                   ["    mcp.run(transport=\"sse\")"],
+                   ["    mcp.run(transport=\"sse\", host=host, port=port)"]),
+    ]
+    assert fixgen._check_group_value_flow(group) is None
+
+
+def test_value_flow_guard_fails_when_value_silently_dropped():
+    group = [
+        _group_fix("main.py", 3, 7,
+                   ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+                   ["mcp = FastMCP(", "    \"name\",", ")"]),
+        _group_fix("main.py", 16, 16,
+                   ["    mcp.run(transport=\"sse\")"],
+                   ["    mcp.run(transport=\"sse\")"]),  # host/port never threaded through
+    ]
+    failure = fixgen._check_group_value_flow(group)
+    assert failure is not None
+    assert "host" in failure and "port" in failure
+
+
+def test_value_flow_guard_fails_when_value_replaced_by_a_different_literal():
+    # The exact case named in the design pass: port=port quietly becoming
+    # port=8000 at the destination instead of the real threaded variable --
+    # same keyword NAME present, different value expression.
+    group = [
+        _group_fix("main.py", 3, 7,
+                   ["mcp = FastMCP(", "    \"name\",", "    port=port", ")"],
+                   ["mcp = FastMCP(", "    \"name\",", ")"]),
+        _group_fix("main.py", 16, 16,
+                   ["    mcp.run(transport=\"sse\")"],
+                   ["    mcp.run(transport=\"sse\", port=8000)"]),
+    ]
+    failure = fixgen._check_group_value_flow(group)
+    assert failure is not None
+    assert "port" in failure
+
+
+def test_value_flow_guard_ignores_a_keyword_unchanged_at_the_same_site():
+    group = [_group_fix("a.py", 1, 1, ["f(x=x, y=y)"], ["f(x=x, y=y, z=1)"])]
+    assert fixgen._check_group_value_flow(group) is None
+
+
+def test_value_flow_guard_degrades_gracefully_on_unparseable_block():
+    # An unparseable block (should not happen -- see the guard's own
+    # docstring) contributes no obligation and discharges none, rather
+    # than raising.
+    group = [_group_fix("a.py", 1, 1, ["f(x=x"], ["f(x=x, y=y)"])]
+    assert fixgen._check_group_value_flow(group) is None
+
+
+def test_extract_call_keywords_finds_every_keyword_in_a_call():
+    kws = fixgen._extract_call_keywords("f(a=1, b=x)")
+    assert set(kws) == {"a", "b"}
+
+
+def test_extract_call_keywords_returns_empty_dict_for_unparseable_text():
+    assert fixgen._extract_call_keywords("f(a=") == {}

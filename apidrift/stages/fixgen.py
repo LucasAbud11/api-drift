@@ -1,28 +1,44 @@
 """Fix generation. Given confirmed sites (adjudication's proposed_sites,
 pre-duplicate-expansion -- same cost-saving shape adjudicate.py itself
 consumes downstream of prefilter's stage C), asks the model for either a
-confident single-line replacement or a decline, per DESIGN.md section 4's
-mechanical-rename vs. structural-refactor boundary. Same chunked,
-idempotent-per-chunk-file design as adjudicate.py -- a partial failure costs
-exactly the chunks that failed, not the whole run.
+confident fix or a decline, per DESIGN.md section 4's mechanical-rename vs.
+structural-refactor boundary. Same chunked, idempotent-per-chunk-file
+design as adjudicate.py -- a partial failure costs exactly the chunks that
+failed, not the whole run.
 
-Also takes adjudication's flag_uncertain sites (context only -- see
-run()'s docstring) to compute coupling groups from adjudication's
-related_sites field: sites whose own correctness depends on another
-site's content, per the coupling design pass. A group containing an
-uncertain member, or a member the multi-line-span guard already declined,
-is deterministically declined in its entirety before the model ever sees
-it (`_group_consistency_flag`, flag_source "group_consistency_guard") --
-this is the fix for the youtrack-mcp insufficient-fix-set failure: a
-confident, independently-generated fix for one coupled site while its
-companion's resolution was never confirmed. Sending a coupled group to
-the model to jointly resolve is explicitly out of scope; see run()'s
-docstring for why.
-"""
+A fix is block-shaped (`line`/`end_line`/`original_lines`/`proposed_lines`),
+not line-shaped -- needed regardless of grouping, since a single migration
+site (e.g. a multi-line constructor call) can require touching more than
+one physical line, and a block replacement can change the line count
+entirely. `end_line == line` with single-element lists is the ordinary
+single-line case, unchanged in effect from before this schema existed.
+
+Also takes adjudication's flag_uncertain sites (context only -- see run()'s
+docstring) to compute coupling groups from adjudication's related_sites
+field: sites whose own correctness depends on another site's content, per
+the coupling design pass. A group containing an uncertain member is
+deterministically declined in its entirety before the model ever sees it
+(`_group_consistency_flag`, flag_source "group_consistency_guard") -- this
+is the fix for the youtrack-mcp insufficient-fix-set failure: a confident,
+independently-generated fix for one coupled site while its companion's
+resolution was never confirmed.
+
+A group with no uncertain member but at least one member the multi-line-
+span guard would otherwise decline alone (the exact youtrack-mcp shape) is
+instead sent to the model as ONE joint-resolution call asking for a
+consistent set of block fixes across every member, or a joint decline (see
+_run_joint_group) -- the coordinated-fix increment this module didn't have
+before. Every jointly-resolved group's fixes are re-verified by the
+deterministic, model-free `_check_group_value_flow` guard before they are
+trusted: a coordinated edit that silently drops a value (removes it from
+one call, never threads it into the other) is rejected and the whole group
+falls back to flagged_for_human, never shipped as a fix nothing checked."""
 import ast
 import json
 import math
 import os
+import re
+import textwrap
 
 from .. import validate
 from . import factblock as factblock_stage
@@ -205,10 +221,228 @@ def _group_consistency_flag(site, group_id, member_keys, sites_by_key, trigger_c
     }
 
 
+def _extract_call_keywords(text):
+    """{keyword_name: ast.dump(value_node)} for every keyword argument in
+    every ast.Call found in `text`, last occurrence wins on a duplicate
+    name within the same block (rare, and not a case this guard needs to
+    resolve precisely). Returns {} if `text` doesn't parse as Python at
+    all -- see _check_group_value_flow's docstring for why that degrades
+    silently rather than raising.
+
+    `textwrap.dedent` first: a fix's original_lines/proposed_lines
+    deliberately preserve real source indentation (e.g. a member sitting
+    inside a function or an `if __name__ == "__main__":` block), which
+    `ast.parse` rejects outright as an IndentationError -- a real block
+    of otherwise-valid Python would silently degrade to "no keywords
+    found" on every indented member without this, making the guard blind
+    on exactly the shape (an indented `mcp.run(...)` call) the real
+    youtrack-mcp case has."""
+    try:
+        tree = ast.parse(textwrap.dedent(text))
+    except SyntaxError:
+        return {}
+    keywords = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            for kw in node.keywords:
+                if kw.arg is not None:
+                    keywords[kw.arg] = ast.dump(kw.value)
+    return keywords
+
+
+def _check_group_value_flow(group_fixes):
+    """The deterministic safety net a jointly-resolved group's fixes must
+    pass before any of them is trusted, per the design pass: a model can
+    produce a coordinated edit that parses fine, passes ordinary line-match
+    verification, and still silently drops a value -- moves a keyword
+    argument out of one call and never threads it into the other, or
+    replaces it with a plausible-looking but wrong literal (`port=port`
+    quietly becoming `port=8000`). Neither tier 1 nor tier 2 verification
+    (apidrift/verify.py) can see this: both check a fix's own internal
+    consistency, never whether a SET of fixes jointly preserves a value
+    that moved between them.
+
+    For every fix in the group, a keyword argument present in its original
+    block but ABSENT (or changed) in its own proposed block is "removed"
+    there and must reappear, with an AST-EQUAL value expression (ast.dump
+    comparison, not name/string matching), in some OTHER member's proposed
+    block. Deliberately expression-equality, not name-presence: `port=port`
+    removed at one site and `port=8000` added at another has the same
+    keyword NAME present but a different value expression, so it still
+    fails -- exactly the silent-substitution shape this check exists to
+    catch.
+
+    Returns None if every removed value is accounted for, or a
+    human-readable string naming what's missing otherwise. Deterministic,
+    no model call -- pure AST comparison over fixes already produced.
+
+    Known limits, stated plainly rather than silently: (1) this only
+    tracks KEYWORD arguments in Call nodes -- a value carried via a
+    positional argument, a plain assignment, or any non-call construct is
+    invisible to it. (2) a block that fails to parse on its own (should not
+    happen -- these blocks come from _multiline_spans, whose whole reason
+    for existing is that its spans ARE complete, independently parseable
+    simple statements -- but if it ever does) degrades to an empty keyword
+    set for that member, silently, rather than raising -- such a member
+    neither contributes an obligation nor discharges one. (3) this proves
+    an expression MOVED unchanged; it cannot prove the destination is the
+    semantically right place for it, or that the code is behaviorally
+    correct at runtime -- that residual gap is real and is not closed by
+    this or any other static check in this pipeline."""
+    orig_kw = {}
+    prop_kw = {}
+    for fix in group_fixes:
+        key = (fix["file"], fix["line"])
+        orig_kw[key] = _extract_call_keywords("\n".join(fix["original_lines"]))
+        prop_kw[key] = _extract_call_keywords("\n".join(fix["proposed_lines"]))
+
+    missing = []
+    for key, kws in orig_kw.items():
+        own_prop = prop_kw[key]
+        for name, dump in kws.items():
+            if own_prop.get(name) == dump:
+                continue  # unchanged at the same site -- not a removal at all
+            found_elsewhere = any(
+                other_key != key and prop_kw[other_key].get(name) == dump
+                for other_key in prop_kw
+            )
+            if not found_elsewhere:
+                missing.append(f"{key[0]}:{key[1]} keyword {name!r}")
+
+    if missing:
+        return ("value(s) removed with no matching reappearance elsewhere in the group: "
+                + ", ".join(missing))
+    return None
+
+
+def _sanitize_gid(gid):
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", gid)
+
+
+def _group_call_path(fg_dir, gid):
+    return os.path.join(fg_dir, f"group_{_sanitize_gid(gid)}.json")
+
+
+def _group_call_is_done(path, member_keys):
+    if not os.path.isfile(path):
+        return False
+    try:
+        data = validate.validate_fixgen_file(path)
+    except ValueError:
+        return False
+    covered = {(it["file"], it["line"]) for b in ("fixes", "flagged_for_human") for it in data[b]}
+    return covered == set(member_keys)
+
+
+def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
+                      base_system_text, fg_dir, cache_system, cache_ttl):
+    """One idempotent, resumable call resolving every member of a
+    joint_resolve group (see run()'s classification pass) together: either
+    a consistent set of (possibly multi-line) block fixes for every member,
+    or a joint decline for the whole group. The model's own bucket choice
+    is necessary but never sufficient here -- every fixes-bucket result is
+    re-verified by _check_group_value_flow below before it is trusted.
+
+    Returns (fixes, flags): fixes is a list of fix dicts with this
+    function's own group_id stamped on (never taken from the model);
+    flags is a list of flagged_for_human dicts, each carrying group_id/
+    group_members so report.py can render the group -- either the model's
+    own joint decline, or this function's value_flow_guard override when
+    the model's fixes didn't pass the deterministic check. Exactly one of
+    the two returned lists is non-empty."""
+    path = _group_call_path(fg_dir, gid)
+    member_set = set(member_keys)
+
+    if not _group_call_is_done(path, member_keys):
+        blocks = []
+        for f, l in member_keys:
+            site = sites_by_key[(f, l)]["site"]
+            start, end = span_map.get((f, l), (l, l))
+            blocks.append(
+                f"### {f}:{l}\n"
+                f"Confirmed reason: {site['reason']}\n"
+                f"Fact(s): {site.get('pattern', '?')}\n"
+                f"Statement span: lines {start}-{end}\n"
+                f"Context (every line of this member's own statement marked with >>):\n"
+                f"```\n{_context_block_for_span(reader, f, start, end)}\n```"
+            )
+        user_text = (
+            f"COORDINATED GROUP {gid} -- {len(member_keys)} member site(s) that must be "
+            f"resolved TOGETHER (see this call's coordinated-group instructions above):\n\n"
+            + "\n\n".join(blocks)
+        )
+        result = client.complete(
+            stage=f"fixgen_group_{_sanitize_gid(gid)}",
+            system_text=base_system_text + "\n\n---\n\n" + _JOINT_ADDENDUM,
+            user_text=user_text,
+            schema=SCHEMA,
+            cache_system=cache_system,
+            cache_ttl=cache_ttl,
+            max_tokens=8000,
+            effort="high",
+        )
+        validate.validate_fixgen_dict(result, what=f"group_{gid}")
+        tmp = path + ".tmp"
+        with open(tmp, "w") as fp:
+            json.dump(result, fp, indent=2)
+        os.replace(tmp, path)
+
+    result = validate.validate_fixgen_file(path)
+    covered = {(it["file"], it["line"]) for b in ("fixes", "flagged_for_human") for it in result[b]}
+    if covered != member_set:
+        raise ValueError(
+            f"joint resolution for group {gid} does not cover exactly its members -- "
+            f"missing {sorted(member_set - covered)}, unexpected {sorted(covered - member_set)}"
+        )
+    bucketed = {(it["file"], it["line"]): b
+                for b in ("fixes", "flagged_for_human") for it in result[b]}
+    _check_group_consistency(bucketed, {gid: list(member_keys)}, what=path)
+
+    members_rendered = _group_members_rendered(member_keys, sites_by_key)
+
+    if result["fixes"]:
+        fixes = [dict(item, group_id=gid) for item in result["fixes"]]
+        failure = _check_group_value_flow(fixes)
+        if failure is not None:
+            flags = [{
+                "file": f, "line": l,
+                "reason": (
+                    f"this site's confident-looking joint fix for coordinated group {gid} "
+                    f"was rejected by the deterministic value-flow guard: {failure}. A "
+                    f"model-proposed coordinated edit is never trusted without this check. "
+                    f"Falling back to flagged_for_human for every member of this group "
+                    f"rather than shipping an edit that may have silently dropped a value."
+                ),
+                "flag_source": "value_flow_guard",
+                "group_id": gid,
+                "group_members": members_rendered,
+            } for f, l in member_keys]
+            return [], flags
+        return fixes, []
+
+    # The model's flagged_for_human items only ever carry file/line/reason
+    # (SCHEMA's flagged_for_human items have no flag_source property) --
+    # "joint_resolution_declined" is always this function's own label, never
+    # read from the model.
+    flags = [
+        {**item, "flag_source": "joint_resolution_declined",
+         "group_id": gid, "group_members": members_rendered}
+        for item in result["flagged_for_human"]
+    ]
+    return [], flags
+
+
 _PROMPT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts")
 with open(os.path.join(_PROMPT_DIR, "fixgen_system.md")) as _f:
     _TEMPLATE = _f.read()
+with open(os.path.join(_PROMPT_DIR, "fixgen_joint_addendum.md")) as _f:
+    _JOINT_ADDENDUM = _f.read()
 
+# `group_id` is deliberately absent from this schema -- see
+# _validate_fix_block_fields's docstring in validate.py: it is stamped by
+# this module onto a jointly-resolved group's own fixes, never asked of or
+# trusted from the model, for either the ordinary per-chunk calls or the
+# joint-resolution calls below (both use this same schema).
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -219,11 +453,13 @@ SCHEMA = {
                 "properties": {
                     "file": {"type": "string"},
                     "line": {"type": "integer"},
-                    "original_line": {"type": "string"},
-                    "proposed_line": {"type": "string"},
+                    "end_line": {"type": "integer"},
+                    "original_lines": {"type": "array", "items": {"type": "string"}},
+                    "proposed_lines": {"type": "array", "items": {"type": "string"}},
                     "reason": {"type": "string"},
                 },
-                "required": ["file", "line", "original_line", "proposed_line", "reason"],
+                "required": ["file", "line", "end_line", "original_lines",
+                             "proposed_lines", "reason"],
                 "additionalProperties": False,
             },
         },
@@ -274,6 +510,28 @@ def _context_block(reader, relpath, line, radius=DEFAULT_CONTEXT_RADIUS):
     out = []
     for i in range(lo, hi + 1):
         marker = ">>" if i == line else "  "
+        out.append(f"{marker} {i:5d}| {lines[i - 1]}")
+    return "\n".join(out)
+
+
+def _context_block_for_span(reader, relpath, start, end, radius=DEFAULT_CONTEXT_RADIUS):
+    """Same numbered-source-with-markers shape as _context_block, but marks
+    every physical line in [start, end] with `>>`, not just one -- used for
+    a joint-resolution group member so a multi-line statement is never
+    shown with only its opening line marked (the exact partial-visibility
+    gap the multi-line-span guard exists to avoid in the first place).
+    start == end reproduces _context_block's own single-line behavior
+    exactly."""
+    try:
+        text = reader.read_text(relpath)
+    except OSError as e:
+        return f"(could not read {relpath}: {e})"
+    lines = text.splitlines()
+    lo = max(1, start - radius)
+    hi = min(len(lines), end + radius)
+    out = []
+    for i in range(lo, hi + 1):
+        marker = ">>" if start <= i <= end else "  "
         out.append(f"{marker} {i:5d}| {lines[i - 1]}")
     return "\n".join(out)
 
@@ -346,14 +604,12 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     which proposed sites are coupled to an uncertain one via related_sites
     (see _group_by_related_sites), so that coupling can be deterministically
     declined below. An uncertain site never itself becomes a fix or a
-    flagged_for_human entry in this increment -- sending a coupled group to
-    the model together, so it could jointly resolve an uncertain member's
-    dependency, is explicitly out of scope here (no run's evidence shows a
-    single-line-anchor coupled case to design that against; building it
-    speculatively risks the opposite failure -- a confident-looking joint
-    fix nothing has verified). Omitting it (the default) means no site in
-    `sites` is ever grouped with anything uncertain, which is exactly
-    today's behavior.
+    flagged_for_human entry -- a group containing one has no jointly-
+    consistent set this pipeline can produce (its own resolution was never
+    confirmed by adjudication in the first place), so it is always declined
+    in its entirety, never sent to the model even jointly. Omitting
+    `uncertain_sites` (the default) means no site in `sites` is ever grouped
+    with anything uncertain, which is exactly today's behavior.
 
     `cache_ttl`: see adjudicate.run()'s docstring -- same reasoning for
     the cache_system gate below."""
@@ -367,70 +623,87 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
         sites, uncertain_sites,
     )
 
-    # Pass 1 -- multi-line-span guard (unchanged): a site whose line is only
-    # part of a multi-line statement gets flagged deterministically here,
-    # before the model ever sees it -- fixgen's unit is a single line, so it
-    # structurally cannot judge whether the rest of that statement also
-    # needs to change, and a confident single-line rename there can leave
-    # the call broken (see the tonyzorin/youtrack-mcp `FastMCP(...)` gap
-    # this guards against). Only ever runs over `sites` -- an uncertain
-    # site never gets a fix of its own regardless, so span-checking it here
-    # would be moot.
+    # Every site's enclosing-statement span, computed once, up front,
+    # independent of any decline/joint-resolution decision below -- the
+    # same _span_for_site the old single-pass span guard used, just no
+    # longer coupled to an immediate "flag it now" verdict for a site that
+    # turns out to belong to a group this run CAN jointly resolve.
     span_cache = {}
-    auto_flagged = []
-    span_declined = {}  # (file, line) -> (start, end), for pass 2's trigger text
+    span_map = {}  # (file, line) -> (start, end)
     for site in sites:
         span = _span_for_site(reader, span_cache, site["file"], site["line"])
         if span is not None:
-            flag = _multiline_span_flag(site, span)
-            key = _site_key(site)
-            gid = group_id_by_key.get(key)
-            if gid is not None:
-                # This site is also a coupled group's anchor -- pass 2 below
-                # will never produce a separate group_consistency_guard entry
-                # for it (it's already declined), so report.py would have no
-                # way to render this group at all unless the cross-reference
-                # is attached here instead. flag_source stays
-                # "multiline_span_guard" -- that is still the real, sufficient
-                # reason THIS site wasn't evaluated; group_id/group_members
-                # are additive, read by report.py to render the group.
-                flag["group_id"] = gid
-                flag["group_members"] = _group_members_rendered(
-                    group_members_by_id[gid], sites_by_key,
-                )
-            auto_flagged.append(flag)
-            span_declined[key] = span
+            span_map[_site_key(site)] = span
 
-    # Pass 2 -- group-consistency guard: a multi-member group where at
-    # least one member is uncertain, or was just declined by pass 1, has no
-    # jointly-consistent set this increment can produce (see run()'s
-    # docstring) -- every not-yet-declined proposed member of that group is
-    # declined too, deterministically, before it ever reaches the model.
-    # This is the fix for the coupling failure itself: without it, an
-    # otherwise-confident member of a group like this would go on to get an
-    # independently-generated, independently-plausible single-line fix,
-    # unaware its companion's resolution was never confirmed -- the same
-    # "fix the confident member alone" shape the youtrack-mcp run produced.
-    group_declined = set()
+    # Classify every multi-member group once:
+    #  - "uncertain_decline": contains a not-confirmed member -- no
+    #    jointly-consistent set is possible this run, exactly as before.
+    #  - "joint_resolve": every member is confirmed, but at least one needs
+    #    block-level treatment a lone per-line call can't safely give --
+    #    the youtrack-mcp shape this increment adds real handling for.
+    #  - unclassified: ordinary confident members with nothing forcing
+    #    coordinated handling -- already handled correctly by reaching the
+    #    model independently (same chunk, no group framing), per the
+    #    original coupling increment's own measured scope.
+    group_class = {}
     for gid, member_keys in group_members_by_id.items():
         has_uncertain = any(sites_by_key[k]["role"] == "uncertain" for k in member_keys)
-        span_members = [k for k in member_keys if k in span_declined]
-        if not has_uncertain and not span_members:
+        if has_uncertain:
+            group_class[gid] = "uncertain_decline"
+        elif any(k in span_map for k in member_keys):
+            group_class[gid] = "joint_resolve"
+
+    auto_flagged = []
+
+    # Pass 1 -- immediate multi-line-span flags. Fires for every span-having
+    # site EXCEPT one whose group is classified "joint_resolve": that
+    # site's fate is decided jointly with the rest of its group in pass 3
+    # below, with full visibility into every member, instead of alone here.
+    # An ungrouped span site, or one in an "uncertain_decline" group, is
+    # flagged immediately exactly as before this increment.
+    for key, (start, end) in span_map.items():
+        gid = group_id_by_key.get(key)
+        if gid is not None and group_class.get(gid) == "joint_resolve":
+            continue
+        site = sites_by_key[key]["site"]
+        flag = _multiline_span_flag(site, (start, end))
+        if gid is not None:
+            flag["group_id"] = gid
+            flag["group_members"] = _group_members_rendered(group_members_by_id[gid], sites_by_key)
+        auto_flagged.append(flag)
+
+    span_declined = {
+        key for key in span_map
+        if not (group_id_by_key.get(key) and group_class.get(group_id_by_key[key]) == "joint_resolve")
+    }
+
+    # Pass 2 -- group-consistency guard for "uncertain_decline" groups only,
+    # unchanged in behavior from before this increment: every not-yet-
+    # declined proposed member is declined too, deterministically, before
+    # it ever reaches the model. This is the fix for the coupling failure
+    # itself: without it, an otherwise-confident member of a group like
+    # this would go on to get an independently-generated, independently-
+    # plausible fix, unaware its companion's resolution was never
+    # confirmed -- the "fix the confident member alone" shape the
+    # youtrack-mcp run produced.
+    group_declined = set()
+    for gid, member_keys in group_members_by_id.items():
+        if group_class.get(gid) != "uncertain_decline":
             continue
         trigger_clauses = []
-        if has_uncertain:
-            for f, l in member_keys:
-                if sites_by_key[(f, l)]["role"] == "uncertain":
-                    reason = sites_by_key[(f, l)]["site"]["reason"]
-                    trigger_clauses.append(
-                        f"{f}:{l} was not confirmed by adjudication ({reason!r})"
-                    )
-        for f, l in span_members:
-            start, end = span_declined[(f, l)]
-            trigger_clauses.append(
-                f"{f}:{l} was not evaluated (multi-line statement spanning "
-                f"lines {start}-{end})"
-            )
+        for f, l in member_keys:
+            if sites_by_key[(f, l)]["role"] == "uncertain":
+                reason = sites_by_key[(f, l)]["site"]["reason"]
+                trigger_clauses.append(
+                    f"{f}:{l} was not confirmed by adjudication ({reason!r})"
+                )
+        for f, l in member_keys:
+            if (f, l) in span_declined:
+                start, end = span_map[(f, l)]
+                trigger_clauses.append(
+                    f"{f}:{l} was not evaluated (multi-line statement spanning "
+                    f"lines {start}-{end})"
+                )
         for f, l in member_keys:
             key = (f, l)
             if sites_by_key[key]["role"] != "proposed" or key in span_declined:
@@ -440,9 +713,33 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
             ))
             group_declined.add(key)
 
+    # Pass 3 -- joint resolution: one call per "joint_resolve" group, asking
+    # the model to resolve every member together instead of declining the
+    # group outright (see _run_joint_group). Every fixes-bucket result is
+    # re-verified by the deterministic _check_group_value_flow guard before
+    # being trusted -- a rejected coordinated fix falls back to
+    # flagged_for_human for the whole group, same outcome pass 2 would have
+    # produced, just reached with a real attempt in between instead of an
+    # automatic decline.
+    joint_fixes = []
+    joint_gids = sorted(gid for gid, c in group_class.items() if c == "joint_resolve")
+    cache_joint = len(joint_gids) > 1 or cache_ttl != "5m"
+    joint_resolved_keys = set()
+    for gid in joint_gids:
+        member_keys = group_members_by_id[gid]
+        result_fixes, result_flags = _run_joint_group(
+            client, reader, gid, member_keys, sites_by_key, span_map,
+            system_text, fg_dir, cache_joint, cache_ttl,
+        )
+        joint_fixes.extend(result_fixes)
+        auto_flagged.extend(result_flags)
+        joint_resolved_keys.update(member_keys)
+
     eval_sites = [
         s for s in sites
-        if _site_key(s) not in span_declined and _site_key(s) not in group_declined
+        if _site_key(s) not in span_declined
+        and _site_key(s) not in group_declined
+        and _site_key(s) not in joint_resolved_keys
     ]
 
     chunks = _chunks(eval_sites, chunk_size)
@@ -493,7 +790,7 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
             json.dump(result, f, indent=2)
         os.replace(tmp, path)
 
-    merged = {"fixes": [], "flagged_for_human": list(auto_flagged)}
+    merged = {"fixes": list(joint_fixes), "flagged_for_human": list(auto_flagged)}
     for idx, _ in chunks:
         data = validate.validate_fixgen_file(_chunk_path(fg_dir, idx))
         for bucket in merged:
@@ -527,11 +824,23 @@ def expand_duplicates(merged, expansion_map):
     """Same job as adjudicate.expand_duplicates, over the fixgen two-bucket
     shape: fans a representative site's single fix/flag back out to every
     original (file, line) prefilter stage C collapsed. A duplicate line's
-    `proposed_line` is the representative's verbatim replacement text --
+    `proposed_lines` is the representative's verbatim replacement text --
     valid because stage C only ever collapses byte-identical source lines,
-    so the same replacement applies to every one of them; `original_line`
-    is each member's own snippet, not the representative's, so a per-item
-    line-match check downstream still compares against real source text."""
+    so the same replacement applies to every one of them.
+
+    For the ordinary, overwhelmingly common case -- a single-line fix
+    (`len(original_lines) == 1`) -- `original_lines[0]` becomes each
+    duplicate member's own snippet, not the representative's, so a per-item
+    line-match check downstream still compares against real source text,
+    and `line`/`end_line` both become the duplicate's own line. A
+    multi-line (block) representative fix is never produced by stage C
+    dedup in practice -- stage C collapses individual candidate lines
+    before fixgen ever computes a span, and a jointly-resolved group's
+    members are specific confirmed sites, not dedup representatives -- so
+    that case is left with the representative's own original_lines
+    unchanged beyond shifting line/end_line by the duplicate's offset,
+    rather than inventing per-line snippets this function has no source
+    for."""
     expanded = {"fixes": [], "flagged_for_human": []}
     for item in merged["fixes"]:
         key = (item["file"], item["line"])
@@ -539,10 +848,13 @@ def expand_duplicates(merged, expansion_map):
         if not members:
             expanded["fixes"].append(item)
             continue
+        span_len = item["end_line"] - item["line"]
         for m in members:
             entry = dict(item)
             entry["line"] = m["line"]
-            entry["original_line"] = m["snippet"]
+            entry["end_line"] = m["line"] + span_len
+            if len(item["original_lines"]) == 1:
+                entry["original_lines"] = [m["snippet"]]
             expanded["fixes"].append(entry)
     for item in merged["flagged_for_human"]:
         key = (item["file"], item["line"])

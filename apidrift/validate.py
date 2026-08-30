@@ -674,7 +674,49 @@ def validate_adjudication_file(path):
 
 FIXGEN_BUCKET_KEYS = ["fixes", "flagged_for_human"]
 FIXGEN_COMMON_FIELDS = ["file", "line", "reason"]
-FIXGEN_FIX_EXTRA_FIELDS = ["original_line", "proposed_line"]
+
+
+def _validate_fix_block_fields(bucket, idx, item, what):
+    """fixes-bucket-only fields, added for block (multi-line) fix support:
+    original_lines/proposed_lines are lists so a replacement can change the
+    line count (a block fix, e.g. removing two keyword arguments from a
+    six-line constructor call) -- unlike the old single-line-only shape.
+    end_line == line and single-element lists is the ordinary single-line
+    case, unchanged in effect: every consumer that just treats these as
+    one-element lists reproduces the old single-line behavior exactly.
+
+    group_id is deliberately NOT required, and not even offered to the
+    model in fixgen.py's SCHEMA -- it is stamped by fixgen.py itself onto a
+    jointly-resolved coordinated-edit group's own fixes, never trusted from
+    model output. Present-and-blank is still rejected (an explicit but
+    empty value is never a valid "no group" -- that's omission or null)."""
+    if "end_line" not in item or not isinstance(item["end_line"], int):
+        _fail(what, f"'{bucket}[{idx}].end_line' is missing or not an int "
+                     f"(required for fixes specifically)")
+    if item["end_line"] < item["line"]:
+        _fail(what, f"'{bucket}[{idx}].end_line' ({item['end_line']}) is before 'line' "
+                     f"({item['line']}) -- a fix's block can never end before it starts")
+    for field in ("original_lines", "proposed_lines"):
+        if field not in item:
+            _fail(what, f"'{bucket}[{idx}].{field}' is missing (required for fixes "
+                         f"specifically)")
+        value = item[field]
+        if not isinstance(value, list) or len(value) == 0:
+            _fail(what, f"'{bucket}[{idx}].{field}' must be a non-empty list of strings, "
+                         f"got {value!r}")
+        for lidx, line_text in enumerate(value):
+            if not isinstance(line_text, str) or _is_blank(line_text):
+                _fail(what, f"'{bucket}[{idx}].{field}[{lidx}]' is missing, null, or blank")
+    expected_span = item["end_line"] - item["line"] + 1
+    if len(item["original_lines"]) != expected_span:
+        _fail(what, f"'{bucket}[{idx}].original_lines' has {len(item['original_lines'])} "
+                     f"line(s) but line={item['line']}/end_line={item['end_line']} spans "
+                     f"{expected_span} physical line(s) -- original_lines must name every "
+                     f"line in the claimed span, one entry each, so a line-match check can "
+                     f"confirm the whole span against real source, not just its first line")
+    if "group_id" in item and item["group_id"] is not None and _is_blank(item["group_id"]):
+        _fail(what, f"'{bucket}[{idx}].group_id' is present but blank -- omit the key or use "
+                     f"null for an ungrouped fix, never an empty string")
 
 
 def validate_fixgen_dict(data, what="fixgen result"):
@@ -703,10 +745,7 @@ def validate_fixgen_dict(data, what="fixgen result"):
                 elif _is_blank(item[field]):
                     _fail(what, f"'{bucket}[{idx}].{field}' is missing, null, or blank")
             if bucket == "fixes":
-                for field in FIXGEN_FIX_EXTRA_FIELDS:
-                    if field not in item or _is_blank(item[field]):
-                        _fail(what, f"'{bucket}[{idx}].{field}' is missing, null, or blank "
-                                     f"(required for fixes specifically)")
+                _validate_fix_block_fields(bucket, idx, item, what)
     return data
 
 

@@ -44,8 +44,7 @@ def test_apply_writes_fix_and_reports_flagged(tmp_path, capsys):
     _init_repo(into, {"mod.py": "import old_pkg\n"})
     fixes_path = _write_fixes_json(
         str(tmp_path / "fixes.json"),
-        fixes=[{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-                "proposed_line": "import new_pkg", "reason": "renamed"}],
+        fixes=[{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}],
         flagged_for_human=[{"file": "mod.py", "line": 5, "reason": "structural refactor"}],
     )
 
@@ -64,8 +63,7 @@ def test_apply_dry_run_writes_nothing(tmp_path, capsys):
     _init_repo(into, {"mod.py": "import old_pkg\n"})
     fixes_path = _write_fixes_json(
         str(tmp_path / "fixes.json"),
-        fixes=[{"file": "mod.py", "line": 1, "original_line": "import old_pkg",
-                "proposed_line": "import new_pkg", "reason": "renamed"}],
+        fixes=[{"file": "mod.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"}],
     )
 
     cli.main(["apply", "--fixes", fixes_path, "--into", into, "--dry-run"])
@@ -127,10 +125,8 @@ def test_apply_stops_all_or_nothing_on_line_drift(tmp_path, capsys):
     fixes_path = _write_fixes_json(
         str(tmp_path / "fixes.json"),
         fixes=[
-            {"file": "a.py", "line": 1, "original_line": "import old_pkg",
-             "proposed_line": "import new_pkg", "reason": "renamed"},
-            {"file": "b.py", "line": 1, "original_line": "import DRIFTED",
-             "proposed_line": "import new_pkg", "reason": "renamed"},
+            {"file": "a.py", "line": 1, "end_line": 1, "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"], "reason": "renamed"},
+            {"file": "b.py", "line": 1, "end_line": 1, "original_lines": ["import DRIFTED"], "proposed_lines": ["import new_pkg"], "reason": "renamed"},
         ],
     )
 

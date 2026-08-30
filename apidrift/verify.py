@@ -6,12 +6,14 @@ alongside a fix, not used to silently drop or rewrite it: the human
 reviewing report.md sees the flag and decides.
 
 Tier 1 (`check_parse_and_line_match`, always runs, no dependency):
-  - confirms every fix's claimed `original_line` actually matches the real
-    source at that file:line (catches a hallucinated target line before it
-    ever gets applied to anything)
-  - applies every fix for a file together, then `ast.parse()`s the result
-    (catches a syntactically broken replacement, and an interaction between
-    two fixes landing in the same file)
+  - confirms every fix's claimed `original_lines` actually match the real
+    source across that fix's whole line/end_line span (catches a
+    hallucinated target before it ever gets applied to anything)
+  - applies every fix for a file together -- in descending line order, so
+    a block fix that changes the line count never shifts an earlier fix's
+    index (see _apply_block_fixes) -- then `ast.parse()`s the result
+    (catches a syntactically broken replacement, and an interaction
+    between two fixes landing in the same file)
 
 Tier 2 (`check_install`, best-effort, opt-out via verify_install=False):
   DESIGN.md's "real install, default tier" -- pip-installs the migration's
@@ -42,10 +44,51 @@ def _line_ending_of(line):
     return ""
 
 
+def _check_overlaps(relpath, items):
+    """Raises ValueError if any two of this file's fixes claim overlapping
+    line ranges -- two fixes may never touch the same physical line. Not
+    expected in practice (fixgen produces at most one fix per confirmed
+    site, and jointly-resolved group members are disjoint statements), but
+    a block fix's range makes this a real possibility a single-line-only
+    scheme never had to check, so it's checked explicitly rather than
+    silently corrupting the patched text."""
+    ordered = sorted(items, key=lambda i: i["line"])
+    for a, b in zip(ordered, ordered[1:]):
+        if b["line"] <= a["end_line"]:
+            raise ValueError(
+                f"{relpath}: fixes at line {a['line']}-{a['end_line']} and "
+                f"{b['line']}-{b['end_line']} overlap -- cannot apply both"
+            )
+
+
+def _apply_block_fixes(lines, items):
+    """lines: a file's physical lines (keepends=True). items: fixes for
+    this one file, each with line/end_line/proposed_lines. Applies in
+    DESCENDING order of `line` -- a block replacement can change the line
+    count, but every fix not yet applied has a strictly lower `line`
+    (overlap is already ruled out by _check_overlaps), so replacing a
+    later range never shifts an earlier one's index. This is the fix for
+    the latent corruption bug a block fix introduces: the old scheme
+    (ascending order, one line in for one line out) silently mis-splices
+    the moment any fix's replacement has a different line count than its
+    original span."""
+    new_lines = list(lines)
+    for item in sorted(items, key=lambda i: i["line"], reverse=True):
+        start_idx = item["line"] - 1
+        end_idx = item["end_line"]  # exclusive slice bound (end_line is 1-indexed inclusive)
+        ending = _line_ending_of(lines[end_idx - 1]) or "\n"
+        proposed = [
+            pl if pl.endswith(("\n", "\r\n")) else pl + ending
+            for pl in item["proposed_lines"]
+        ]
+        new_lines[start_idx:end_idx] = proposed
+    return new_lines
+
+
 def check_parse_and_line_match(reader, expanded_fixes):
     """expanded_fixes: the post-expand_duplicates `fixes` list (each item:
-    file, line, original_line, proposed_line, reason). Returns a report
-    dict: per-item results plus an `all_ok` summary flag."""
+    file, line, end_line, original_lines, proposed_lines, reason). Returns
+    a report dict: per-item results plus an `all_ok` summary flag."""
     by_file = {}
     for item in expanded_fixes:
         by_file.setdefault(item["file"], []).append(item)
@@ -66,31 +109,29 @@ def check_parse_and_line_match(reader, expanded_fixes):
             continue
 
         lines = _split_lines_keepends(src)
-        patched = list(lines)
+        _check_overlaps(relpath, items)
         for item in sorted(items, key=lambda i: i["line"]):
-            idx = item["line"] - 1
-            if idx < 0 or idx >= len(lines):
+            start_idx = item["line"] - 1
+            end_idx = item["end_line"]
+            if start_idx < 0 or end_idx > len(lines):
                 items_report.append({
                     "file": relpath, "line": item["line"], "line_match_ok": False,
-                    "error": f"line {item['line']} is out of range for {relpath} "
-                             f"({len(lines)} lines)",
+                    "error": f"lines {item['line']}-{item['end_line']} are out of range "
+                             f"for {relpath} ({len(lines)} lines)",
                 })
                 continue
-            actual = lines[idx]
-            match_ok = actual.rstrip("\r\n") == item["original_line"].rstrip("\r\n") or \
-                actual.strip() == item["original_line"].strip()
-            ending = _line_ending_of(actual) or "\n"
-            new_line = item["proposed_line"]
-            if not new_line.endswith(("\n", "\r\n")):
-                new_line = new_line + ending
-            patched[idx] = new_line
+            actual_block = [l.rstrip("\r\n") for l in lines[start_idx:end_idx]]
+            claimed_block = [l.rstrip("\r\n") for l in item["original_lines"]]
+            match_ok = actual_block == claimed_block or \
+                [l.strip() for l in actual_block] == [l.strip() for l in claimed_block]
             items_report.append({
                 "file": relpath, "line": item["line"], "line_match_ok": match_ok,
-                "actual_original": actual.rstrip("\r\n"),
-                "claimed_original": item["original_line"],
+                "actual_original": "\n".join(actual_block),
+                "claimed_original": "\n".join(item["original_lines"]),
             })
 
-        patched_src = "".join(patched)
+        patched_lines = _apply_block_fixes(lines, items)
+        patched_src = "".join(patched_lines)
         try:
             ast.parse(patched_src)
             file_parse_results[relpath] = {"parses": True}
@@ -111,12 +152,18 @@ def check_parse_and_line_match(reader, expanded_fixes):
 
 
 def _import_statements(expanded_fixes, package_name):
-    """Fixes whose proposed_line is itself an import statement naming
-    `package_name` -- the only shape tier 2 can meaningfully check without
-    executing arbitrary application code."""
+    """Fixes whose proposed_lines is (still) a single import statement
+    naming `package_name` -- the only shape tier 2 can meaningfully check
+    without executing arbitrary application code. A block fix with more
+    than one proposed line is never an import-shaped fix by this
+    definition, even if one of its lines happens to be an import -- tier 2
+    only ever execs a single statement in isolation, and a multi-line
+    block's lines are not independently valid Python."""
     out = []
     for item in expanded_fixes:
-        stripped = item["proposed_line"].strip()
+        if len(item["proposed_lines"]) != 1:
+            continue
+        stripped = item["proposed_lines"][0].strip()
         if (stripped.startswith(f"import {package_name}")
                 or stripped.startswith(f"from {package_name}")
                 or stripped.startswith(f"import {package_name}.")):
@@ -133,7 +180,7 @@ def check_install(package_name, expanded_fixes, workdir, version=None, timeout=1
     if not to_check:
         return {
             "tier": "install", "available": False,
-            "reason": "no fix's proposed_line is an import statement naming "
+            "reason": "no fix's proposed_lines is a single import statement naming "
                        f"{package_name!r} -- nothing for this tier to check",
             "items": [],
         }
@@ -181,7 +228,7 @@ def check_install(package_name, expanded_fixes, workdir, version=None, timeout=1
 
     items_report = []
     for item in to_check:
-        stripped = item["proposed_line"].strip()
+        stripped = item["proposed_lines"][0].strip()
         script = f"{stripped}\n"
         try:
             check = subprocess.run(

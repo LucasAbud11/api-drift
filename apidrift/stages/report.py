@@ -68,15 +68,24 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
             inst = install_by_site.get(key)
             if inst is not None:
                 badges.append("import resolved" if inst.get("resolved") else "IMPORT DID NOT RESOLVE")
+            if item.get("group_id"):
+                badges.append(f"coordinated group {item['group_id']}")
             badge_text = f" [{', '.join(badges)}]" if badges else ""
-            lines.append(f"- `{item['file']}:{item['line']}`{badge_text} -- {item['reason']}")
-            lines.append(f"  ```diff\n  - {item['original_line']}\n  + {item['proposed_line']}\n  ```")
+            span_text = f":{item['line']}" if item["end_line"] == item["line"] \
+                else f":{item['line']}-{item['end_line']}"
+            lines.append(f"- `{item['file']}{span_text}`{badge_text} -- {item['reason']}")
+            orig_diff = "\n".join(f"  - {l}" for l in item["original_lines"])
+            prop_diff = "\n".join(f"  + {l}" for l in item["proposed_lines"])
+            lines.append(f"  ```diff\n{orig_diff}\n{prop_diff}\n  ```")
         lines.append("")
 
         all_flagged = fixgen_expanded["flagged_for_human"]
         span_flagged = [it for it in all_flagged if it.get("flag_source") == "multiline_span_guard"]
-        model_flagged = [it for it in all_flagged
-                          if it.get("flag_source") not in ("multiline_span_guard", "group_consistency_guard")]
+        _GROUP_FLAG_SOURCES = (
+            "multiline_span_guard", "group_consistency_guard",
+            "value_flow_guard", "joint_resolution_declined",
+        )
+        model_flagged = [it for it in all_flagged if it.get("flag_source") not in _GROUP_FLAG_SOURCES]
         # A group's cross-reference lives on every flagged_for_human entry
         # that's a member of one -- not only the ones whose flag_source IS
         # group_consistency_guard. A group whose only confirmed member was
@@ -143,6 +152,10 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
                         # A confirmed site in this group -- see "Not evaluated
                         # -- multi-line statement" above for its own entry.
                         status = "declined above as a multi-line statement, not repeated here"
+                    elif matching is not None and matching.get("flag_source") == "value_flow_guard":
+                        status = "declined here -- a jointly-resolved fix was rejected by the value-flow guard"
+                    elif matching is not None and matching.get("flag_source") == "joint_resolution_declined":
+                        status = "declined here -- the model itself chose not to resolve this group jointly"
                     elif m.get("role") == "uncertain":
                         status = "not confirmed by adjudication (flag-uncertain) -- context only"
                     else:
