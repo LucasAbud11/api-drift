@@ -221,6 +221,117 @@ def _group_consistency_flag(site, group_id, member_keys, sites_by_key, trigger_c
     }
 
 
+def _direct_dependencies(sites_by_key):
+    """{(file, line): [(file, line), ...]} -- exactly each site's own
+    related_sites entries, restricted to keys present in sites_by_key (an
+    edge to a site outside this run has nothing on this run's side to
+    depend on, same restriction _group_by_related_sites already applies).
+
+    This is the DIRECTED "depends on" relation adjudication's related_sites
+    field actually states: an entry lists what THAT site needs in order to
+    be correct, never what needs that site. `_group_by_related_sites`
+    still unions both ends of every edge into one undirected component --
+    that's still the right computation for "which sites might need to be
+    shown together" (joint-resolution eligibility, report.py's coupled-
+    group rendering) -- but it is the WRONG computation for "which sites
+    are safe to fix," which is what this directed view is for. See
+    run()'s docstring for the real-run regression (run-youtrack-joint)
+    that conflating the two caused."""
+    deps = {}
+    for key, entry in sites_by_key.items():
+        deps[key] = [
+            (rel["file"], rel["line"]) for rel in entry["site"].get("related_sites", [])
+            if (rel["file"], rel["line"]) in sites_by_key
+        ]
+    return deps
+
+
+def _compute_unsafe_sites(all_keys, depends_on, self_unsafe):
+    """Fixed-point closure over the DIRECTED depends_on graph.
+
+    `self_unsafe`: the set of keys unsafe for their OWN reason -- an
+    uncertain-role site (never confirmed by adjudication), or a site with
+    an unresolved multi-line span (never fixed, whether because it was
+    never eligible for joint resolution or because a joint-resolution
+    attempt for it did not produce a fix).
+
+    Blocking flows in exactly one direction: from a dependency to its
+    dependents, never the reverse. A site becomes unsafe if it depends --
+    directly, or transitively through a chain of other now-unsafe sites --
+    on something unsafe. A site is NEVER made unsafe merely because
+    something else depends on IT; only its OWN dependencies (named in its
+    OWN related_sites) can do that. This is the fix for run-youtrack-
+    joint: main.py:25 (`-> FastMCP:`) depends only on main.py:10 (the
+    import) and is otherwise self-contained; main.py:70 depending on
+    main.py:25 does not, and must not, make main.py:25 unsafe.
+
+    Returns {key: cause_key} for every unsafe key -- cause_key == key for
+    a site unsafe for its own reason, or the specific dependency whose own
+    unsafe status made this site unsafe (one hop, chosen deterministically
+    as the first such dependency found; sufficient to name in a human-
+    facing reason, since that dependency's own cause is independently
+    resolvable from this same map by looking IT up in turn)."""
+    cause = {k: k for k in self_unsafe}
+    changed = True
+    while changed:
+        changed = False
+        for key in all_keys:
+            if key in cause:
+                continue
+            for dep in depends_on.get(key, ()):
+                if dep in cause:
+                    cause[key] = dep
+                    changed = True
+                    break
+    return cause
+
+
+def _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map):
+    """One clause explaining why `key` is unsafe, for a human-facing
+    decline reason -- `key` must be a key of `unsafe_cause`. Recurses one
+    logical hop at a time along the SAME chain _compute_unsafe_sites
+    already resolved (never re-derives it), so the text names the real,
+    concrete, base-case reason (uncertain / span / joint-resolution
+    outcome) rather than stopping at a vague "it was declined" for a
+    multi-hop chain."""
+    cause = unsafe_cause[key]
+    if cause == key:
+        if sites_by_key[key]["role"] == "uncertain":
+            return f"{key[0]}:{key[1]} was not confirmed by adjudication"
+        if key in span_map:
+            start, end = span_map[key]
+            return (f"{key[0]}:{key[1]} was not evaluated (multi-line statement "
+                     f"spanning lines {start}-{end})")
+        return f"{key[0]}:{key[1]} was not resolved by a coordinated fix"
+    dep_reason = _describe_unsafe_cause(cause, unsafe_cause, sites_by_key, span_map)
+    return f"{key[0]}:{key[1]} depends on {cause[0]}:{cause[1]} ({dep_reason})"
+
+
+def _check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what):
+    """The real invariant this pipeline must never violate, replacing the
+    old undirected "every group member must land in the same bucket"
+    check for this run-wide sweep (see run()'s docstring for why that
+    check over-declined on run-youtrack-joint): a site that shipped as a
+    FIX must never depend on something that did not ALSO ship as a fix.
+    A fix depending on another fix is fine regardless of grouping; a fix
+    depending on a decline, an uncertain site, or anything not in
+    `merged_bucketed` at all, is the exact insufficient-fix-set shape the
+    original coupling increment exists to catch -- checked precisely by
+    dependency now, instead of by blanket group membership."""
+    for key, bucket in merged_bucketed.items():
+        if bucket != "fixes":
+            continue
+        for dep in depends_on.get(key, ()):
+            dep_bucket = merged_bucketed.get(dep, "not resolved by this run")
+            if dep_bucket != "fixes":
+                raise ValueError(
+                    f"{what}: {key[0]}:{key[1]} shipped as a fix but its own dependency "
+                    f"{dep[0]}:{dep[1]} did not (bucket: {dep_bucket}) -- a coupled pair "
+                    f"split across buckets this way is never safe to ship: a fix must "
+                    f"never depend on something that was not also fixed"
+                )
+
+
 def _extract_call_keywords(text):
     """{keyword_name: ast.dump(value_node)} for every keyword argument in
     every ast.Call found in `text`, last occurrence wins on a duplicate
@@ -567,15 +678,21 @@ def _chunk_is_done(dir_, idx, chunk_sites):
 
 
 def _check_group_consistency(bucketed, group_members_by_id, what):
-    """bucketed: {(file, line): bucket_name} for every site whose verdict
-    is known so far -- a chunk's own result (partial: only that chunk's
-    sites) or the full merged result (complete: every site). Raises
-    ValueError, same discipline as the coverage check this sits beside,
-    the moment a group's known members disagree on which bucket they
-    landed in. A group with a member not yet present in `bucketed` (still
-    in an unprocessed chunk, at the per-chunk call site) is not checkable
-    yet and is silently skipped here -- the merged-level call, which sees
-    every site, is what actually guarantees no group escapes torn."""
+    """Used only within ONE joint-resolution call's own response (see
+    _run_joint_group) -- not, since the directional-dependency fix for
+    run-youtrack-joint, as a run-wide sweep over every undirected group.
+    A single call was explicitly asked to resolve its own member set
+    jointly; if it tears that exact set across buckets (some fixed, some
+    flagged), that is always a defect in that one response, regardless of
+    dependency direction, because every member of THIS set was presented
+    to the model as one coordinated unit. The broader, run-wide question
+    -- may a site that reached 'fixes' through some OTHER path depend on
+    a site that did not -- is answered by
+    _check_no_fix_depends_on_an_unresolved_site instead, directionally.
+
+    bucketed: {(file, line): bucket_name} for every site whose verdict is
+    known. Raises ValueError the moment a group's known members disagree
+    on which bucket they landed in."""
     for gid, members in group_members_by_id.items():
         seen = {bucketed[m] for m in members if m in bucketed}
         if len(seen) > 1:
@@ -601,15 +718,51 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
 
     `uncertain_sites` should be adjudication's flag_uncertain list, same
     pre-expansion shape. It is consumed for exactly one purpose: computing
-    which proposed sites are coupled to an uncertain one via related_sites
-    (see _group_by_related_sites), so that coupling can be deterministically
-    declined below. An uncertain site never itself becomes a fix or a
-    flagged_for_human entry -- a group containing one has no jointly-
-    consistent set this pipeline can produce (its own resolution was never
-    confirmed by adjudication in the first place), so it is always declined
-    in its entirety, never sent to the model even jointly. Omitting
-    `uncertain_sites` (the default) means no site in `sites` is ever grouped
-    with anything uncertain, which is exactly today's behavior.
+    which proposed sites depend on an uncertain one via related_sites (see
+    _group_by_related_sites and _direct_dependencies), so that coupling can
+    be deterministically declined below. An uncertain site never itself
+    becomes a fix or a flagged_for_human entry -- its own resolution was
+    never confirmed by adjudication in the first place. Omitting
+    `uncertain_sites` (the default) means no site in `sites` ever depends
+    on anything uncertain, which is exactly today's behavior.
+
+    Blocking is DIRECTIONAL, not blanket-per-group: a site is declined if
+    something IT depends on (per its own related_sites) is unresolved or
+    declined, transitively; a site is never declined merely because
+    something else depends on IT. This is a fix for a real regression
+    (run-youtrack-joint): adjudication produced main.py:10 (an import
+    rename, no dependencies), main.py:25 (a return-annotation rename
+    depending only on 10), main.py:27 (a multi-line constructor call also
+    depending on 10), and an UNCERTAIN main.py:70 depending on both 27 and
+    25. Treating related_sites as an undirected edge -- the original
+    design -- put all four in one connected component and declined every
+    member because the component contained an uncertain site, even though
+    nothing about 10 or 25's OWN correctness depends on 70 ever being
+    resolved. 10 and 25 are self-contained and safe regardless of 70's
+    status; only 27 (multi-line, its own separate reason) and 70 (uncertain
+    itself) decline.
+
+    One subtlety this directional rule does NOT paper over: does shipping
+    10 and 25 as fixes while 27 stays on the old symbol leave the file
+    broken? If a human applies fixes.json's `fixes` list via `api-drift
+    apply` without ALSO addressing 27's flagged_for_human entry, yes --
+    27 still references the renamed symbol under its old name, and that
+    reference breaks the moment the code path through it runs, regardless
+    of whether 10 was ever touched. This is not a NEW risk 10/25 being
+    fixed introduces, though: 27 already, unconditionally, needs a human
+    (the multi-line-span guard declines it regardless of this rule, both
+    before and after this fix), and this tool has never guaranteed that
+    applying its `fixes` bucket alone yields a fully migrated repo when
+    flagged_for_human entries remain elsewhere -- report.md's own header
+    already says to review everything before applying, and 27's own
+    flagged entry still cross-references 10 and 25 in its group_members
+    roster (group_members_by_id, the undirected view, is still computed
+    and still used for that visibility -- only the BLOCKING decision
+    became directional, not the reporting). The real, narrower danger the
+    original coupling design exists to prevent -- a fix that looks
+    confident and complete but silently omits a value another site was
+    supposed to supply it -- is unaffected: 10 and 25 are each genuinely
+    self-contained mechanical renames, not fixes assuming missing context.
 
     `cache_ttl`: see adjudicate.run()'s docstring -- same reasoning for
     the cache_system gate below."""
@@ -677,54 +830,20 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
         if not (group_id_by_key.get(key) and group_class.get(group_id_by_key[key]) == "joint_resolve")
     }
 
-    # Pass 2 -- group-consistency guard for "uncertain_decline" groups only,
-    # unchanged in behavior from before this increment: every not-yet-
-    # declined proposed member is declined too, deterministically, before
-    # it ever reaches the model. This is the fix for the coupling failure
-    # itself: without it, an otherwise-confident member of a group like
-    # this would go on to get an independently-generated, independently-
-    # plausible fix, unaware its companion's resolution was never
-    # confirmed -- the "fix the confident member alone" shape the
-    # youtrack-mcp run produced.
-    group_declined = set()
-    for gid, member_keys in group_members_by_id.items():
-        if group_class.get(gid) != "uncertain_decline":
-            continue
-        trigger_clauses = []
-        for f, l in member_keys:
-            if sites_by_key[(f, l)]["role"] == "uncertain":
-                reason = sites_by_key[(f, l)]["site"]["reason"]
-                trigger_clauses.append(
-                    f"{f}:{l} was not confirmed by adjudication ({reason!r})"
-                )
-        for f, l in member_keys:
-            if (f, l) in span_declined:
-                start, end = span_map[(f, l)]
-                trigger_clauses.append(
-                    f"{f}:{l} was not evaluated (multi-line statement spanning "
-                    f"lines {start}-{end})"
-                )
-        for f, l in member_keys:
-            key = (f, l)
-            if sites_by_key[key]["role"] != "proposed" or key in span_declined:
-                continue
-            auto_flagged.append(_group_consistency_flag(
-                sites_by_key[key]["site"], gid, member_keys, sites_by_key, trigger_clauses,
-            ))
-            group_declined.add(key)
-
-    # Pass 3 -- joint resolution: one call per "joint_resolve" group, asking
+    # Pass 2 -- joint resolution: one call per "joint_resolve" group, asking
     # the model to resolve every member together instead of declining the
     # group outright (see _run_joint_group). Every fixes-bucket result is
     # re-verified by the deterministic _check_group_value_flow guard before
     # being trusted -- a rejected coordinated fix falls back to
-    # flagged_for_human for the whole group, same outcome pass 2 would have
-    # produced, just reached with a real attempt in between instead of an
-    # automatic decline.
+    # flagged_for_human for the whole group. Run BEFORE the directional
+    # closure below: whether a joint-resolve member ends up safe depends on
+    # whether this call actually produced a fix for it, not merely on
+    # whether it was eligible to try.
     joint_fixes = []
     joint_gids = sorted(gid for gid, c in group_class.items() if c == "joint_resolve")
     cache_joint = len(joint_gids) > 1 or cache_ttl != "5m"
-    joint_resolved_keys = set()
+    joint_resolved_keys = set()  # every member of a joint_resolve group, fixed or not
+    joint_fixed_keys = set()     # the subset that actually received a fix
     for gid in joint_gids:
         member_keys = group_members_by_id[gid]
         result_fixes, result_flags = _run_joint_group(
@@ -734,6 +853,45 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
         joint_fixes.extend(result_fixes)
         auto_flagged.extend(result_flags)
         joint_resolved_keys.update(member_keys)
+        joint_fixed_keys.update((f["file"], f["line"]) for f in result_fixes)
+
+    # Pass 3 -- directional dependency closure (see run()'s docstring for
+    # the regression this replaces the old undirected group decline with).
+    # Base "unsafe for its own reason" cases: every uncertain-role site,
+    # and every site with an unresolved span -- whether it was never
+    # eligible for joint resolution (already in span_declined) or WAS
+    # eligible but that attempt did not produce a fix for it (a joint call
+    # can decline non-span members too; both kinds belong here equally).
+    self_unsafe = {key for key, entry in sites_by_key.items() if entry["role"] == "uncertain"}
+    self_unsafe |= span_declined
+    self_unsafe |= (joint_resolved_keys - joint_fixed_keys)
+
+    depends_on = _direct_dependencies(sites_by_key)
+    unsafe_cause = _compute_unsafe_sites(sites_by_key.keys(), depends_on, self_unsafe)
+
+    # Every "proposed" site not already resolved one way or another above,
+    # but unsafe per the closure, is declined here -- necessarily via a
+    # TRANSITIVE cause (every base case is already excluded by the
+    # span_declined/joint_resolved_keys checks), so this is exactly the
+    # "depends on something unresolved" case, never "something depends on
+    # me." group_id/group_members still come from the undirected view --
+    # visibility into the whole coupled neighborhood is preserved even
+    # though the block decision no longer is.
+    group_declined = set()
+    for key, entry in sites_by_key.items():
+        if entry["role"] != "proposed":
+            continue
+        if key in span_declined or key in joint_resolved_keys:
+            continue
+        if key not in unsafe_cause:
+            continue
+        gid = group_id_by_key.get(key)
+        cause_clause = _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map)
+        auto_flagged.append(_group_consistency_flag(
+            entry["site"], gid, group_members_by_id.get(gid, [key]), sites_by_key,
+            [cause_clause],
+        ))
+        group_declined.add(key)
 
     eval_sites = [
         s for s in sites
@@ -764,13 +922,10 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
             effort="high",
         )
         validate.validate_fixgen_dict(result, what=f"chunk_{idx:03d}")
-        covered = set()
-        bucketed = {}
-        for bucket in ("fixes", "flagged_for_human"):
-            for item in result[bucket]:
-                key = (item["file"], item["line"])
-                covered.add(key)
-                bucketed[key] = bucket
+        covered = {
+            (item["file"], item["line"])
+            for bucket in ("fixes", "flagged_for_human") for item in result[bucket]
+        }
         expected = {(s["file"], s["line"]) for s in chunk_sites}
         if covered != expected:
             missing = expected - covered
@@ -779,11 +934,6 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
                 f"chunk_{idx:03d}: fix generation does not cover exactly the sites "
                 f"given -- missing {sorted(missing)}, unexpected {sorted(extra)}"
             )
-        # Catches only a group fully contained in this one chunk -- a group
-        # split across chunk boundaries isn't checkable until every chunk
-        # is in, so it's re-checked at the merged level below regardless.
-        _check_group_consistency(bucketed, group_members_by_id, what=f"chunk_{idx:03d}")
-
         path = _chunk_path(fg_dir, idx)
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
@@ -798,21 +948,22 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
 
     merged_path = os.path.join(fg_dir, "merged.json")
 
-    # The complete, run-wide check: every group's members are now known
-    # (auto-declined ones from pass 2, model-generated ones from every
-    # chunk), so a group split across chunk boundaries -- not checkable
-    # above -- is caught here. Note this one is not cleanly resumable: if
-    # it fires, the individual chunks it spans each independently passed
-    # their own (necessarily partial) coverage and group checks and are
-    # already written to disk as "done", so re-running without deleting
-    # those chunk files first will reach the exact same split again. A
-    # real occurrence needs group-aware chunking to fix properly, which is
-    # out of scope for this increment -- see the design pass's own §5.
+    # The complete, run-wide check, directional (see
+    # _check_no_fix_depends_on_an_unresolved_site and run()'s docstring):
+    # every site's final bucket is now known (auto-declined/joint-resolved
+    # above, model-generated from every ordinary chunk), so a fix that
+    # depends on something NOT also fixed -- whether that split happened
+    # across chunk boundaries or within one chunk's own model call -- is
+    # caught here. Note this is not cleanly resumable: if it fires, the
+    # individual chunks it spans each independently passed their own
+    # coverage check and are already written to disk as "done", so
+    # re-running without deleting those chunk files first reaches the
+    # exact same split again.
     merged_bucketed = {}
     for bucket in ("fixes", "flagged_for_human"):
         for item in merged[bucket]:
             merged_bucketed[(item["file"], item["line"])] = bucket
-    _check_group_consistency(merged_bucketed, group_members_by_id, what=merged_path)
+    _check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what=merged_path)
 
     with open(merged_path, "w") as f:
         json.dump(merged, f, indent=2)

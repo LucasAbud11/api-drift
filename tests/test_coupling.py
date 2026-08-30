@@ -712,3 +712,194 @@ def test_report_renders_model_own_joint_decline(tmp_path):
     assert "### Coupled edit group" in text
     assert text.count("declined here -- the model itself chose not to resolve this group jointly") == 2
     assert "### Model judgment call" not in text
+
+
+# ---------------------------------------------------------------------
+# Directional dependency -- reproduces the run-youtrack-joint regression
+# exactly: related_sites is directional (a site names what IT depends on,
+# never what depends on it), but grouping was treating it as an
+# undirected edge. Four sites, one connected undirected component:
+#
+#   P main.py:10  related: []        -- import rename, no dependency
+#   P main.py:25  related: [10]      -- return annotation, depends on 10
+#   P main.py:27  related: [10]      -- multi-line constructor, depends on 10
+#   U main.py:70  related: [27, 25]  -- uncertain, depends on 27 and 25
+#
+# Correct outcome: 10 and 25 are self-contained and must be fixable
+# regardless of 70's status (nothing about their own correctness depends
+# on 70 ever resolving); 27 declines on its own multi-line span,
+# independent of the coupling logic; 70 declines as uncertain.
+# ---------------------------------------------------------------------
+
+def _line_padded_body(content_by_line, total_lines):
+    lines = ["\n"] * total_lines
+    for lineno, text in content_by_line.items():
+        lines[lineno - 1] = text if text.endswith("\n") else text + "\n"
+    return "".join(lines)
+
+
+YOUTRACK_JOINT_BODY = _line_padded_body({
+    10: "from mcp.server.fastmcp import FastMCP",
+    25: "def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:",
+    27: "    mcp = FastMCP(",
+    28: "        \"name\",",
+    29: "        host=host,",
+    30: "        port=port",
+    31: "    )",
+    70: "mcp.run(transport=\"sse\")",
+}, total_lines=70)
+
+_YOUTRACK_PROPOSED = [
+    {"file": "main.py", "line": 10, "snippet": "from mcp.server.fastmcp import FastMCP",
+     "pattern": "1", "reason": "import path renamed", "related_sites": []},
+    {"file": "main.py", "line": 25, "snippet": "def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:",
+     "pattern": "1", "reason": "return annotation references the renamed class",
+     "related_sites": [{"file": "main.py", "line": 10}]},
+    {"file": "main.py", "line": 27, "snippet": "    mcp = FastMCP(",
+     "pattern": "1", "reason": "constructor references the renamed class",
+     "related_sites": [{"file": "main.py", "line": 10}]},
+]
+_YOUTRACK_UNCERTAIN = [
+    {"file": "main.py", "line": 70, "snippet": "mcp.run(transport=\"sse\")",
+     "reason": "may need host/port depending on how the constructor at 27 is resolved",
+     "related_sites": [{"file": "main.py", "line": 27}, {"file": "main.py", "line": 25}]},
+]
+
+
+def test_directional_dependency_leaves_self_contained_sites_fixable(tmp_path):
+    reader = _make_repo(tmp_path, body=YOUTRACK_JOINT_BODY)
+    response = {
+        "fixes": [
+            {"file": "main.py", "line": 10, "end_line": 10,
+             "original_lines": ["from mcp.server.fastmcp import FastMCP"],
+             "proposed_lines": ["from mcp.server.mcpserver import MCPServer"],
+             "reason": "import path renamed"},
+            {"file": "main.py", "line": 25, "end_line": 25,
+             "original_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:"],
+             "proposed_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> MCPServer:"],
+             "reason": "return annotation renamed"},
+        ],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+
+    merged = fixgen.run(client, reader, _YOUTRACK_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=_YOUTRACK_UNCERTAIN, chunk_size=40)
+
+    fixed_lines = {f["line"] for f in merged["fixes"]}
+    assert fixed_lines == {10, 25}
+
+    flagged_lines = {f["line"] for f in merged["flagged_for_human"]}
+    assert flagged_lines == {27}
+    flag27 = next(f for f in merged["flagged_for_human"] if f["line"] == 27)
+    assert flag27["flag_source"] == "multiline_span_guard"
+
+    # 10 and 25 were sent to the model as ordinary sites -- no group
+    # framing, no joint-resolution call, no pre-model decline.
+    assert len(client.calls) == 1
+    assert not client.calls[0]["stage"].startswith("fixgen_group_")
+
+
+def test_directional_dependency_27_group_members_still_show_10_and_25(tmp_path):
+    # Blocking became directional, but visibility didn't: 27's own
+    # flagged entry should still cross-reference the whole undirected
+    # neighborhood (10, 25, 70), so a human reviewing it sees that 10 and
+    # 25's renames are relevant to what 27 still needs by hand.
+    reader = _make_repo(tmp_path, body=YOUTRACK_JOINT_BODY)
+    response = {
+        "fixes": [
+            {"file": "main.py", "line": 10, "end_line": 10,
+             "original_lines": ["from mcp.server.fastmcp import FastMCP"],
+             "proposed_lines": ["from mcp.server.mcpserver import MCPServer"],
+             "reason": "import path renamed"},
+            {"file": "main.py", "line": 25, "end_line": 25,
+             "original_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:"],
+             "proposed_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> MCPServer:"],
+             "reason": "return annotation renamed"},
+        ],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+
+    merged = fixgen.run(client, reader, _YOUTRACK_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=_YOUTRACK_UNCERTAIN, chunk_size=40)
+
+    flag27 = next(f for f in merged["flagged_for_human"] if f["line"] == 27)
+    member_keys = {(m["file"], m["line"]) for m in flag27["group_members"]}
+    assert member_keys == {("main.py", 10), ("main.py", 25), ("main.py", 27), ("main.py", 70)}
+
+
+def test_directional_dependency_no_site_is_blocked_by_its_own_dependent(tmp_path):
+    # Direct exercise of _compute_unsafe_sites over the exact reported
+    # graph, independent of fixgen.run()'s surrounding machinery: 10 and
+    # 25 must never appear as unsafe, since nothing they depend on is
+    # unsafe -- only what depends on THEM is.
+    sites_by_key = {
+        ("main.py", 10): {"role": "proposed", "site": {"related_sites": []}},
+        ("main.py", 25): {"role": "proposed", "site": {"related_sites": [{"file": "main.py", "line": 10}]}},
+        ("main.py", 27): {"role": "proposed", "site": {"related_sites": [{"file": "main.py", "line": 10}]}},
+        ("main.py", 70): {"role": "uncertain", "site": {"related_sites": [
+            {"file": "main.py", "line": 27}, {"file": "main.py", "line": 25},
+        ]}},
+    }
+    depends_on = fixgen._direct_dependencies(sites_by_key)
+    self_unsafe = {("main.py", 70), ("main.py", 27)}  # uncertain, and span-declined respectively
+    unsafe_cause = fixgen._compute_unsafe_sites(sites_by_key.keys(), depends_on, self_unsafe)
+
+    assert ("main.py", 10) not in unsafe_cause
+    assert ("main.py", 25) not in unsafe_cause
+    assert unsafe_cause[("main.py", 27)] == ("main.py", 27)
+    assert unsafe_cause[("main.py", 70)] == ("main.py", 70)
+
+
+def test_directional_dependency_transitive_chain_still_blocks_forward(tmp_path):
+    # A depends on B depends on C(uncertain) -- A must still be blocked,
+    # transitively, since blocking DOES flow forward along a dependency
+    # chain; only the reverse direction (a dependent blocking its
+    # dependency) is what got fixed.
+    sites_by_key = {
+        ("a.py", 1): {"role": "proposed", "site": {"related_sites": [{"file": "a.py", "line": 2}]}},
+        ("a.py", 2): {"role": "proposed", "site": {"related_sites": [{"file": "a.py", "line": 3}]}},
+        ("a.py", 3): {"role": "uncertain", "site": {"related_sites": []}},
+    }
+    depends_on = fixgen._direct_dependencies(sites_by_key)
+    unsafe_cause = fixgen._compute_unsafe_sites(sites_by_key.keys(), depends_on, {("a.py", 3)})
+
+    assert unsafe_cause[("a.py", 1)] == ("a.py", 2)
+    assert unsafe_cause[("a.py", 2)] == ("a.py", 3)
+    assert unsafe_cause[("a.py", 3)] == ("a.py", 3)
+
+
+def test_describe_unsafe_cause_names_the_concrete_base_reason():
+    sites_by_key = {
+        ("a.py", 1): {"role": "proposed", "site": {}},
+        ("a.py", 2): {"role": "proposed", "site": {}},
+        ("a.py", 3): {"role": "uncertain", "site": {}},
+    }
+    unsafe_cause = {("a.py", 1): ("a.py", 2), ("a.py", 2): ("a.py", 3), ("a.py", 3): ("a.py", 3)}
+    reason = fixgen._describe_unsafe_cause(("a.py", 1), unsafe_cause, sites_by_key, span_map={})
+    assert "a.py:2" in reason
+    assert "a.py:3" in reason
+    assert "not confirmed by adjudication" in reason
+
+
+def test_check_no_fix_depends_on_an_unresolved_site_passes_when_all_deps_fixed():
+    depends_on = {("a.py", 1): [], ("a.py", 2): [("a.py", 1)]}
+    merged_bucketed = {("a.py", 1): "fixes", ("a.py", 2): "fixes"}
+    fixgen._check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what="test")
+
+
+def test_check_no_fix_depends_on_an_unresolved_site_raises_when_dependency_unfixed():
+    depends_on = {("a.py", 1): [], ("a.py", 2): [("a.py", 1)]}
+    merged_bucketed = {("a.py", 1): "flagged_for_human", ("a.py", 2): "fixes"}
+    with pytest.raises(ValueError, match="split across buckets"):
+        fixgen._check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what="test")
+
+
+def test_check_no_fix_depends_on_an_unresolved_site_passes_when_dependent_alone_is_unfixed():
+    # The directional half of the fix: a FIX (1) whose dependent (2) was
+    # not also fixed is fine -- only the reverse (a fix depending on an
+    # unfixed site) is the real problem.
+    depends_on = {("a.py", 1): [], ("a.py", 2): [("a.py", 1)]}
+    merged_bucketed = {("a.py", 1): "fixes", ("a.py", 2): "flagged_for_human"}
+    fixgen._check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what="test")

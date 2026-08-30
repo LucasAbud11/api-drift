@@ -156,6 +156,14 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
                         status = "declined here -- a jointly-resolved fix was rejected by the value-flow guard"
                     elif matching is not None and matching.get("flag_source") == "joint_resolution_declined":
                         status = "declined here -- the model itself chose not to resolve this group jointly"
+                    elif key in {(f["file"], f["line"]) for f in fixgen_expanded.get("fixes", [])}:
+                        # Blocking is directional (see fixgen.py's run()):
+                        # this member's own correctness didn't depend on
+                        # whatever else in this group declined, so it was
+                        # fixed independently -- see FIX above -- even
+                        # though it still shares this group's roster for
+                        # visibility.
+                        status = "fixed independently -- see FIX above"
                     elif m.get("role") == "uncertain":
                         status = "not confirmed by adjudication (flag-uncertain) -- context only"
                     else:
