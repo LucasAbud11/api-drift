@@ -1268,3 +1268,61 @@ shapes, the torn-group hard failure, the `related_sites` schema
 enforcement, both report-rendering shapes) plus small updates to four
 existing scripted-response fixtures. 252 passed, 1 expected/documented
 `ReplayMiss`, run through `.venv/bin/python3`.
+
+**The coupling increment, measured end to end on a real, live re-run --
+not a replay, not a hand-simulated `related_sites`.** Re-ran
+`run-azeroth` against the same guide, same loaded factblock/vocabulary,
+same repo, this time through the coupling-aware pipeline. Adjudication
+populated `related_sites` on every relevant entry on its own, with no
+hand-editing: `main.py:29` (the import) -> `68`; `main.py:68` (the
+constructor) -> `29`, `153`, `170`; both `153` and `170` -> `68`.
+Verified directly from the run's own `adjudication/merged.json`, not
+taken on faith.
+
+**The links are semantically real, not fact-citation noise recurring by
+coincidence.** `main.py:68`'s real, recorded reason for linking back to
+`29`: *"fixing the import alone does not repair it -- the identifier
+must become `MCPServer(`."* That's correct, and sharper than it first
+reads: renaming the import to `MCPServer` while line 68 still reads
+`FastMCP(` leaves `FastMCP` undefined at that point in the file --
+applying the import fix alone raises `NameError` at import time, not
+just an incomplete migration. This is a different flavor of the
+insufficient-fix-set failure than the host/port case documented above:
+not "the companion site needs a value this site can't see," but "these
+two identifiers must be renamed together or neither should be,"
+surfacing on a plain single-line, non-multiline, otherwise entirely
+ordinary confirmed site (`main.py:29`) that the multiline-span guard
+alone would never have touched.
+
+**Result: `FIX` went from 1 to 0, `FLAG-FOR-HUMAN` from 1 to 2 --
+verified from the run's own `fixes.json` and `report.md`.** The one
+group (`main.py:29`) now names all four sites: `29` declined directly
+(`group_consistency_guard`), `68` declined by the (unchanged)
+multi-line-span guard and cross-referenced into the same group, `153`
+and `170` shown as uncertain context. This is the correct outcome, not
+a regression: the previous run's single fix -- the import rename alone
+-- would, applied by itself, have broken the repository at import time.
+The same insufficient-fix-set failure `REPORT.md` already recorded for
+`tonyzorin/youtrack-mcp`, reproduced on a second, independent repo, and
+this time caught by the pipeline before any output existed to review,
+rather than found by hand after the fact.
+
+**Cost: one adjudication call, $0.40. The group decline itself made
+zero model calls.** Confirmed from the run's own `fixgen/` directory:
+no `chunk_*.json` files exist, only `merged.json` -- the deterministic
+pre-model pass left nothing confident and undeclined to send, so
+`fixgen.run()`'s chunk loop never fired at all. Every dollar spent on
+this run bought the adjudication call that populated `related_sites`;
+grouping and decline were free, exactly as designed.
+
+**The increment's real scope, stated as plainly as when it shipped:**
+this result works because both real coupled anchors on this run --
+`main.py:68`'s constructor, and now transitively `main.py:29`'s import
+-- resolve to a group containing a site the multi-line-span guard (or,
+for `29`, the group-consistency guard itself) already declines by other
+means. A coupled group whose only members are single-line, independently
+confident, and never separately declined would still be sent to the
+model as ordinary, ungrouped sites -- the model-facing joint-resolution
+path was deliberately not built in this increment, and still isn't,
+because no run's evidence -- including this one -- has yet produced
+that shape.
