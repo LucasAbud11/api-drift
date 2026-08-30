@@ -41,6 +41,7 @@ def _script():
             "proposed_sites": [{
                 "file": "mod.py", "line": 1, "snippet": "import old_pkg",
                 "pattern": "1", "reason": "import of the renamed package",
+                "related_sites": [],
             }],
             "flag_uncertain": [],
             "considered_and_rejected": [],

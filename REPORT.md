@@ -1156,3 +1156,115 @@ reported 228 passed / 4 failed under a bare `python3` missing the
 installed) the same suite is 235/0 -- the 4 `test_prompt_cache.py`
 failures were an interpreter-selection mistake on my part, not a real
 gap. Using `.venv/bin/python3` from here on.
+
+**Built the coupling-group increment scoped in the previous design
+pass, against the real failure it targets, not a synthetic one.** The
+unsolved problem: one migration fact requiring coordinated edits at
+several sites, where fixing any one alone leaves the code broken --
+the `tonyzorin/youtrack-mcp` insufficient-fix-set failure, reproduced
+on `run-azeroth` (`azerothmcp`): `main.py:68`'s `FastMCP(...)`
+constructor carries `host=`/`port=`; `main.py:153`/`170` need those
+values once the constructor stops accepting them. Adjudication already
+names the connection in prose -- `main.py:153`'s real, recorded reason
+is *"depends on what was passed to the `FastMCP(` constructor at line
+68, which is not visible here"* -- and `pipeline.py` discarded it:
+`flag_uncertain` never reached fixgen.
+
+**Grounded the design in real adjudication output, not assumption.**
+`related_sites` was added to both `proposed_sites` and `flag_uncertain`
+(`apidrift/stages/adjudicate.py`'s `SCHEMA`, `apidrift/validate.py`'s
+`RELATED_SITES_BUCKETS`), populated by the adjudication prompt from
+reasoning it already produces. Fact-citation (the existing `pattern`
+field) was deliberately *not* used for grouping -- confirmed on real
+data, not just reasoned about: on `run-azeroth`, `main.py:29` (a
+self-contained import rename) shares facts 98/134 with `main.py:68`
+(the constructor) despite depending on nothing from it, and the
+actually-coupled `main.py:68`/`170` share zero fact numbers. The same
+shape repeats on `run-youtrack-v2` (`main.py:10`/`25`/`27` all share
+fact 98 despite two of the three being self-contained) -- confirming
+over-grouping is not a one-off. `pattern` also proved unstable: the
+structurally identical constructor site on `run-youtrack-v2` cites
+fact 149 (the transport-param fact) while `run-azeroth`'s does not,
+for the same code shape under the same guide.
+
+**`apidrift/stages/fixgen.py` computes groups via union-find over
+`related_sites`** (`_group_by_related_sites`), before the model sees
+anything. A multi-member group where any member is uncertain, or was
+already declined by the existing multi-line-span guard, is
+deterministically declined in its entirety
+(`_group_consistency_flag`, `flag_source: "group_consistency_guard"`)
+-- zero model calls for a group that can never be resolved without
+building the model-facing joint-generation path this increment
+explicitly does not build. A group whose only confirmed member is
+itself multi-line (the shape on both real runs) never produces its
+own `group_consistency_guard` entry -- the existing
+`multiline_span_guard` entry is enriched with the same `group_id`/
+`group_members` instead, so the cross-reference is still visible
+without a second, redundant flag for the same site. The post-response
+bucket check (`fixgen.py`'s existing coverage-mismatch check) gained a
+matching assertion: a group split across `fixes`/`flagged_for_human`
+is a hard validation failure, checked per-chunk and again at the
+merged level (a group split across chunk boundaries isn't checkable
+until every chunk is in). `report.py` renders a new "Coupled edit
+group" subsection under FLAG-FOR-HUMAN, naming every member (confirmed
+or context-only) and stating plainly that the group must be applied,
+or fixed by hand, together.
+
+**Verified end to end against `run-azeroth`'s real stored artifacts,
+zero API calls.** Loaded the real `adjudication/merged.json` and
+`factblock.json`, transcribed `related_sites` directly from each
+entry's own already-recorded reason text (`main.py:153`/`170` -> line
+68; nothing invented), and re-ran `fixgen.run()` against the real repo
+with a fake client that replays `main.py:29`'s own already-recorded
+real fix verbatim -- the only site that should reach a model call at
+all. Result: exactly one model call (matching today's real run),
+identical fix/flag counts and content, `main.py:68`'s
+`flagged_for_human` entry now carries `group_id: "main.py:68"` and
+`group_members` naming all three sites, and `report.md` gains the new
+"Coupled edit group" section cross-referencing `68`/`153`/`170`
+explicitly -- where today a human has to read three separate prose
+paragraphs and notice they share a line number. Net cost on this real
+run: zero additional API spend, exactly as the design pass predicted
+for the case where the group's anchor is already span-declined.
+
+**What this does not solve, unchanged from the design pass's own
+scoping.** No model-facing joint resolution was built -- a coupled
+group where the anchor is single-line and NOT independently declined
+(no case exists in either real run) is still handled only by the
+deterministic pre-model decline, never sent to the model together.
+Grouping quality is bounded by adjudication's own `related_sites`
+reasoning; a coupling adjudication never states in prose still goes
+undetected. Cross-file coupling is architecturally supported by the
+`{file, line}` shape of `related_sites` but unevidenced -- both real
+examples are single-file. A group split across `fixgen` chunk
+boundaries, while now caught at the merged-validation level, is not
+cleanly resumable: the individual chunks it spans each independently
+pass their own necessarily-partial per-chunk checks and are written to
+disk as done, so a naive re-run reaches the identical split again
+without deleting those chunk files first -- fixing that needs
+group-aware chunking, out of scope here.
+
+**One real, expected regression, left as-is rather than papered
+over.** `test_replay_targetb.py` now fails with `ReplayMiss` on
+`adjudicate_chunk_000` -- the adjudication prompt changed (the new
+`related_sites` instructions), so the recorded cassette's request hash
+no longer matches. The test's own docstring states this is correct
+behavior, not a bug: *"if the pipeline's own logic changes what it
+asks the model... this fails with ReplayMiss, which is correct -- it
+means the cassette is stale, not that the pipeline is wrong."*
+Re-recording needs a real, billed acceptance-test run
+(`APIDRIFT_RECORD_CASSETTE=... pytest ... -m acceptance`) and is left
+for a deliberate, confirmed step rather than done here. The four
+existing recorded cassettes' stored adjudication *responses* (not
+requests) were mechanically patched to add `"related_sites": []` to
+every historical entry -- a pure data-shape migration matching what
+those runs actually claimed (no coupling), not a re-recording; this
+alone did not fix the `ReplayMiss`, which is about the request hash,
+not the response shape.
+
+18 new tests in `tests/test_coupling.py` (union-find grouping,
+deterministic decline for both the span-anchored and single-line-anchor
+shapes, the torn-group hard failure, the `related_sites` schema
+enforcement, both report-rendering shapes) plus small updates to four
+existing scripted-response fixtures. 252 passed, 1 expected/documented
+`ReplayMiss`, run through `.venv/bin/python3`.

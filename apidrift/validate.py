@@ -592,6 +592,30 @@ def validate_gapfill_file(path):
 BUCKET_KEYS = ["proposed_sites", "flag_uncertain", "considered_and_rejected"]
 COMMON_ITEM_FIELDS = ["file", "line", "reason"]
 PROPOSED_EXTRA_FIELDS = ["pattern", "snippet"]
+# Buckets whose items must carry a related_sites list -- deliberately not
+# considered_and_rejected: a rejected candidate needs no text change of its
+# own, so it has nothing for a coupled edit to depend on or supply.
+RELATED_SITES_BUCKETS = ["proposed_sites", "flag_uncertain"]
+
+
+def _validate_related_sites(bucket, idx, item, what):
+    if "related_sites" not in item:
+        _fail(what, f"'{bucket}[{idx}]' missing required field 'related_sites' "
+                     f"(required for {'/'.join(RELATED_SITES_BUCKETS)} specifically -- "
+                     f"use an empty list when this site depends on nothing else)")
+    related = item["related_sites"]
+    if not isinstance(related, list):
+        _fail(what, f"'{bucket}[{idx}].related_sites' must be a list, got "
+                     f"{type(related).__name__}")
+    for ridx, rel in enumerate(related):
+        if not isinstance(rel, dict):
+            _fail(what, f"'{bucket}[{idx}].related_sites[{ridx}]' is not an object")
+        if "file" not in rel or _is_blank(rel["file"]):
+            _fail(what, f"'{bucket}[{idx}].related_sites[{ridx}].file' is missing, "
+                         f"null, or blank")
+        if "line" not in rel or not isinstance(rel["line"], int):
+            _fail(what, f"'{bucket}[{idx}].related_sites[{ridx}].line' must be an int, "
+                         f"got {type(rel.get('line')).__name__}")
 
 
 def validate_adjudication_dict(data, what="adjudication result"):
@@ -625,6 +649,8 @@ def validate_adjudication_dict(data, what="adjudication result"):
                     if field not in item or _is_blank(item[field]):
                         _fail(what, f"'{bucket}[{idx}].{field}' is missing, null, or blank "
                                      f"(required for proposed_sites specifically)")
+            if bucket in RELATED_SITES_BUCKETS:
+                _validate_related_sites(bucket, idx, item, what)
     return data
 
 

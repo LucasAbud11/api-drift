@@ -48,7 +48,7 @@ def _script():
         "adjudicate_chunk_000": {
             "proposed_sites": [{
                 "file": "mod.py", "line": 2, "snippet": "old_pkg.Foo()",
-                "pattern": "1", "reason": "matches fact 1",
+                "pattern": "1", "reason": "matches fact 1", "related_sites": [],
             }],
             "flag_uncertain": [],
             "considered_and_rejected": [],

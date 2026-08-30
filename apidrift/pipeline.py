@@ -280,6 +280,7 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         print_fn(f"[6/{total_stages}] Generating fixes...")
         if merged["proposed_sites"]:
             fixgen_merged = fixgen.run(client, reader, merged["proposed_sites"], fb, workdir,
+                                        uncertain_sites=merged["flag_uncertain"],
                                         chunk_size=fixgen_chunk_size, cache_ttl=cache_ttl)
             fixgen_expanded = fixgen.expand_duplicates(fixgen_merged, expansion_map)
         else:

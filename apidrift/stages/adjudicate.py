@@ -15,6 +15,19 @@ _PROMPT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts"
 with open(os.path.join(_PROMPT_DIR, "adjudication_system.md")) as _f:
     _TEMPLATE = _f.read()
 
+_RELATED_SITES_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "file": {"type": "string"},
+            "line": {"type": "integer"},
+        },
+        "required": ["file", "line"],
+        "additionalProperties": False,
+    },
+}
+
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -28,8 +41,9 @@ SCHEMA = {
                     "snippet": {"type": "string"},
                     "pattern": {"type": "string"},
                     "reason": {"type": "string"},
+                    "related_sites": _RELATED_SITES_SCHEMA,
                 },
-                "required": ["file", "line", "snippet", "pattern", "reason"],
+                "required": ["file", "line", "snippet", "pattern", "reason", "related_sites"],
                 "additionalProperties": False,
             },
         },
@@ -42,8 +56,9 @@ SCHEMA = {
                     "line": {"type": "integer"},
                     "snippet": {"type": "string"},
                     "reason": {"type": "string"},
+                    "related_sites": _RELATED_SITES_SCHEMA,
                 },
-                "required": ["file", "line", "snippet", "reason"],
+                "required": ["file", "line", "snippet", "reason", "related_sites"],
                 "additionalProperties": False,
             },
         },

@@ -75,7 +75,18 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
 
         all_flagged = fixgen_expanded["flagged_for_human"]
         span_flagged = [it for it in all_flagged if it.get("flag_source") == "multiline_span_guard"]
-        model_flagged = [it for it in all_flagged if it.get("flag_source") != "multiline_span_guard"]
+        model_flagged = [it for it in all_flagged
+                          if it.get("flag_source") not in ("multiline_span_guard", "group_consistency_guard")]
+        # A group's cross-reference lives on every flagged_for_human entry
+        # that's a member of one -- not only the ones whose flag_source IS
+        # group_consistency_guard. A group whose only confirmed member was
+        # already declined by the multi-line-span guard (the real shape on
+        # both run-azeroth and run-youtrack-v2) never produces a
+        # group_consistency_guard entry of its own -- group_id/group_members
+        # are attached directly to that multiline_span_guard entry instead
+        # (see fixgen.run()'s pass 1), so this section still renders it.
+        group_flagged = [it for it in all_flagged if it.get("group_id")]
+        n_categories = sum(1 for bucket in (span_flagged, group_flagged, model_flagged) if bucket)
 
         lines.append(f"## FLAG-FOR-HUMAN ({len(all_flagged)})")
         lines.append("")
@@ -97,8 +108,54 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
                 lines.append(f"- `{item['file']}:{item['line']}` -- {item['reason']}")
             lines.append("")
 
+        if group_flagged:
+            by_group = {}
+            for item in group_flagged:
+                by_group.setdefault(item.get("group_id", "?"), []).append(item)
+
+            lines.append(f"### Coupled edit group -- declined together "
+                          f"({len(by_group)} group(s), {len(group_flagged)} site(s))")
+            lines.append("")
+            lines.append("Each group below is one migration fact that needs coordinated "
+                          "edits at more than one site -- fixing only the site(s) below "
+                          "without also addressing every other member of the same group "
+                          "leaves the group broken, the exact failure a real run "
+                          "(tonyzorin/youtrack-mcp) produced. **Apply, or write by hand, "
+                          "every member of a group together or not at all.** A member "
+                          "marked \"not confirmed by adjudication\" was never a proposed "
+                          "site in its own right -- it is shown only because a confirmed "
+                          "site in this group depends on it.")
+            lines.append("")
+            for gid in sorted(by_group):
+                items = by_group[gid]
+                # group_members is identical (same group) on every item in
+                # this bucket -- any one of them has the full roster.
+                members = items[0].get("group_members", [])
+                lines.append(f"**Group `{gid}`** ({len(members)} site(s))")
+                lines.append("")
+                by_key = {(it["file"], it["line"]): it for it in items}
+                for m in sorted(members, key=lambda x: (x["file"], x["line"])):
+                    key = (m["file"], m["line"])
+                    matching = by_key.get(key)
+                    if matching is not None and matching.get("flag_source") == "group_consistency_guard":
+                        status = "declined here, was a confirmed site"
+                    elif matching is not None and matching.get("flag_source") == "multiline_span_guard":
+                        # A confirmed site in this group -- see "Not evaluated
+                        # -- multi-line statement" above for its own entry.
+                        status = "declined above as a multi-line statement, not repeated here"
+                    elif m.get("role") == "uncertain":
+                        status = "not confirmed by adjudication (flag-uncertain) -- context only"
+                    else:
+                        # A confirmed site in this group that neither guard
+                        # declined -- it either reached the model as its own
+                        # ordinary site, or is still pending in another
+                        # chunk. Named here for completeness only.
+                        status = "not declined by this guard"
+                    lines.append(f"- `{m['file']}:{m['line']}` ({status}) -- {m['reason']}")
+                lines.append("")
+
         if model_flagged:
-            if span_flagged:
+            if n_categories > 1:
                 lines.append(f"### Model judgment call ({len(model_flagged)})")
                 lines.append("")
             for item in sorted(model_flagged, key=lambda x: (x["file"], x["line"])):

@@ -72,11 +72,28 @@ such a constructed object).
 contains "mock" or "fixture" in the path/filename. Any such candidate you
 would otherwise REJECT must go to FLAG-UNCERTAIN instead.
 
+RELATED SITES -- record it when you already say it. For a `proposed_sites`
+or `flag_uncertain` verdict, if your own reasoning depends on, or would be
+incomplete without, the content of ANOTHER specific line -- a value this
+site reads from a companion construction/assignment, a companion call that
+must change together with this one, a constructor whose arguments you
+cannot see from here -- name that line in `related_sites`, whether or not
+it also appears in this candidate list. This is not new reasoning: if your
+`reason` text would naturally say something like "depends on what was
+passed at line N" or "must be supplied here once removed from line N",
+that dependency belongs in `related_sites`, not only in the sentence.
+Most sites depend on nothing else -- leave `related_sites` as an empty
+list `[]` for those; do not invent a dependency to fill it.
+
 OUTPUT FORMAT: return a JSON object with exactly three keys --
 `proposed_sites`, `flag_uncertain`, `considered_and_rejected` -- each a
 list. Every one of the candidates given must appear in exactly one of the
 three lists (matched by file+line; for a candidate with `duplicate_lines`,
 use its first/representative line). Include `file`, `line`, `snippet`
-(the exact candidate line text), and `reason` on every item; additionally
-include `pattern` (the fact number(s), as a string) on every item in
-`proposed_sites`. All three keys must be present even if a list is empty.
+(the exact candidate line text), `reason`, and `related_sites` (a list of
+`{"file", "line"}` objects, `[]` when nothing else this site's own
+correctness depends on) on every item in `proposed_sites` and
+`flag_uncertain`; additionally include `pattern` (the fact number(s), as a
+string) on every item in `proposed_sites`. `considered_and_rejected` items
+need only `file`, `line`, `snippet`, `reason`. All three keys must be
+present even if a list is empty.

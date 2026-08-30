@@ -50,6 +50,7 @@ def _script():
             "proposed_sites": [{
                 "file": "mod.py", "line": 2, "snippet": "session = WidgetSession(timeout=5)",
                 "pattern": "gf_widgetsess", "reason": "fact 1: WidgetSession construction site",
+                "related_sites": [],
             }],
             "flag_uncertain": [],
             "considered_and_rejected": [],
