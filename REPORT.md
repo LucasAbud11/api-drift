@@ -1326,3 +1326,76 @@ model as ordinary, ungrouped sites -- the model-facing joint-resolution
 path was deliberately not built in this increment, and still isn't,
 because no run's evidence -- including this one -- has yet produced
 that shape.
+
+**The model-facing joint-resolution path named above as not-yet-built is
+now built: block-level fixes, joint group resolution, and a deterministic
+value-flow guard.** A fix is no longer restricted to a single line --
+`end_line`/`original_lines`/`proposed_lines` let one fix cover a block
+that changes line count, which a lone constructor-call rename could never
+represent at all. A coupled group whose only problem is coupling itself
+-- every member confirmed, at least one needing block-level treatment --
+now gets one dedicated call showing every member's full statement span
+and asking for a consistent set of fixes or a joint decline, instead of
+the automatic decline this section previously described as the only
+option.
+
+**The value-flow guard is the piece that makes shipping a coordinated fix
+safe, and it is deterministic -- no model call.** For a jointly-resolved
+group, every keyword argument removed at one member must reappear, with
+an AST-equal value expression, at another member; expression equality,
+not name presence, so `port=port` quietly replaced by `port=8000` still
+fails the check. This closes the specific failure class named when the
+coupling increment first shipped: a coordinated fix that silently drops a
+value parses cleanly, passes signature binding because the parameter has
+a default, and looks correct in a diff -- nothing else in this pipeline's
+verification tiers can see it. A group that fails the guard falls back to
+`flagged_for_human` for every member, the same outcome an automatic
+decline would have produced, just reached after a real attempt instead
+of before one.
+
+**Joint resolution itself has never fired on a real repo.** Every coupled
+group observed so far -- run-azeroth and run-youtrack-v2, both recorded
+above -- contains a member adjudication marked uncertain, and a group
+with an uncertain member declines without ever reaching the model, by
+design, regardless of whether the rest of it could theoretically be
+resolved jointly. The capability is built and covered by offline unit
+tests reproducing the shapes this section already documented, but it
+remains unproven on real, paid input: no real run has yet produced a
+coupled group whose only blocker is coupling itself.
+
+**Building joint resolution surfaced a regression in the group-consistency
+rule it was built next to: `related_sites` was being read as an
+undirected edge.** Union-find merged an entire connected component on
+one shared edge, so a single uncertain member declined every confirmed
+member in the whole component, not just the ones that actually depended
+on it. On `run-youtrack-joint`, adjudication produced `main.py:10`
+(an import rename, no dependency), `main.py:25` (a return-annotation
+rename depending on `10`), `main.py:27` (a multi-line constructor also
+depending on `10`), and an uncertain `main.py:70` depending on `27` and
+`25`. The undirected reading put all four in one component and declined
+all three confirmed members because the component contained an uncertain
+site -- taking a run that had previously produced two correct fixes
+(`10`, `25`) down to zero. `related_sites` is directional: `25` states
+that it depends on `10`; `70` states that it depends on `27` and `25`.
+A dependent being unresolved says nothing about whether what it depends
+on is safe to fix. Blocking is now a fixed-point closure over the
+directed dependency graph -- a site is unsafe if it is itself uncertain
+or span-declined, or if something it depends on is unsafe, and never
+merely because something depends on it -- with the undirected grouping
+retained only for what it was always actually needed for: joint-
+resolution eligibility and the report's group roster. Verified back to
+`FIX` 2 / `FLAG-FOR-HUMAN` 1 on the same four-site shape.
+
+**Stated explicitly, not assumed: shipping those two fixes while
+`main.py:27` stays on `FastMCP(` does leave the file broken if applied on
+its own.** `create_server()` raises `NameError` the moment it is called,
+since the renamed import no longer defines the name that `27` still
+references. This is not a new risk the directional fix introduces --
+`27` was unconditionally going to need a human either way, since the
+multi-line-span guard declines it regardless of any grouping logic, and
+this pipeline has never guaranteed that applying the `fixes` bucket alone
+yields a fully migrated repo while `flagged_for_human` entries remain
+elsewhere in the same file. `27`'s own flag still carries the full
+undirected group roster, and `70` still appears in it as context, so a
+reviewer who reads the flag sees the connection to `10` and `25` rather
+than being told nothing beyond "this line is multi-line."
