@@ -178,6 +178,203 @@ def check_vocabulary_yield(patterns, candidates, max_total=2000,
     return GuardResult(True, "", report)
 
 
+try:
+    import re._parser as _sre_parse
+except ImportError:  # pragma: no cover -- pre-3.11 fallback, same AST shape
+    import sre_parse as _sre_parse
+
+_OPCODE_NAMES = {
+    "LITERAL", "AT", "IN", "ANY", "MAX_REPEAT", "MIN_REPEAT",
+    "SUBPATTERN", "BRANCH", "ASSERT", "ASSERT_NOT",
+}
+
+
+def _opname(op):
+    return str(op).rsplit(".", 1)[-1]
+
+
+def _class_is_broad(items):
+    """items is an IN node's body: a list of (op, av) class members (RANGE,
+    LITERAL, CATEGORY, NEGATE). 'Broad' means repeating this class can
+    match near-arbitrary content -- any negated class, any non-whitespace
+    category (\\w, \\d, \\S, ...), or a class wide enough (>=10 distinct
+    chars) that it isn't really naming a small fixed set of characters.
+    \\s is excluded on purpose: it's formatting flexibility (`foo\\s*=`),
+    not a signal that the match's content is unconstrained."""
+    negated = False
+    width = 0
+    broad_category = False
+    for op, av in items:
+        name = _opname(op)
+        if name == "NEGATE":
+            negated = True
+        elif name == "RANGE":
+            lo, hi = av
+            width += hi - lo + 1
+        elif name == "LITERAL":
+            width += 1
+        elif name == "CATEGORY":
+            if "SPACE" not in _opname(av):
+                broad_category = True
+                width += 20
+    return negated or broad_category or width >= 10
+
+
+def _repeat_target_is_broad(sub):
+    """sub is a MAX_REPEAT/MIN_REPEAT's inner opcode list. True only when it
+    is a single bare IN (character class) or ANY (`.`) node -- repeating a
+    fixed multi-char literal group, e.g. `(?:ab)*`, is not 'open' in the
+    sense this check cares about: the repeated content is still fully
+    determined, not arbitrary."""
+    if len(sub) != 1:
+        return False
+    op, av = sub[0]
+    name = _opname(op)
+    if name == "ANY":
+        return True
+    if name == "IN":
+        return _class_is_broad(av)
+    return False
+
+
+def _shape_paths(ops):
+    """Every complete way of matching this opcode sequence, as a list of
+    (required_literal_chars, uses_an_open_span) pairs -- literal chars sum
+    across the sequence (these parts are all required together), branches
+    fan out into separate paths (a match only needs one). An 'open span'
+    is a quantified character class/dot repeated more than a couple of
+    times (`[A-Z_]*`, `[^"']*`, `.+` -- not `\\s*`, not a bounded `{1,3}`
+    on a narrow class): a place the match can absorb near-arbitrary
+    content instead of a specific token."""
+    paths = [(0, False)]
+    for op, av in ops:
+        name = _opname(op)
+        if name == "LITERAL":
+            paths = [(lit + 1, open_) for lit, open_ in paths]
+        elif name in ("AT", "IN", "ANY"):
+            pass  # anchor, or a single bare (unquantified) char/class -- 1 char, not open
+        elif name in ("MAX_REPEAT", "MIN_REPEAT"):
+            min_r, max_r, sub = av
+            unbounded = max_r is None or str(max_r) == "MAXREPEAT" or max_r > 3
+            if unbounded and _repeat_target_is_broad(sub):
+                paths = [(lit, True) for lit, open_ in paths]
+            else:
+                sub_paths = _shape_paths(sub)
+                paths = [(lit + slit, open_ or sopen)
+                         for lit, open_ in paths for slit, sopen in sub_paths]
+        elif name == "SUBPATTERN":
+            _, _, _, sub = av
+            sub_paths = _shape_paths(sub)
+            paths = [(lit + slit, open_ or sopen)
+                     for lit, open_ in paths for slit, sopen in sub_paths]
+        elif name == "BRANCH":
+            _, alternatives = av
+            branch_paths = []
+            for alt in alternatives:
+                branch_paths.extend(_shape_paths(alt))
+            paths = [(lit + blit, open_ or bopen)
+                     for lit, open_ in paths for blit, bopen in branch_paths]
+        # ASSERT/ASSERT_NOT (lookaround) and anything else: contributes
+        # nothing to the literal count of the match itself.
+        if len(paths) > 4000:
+            paths = list(dict.fromkeys(paths))[:4000]
+    return paths
+
+
+def check_pattern_shape(patterns, min_literal_anchor=8):
+    """Runs on the vocabulary alone -- no candidates, no grep, no volume.
+    check_vocabulary_yield catches a pattern by how much it matches; nothing
+    catches one by what it matches, and that gap has a proven blind spot:
+    on run-scanner-dedup, gf_mcpenv (344 candidates) and gf_textmime (76)
+    produce fewer candidates than the legitimate p1_fastmcp (423), so no
+    volume-derived measure can flag them without also flagging it -- not a
+    tuning problem, a mathematical one (see check_vocabulary_yield's
+    docstring). The four overmatching patterns share a shape volume can't
+    see: each has an alternative that matches with almost no pattern-
+    specific literal text, padded out by an open span -- a quantified
+    character class or `\\w`/`.` repeated more than a couple of times --
+    that absorbs whatever content is actually there. `gf_uristrlit`
+    (`["'][A-Za-z][A-Za-z0-9+.\\-]{1,30}://[^"'\\n]*["']`) requires only
+    `://` (3 literal chars) and an open span on both sides -- it doesn't
+    name a symbol, it names "a string shaped like a URL". `gf_mcpenv`'s
+    `MCP_[A-Z][A-Z_]*` requires only `MCP_` (4 chars) before an open
+    suffix. `gf_textmime`'s `text/[^"'\\n]*` requires only `text/` (5).
+    `gf_tooldecor`'s `@\\s*\\w+\\.(?:tool|prompt)\\s*\\(` requires only
+    `@`+`tool`+`(` (6, the open span -- `\\w+` -- sits on the receiver, not
+    the method name) -- one character short of this guard's floor at 0.35
+    share but past it at min_literal_anchor=8's true boundary of 7.
+    Compare `p1_fastmcp` (`\\b(FastMCP|FastMCPError)\\b`, 7 required
+    literal chars and zero open spans -- every character of the match is
+    specified) or `p7_removedtyp` (a 24-way alternation, every branch
+    fully literal even though one branch, `TASK_STATUS_\\w+`, does have an
+    open span -- its own literal anchor is 12 chars, well clear, and this
+    check evaluates every branch independently rather than picking one
+    representative path, so a pattern combining a short-but-closed branch
+    with a longer-but-open one is judged on the open one, not let off by
+    the other).
+
+    min_literal_anchor=8 (flag if some branch requires fewer than 8
+    literal characters AND uses an open span) is the tightest integer that
+    clears the real data: `gf_tooldecor`/`gf_tooldec` sit at 7 and must be
+    caught, `p99_srvctor` (`\\bServer\\s*\\(\\s*["'][^"']*["']\\s*,`, a
+    constructor call generic enough it's plausibly the same failure shape,
+    just never fired on this run) sits at 8 and is spared -- pushing the
+    floor to 9 catches it too, which may be correct but isn't verified
+    against a real run where it fires, so it's left alone rather than
+    guessed at. Verified on run-scanner-dedup's real, merged vocabulary
+    (298 patterns): flags exactly the four known-bad patterns plus four
+    more in the same gap-fill family that were never separately measured
+    -- `gf_charset` (any dict key/string containing "charset"),
+    `gf_strurl` (`str(...)` on any variable named like a URI),
+    `gf_tasktypes` (any capitalized `Task*` identifier, including
+    anyio's own `TaskGroup`), `gf_traversal` (path-traversal string
+    shapes, correctly present in this run's own adversarial eval
+    fixtures) -- and zero of the other 289 patterns, including all 114
+    non-gap-fill ones. Zero false positives on run-youtrack-v2 and
+    run-jmeter's vocabularies (115 patterns each, all non-gap-fill runs)."""
+    flagged = []
+    verdicts = {}
+    for name, regex in patterns.items():
+        try:
+            tree = _sre_parse.parse(regex)
+        except Exception as e:
+            verdicts[name] = f"unparseable: {e}"
+            continue
+        paths = _shape_paths(tree.data)
+        bad_paths = [(lit, open_) for lit, open_ in paths if open_ and lit < min_literal_anchor]
+        if bad_paths:
+            worst = min(bad_paths, key=lambda p: p[0])
+            flagged.append((name, regex, worst[0]))
+            verdicts[name] = f"OPEN SHAPE -- {worst[0]} required literal char(s)"
+        else:
+            best = min(paths, key=lambda p: p[0]) if paths else (0, False)
+            verdicts[name] = f"anchored ({best[0]} literal char(s) on its narrowest path)"
+
+    report_lines = [
+        "PATTERN SHAPE CHECK",
+        f"  patterns checked:   {len(patterns)} (literal-anchor floor: {min_literal_anchor})",
+        f"  flagged as open-shape: {len(flagged)}",
+        "  per-pattern verdicts:",
+    ]
+    for name in sorted(patterns):
+        report_lines.append(f"    {name}  =  {patterns[name]}  --  {verdicts.get(name, 'unparseable')}")
+    report = "\n".join(report_lines)
+
+    if flagged:
+        flagged.sort(key=lambda row: row[2])
+        detail = ", ".join(f"'{name}' ({lit} literal char(s))" for name, _, lit in flagged)
+        return GuardResult(
+            False,
+            f"{len(flagged)} pattern(s) match an open content shape rather than a "
+            f"specific symbol -- {detail} -- each has an alternative requiring fewer "
+            f"than {min_literal_anchor} literal characters padded out by an unbounded "
+            f"wildcard, so it matches whatever happens to be there rather than "
+            f"anything the guide named",
+            report,
+        )
+    return GuardResult(True, "", report)
+
+
 _LITERAL_VALUE_SPANS = {"none", "true", "false", "self", "cls"}
 
 # Phrases the fact-block deriver consistently uses (per factblock_system.md's

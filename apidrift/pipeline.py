@@ -236,6 +236,14 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     if not vcov.ok:
         print_fn(f"      GUARD BYPASSED (--force): {vcov.reason}")
 
+    shape = guards.check_pattern_shape(vocab["patterns"])
+    with open(os.path.join(workdir, "pattern_shape.txt"), "w") as f:
+        f.write(shape.report)
+    if not shape.ok and not force:
+        raise GuardFailure(shape.reason, shape.report)
+    if not shape.ok:
+        print_fn(f"      GUARD BYPASSED (--force): {shape.reason}")
+
     print_fn(f"[3/{total_stages}] Searching repo...")
     candidates = grep.find_candidates(reader, vocab["patterns"])
     _write_json(os.path.join(workdir, "candidates.json"), candidates)

@@ -102,6 +102,47 @@ def test_dominance_floor_spares_small_pool():
     assert result.ok
 
 
+def test_pattern_shape_flags_open_content_shapes():
+    # The four real gap-fill patterns from run-scanner-dedup that matched
+    # a content shape rather than a migration-relevant symbol -- no
+    # candidates needed, this check runs on the vocabulary alone.
+    patterns = {
+        "gf_tooldecor": r"(?:@\s*\w+\.(?:tool|prompt)\s*\()|(?:@\s*\w+\.(tool|prompt)\s*\()",
+        "gf_uristrlit": r"[\"'][A-Za-z][A-Za-z0-9+.\-]{1,30}://[^\"'\n]*[\"']",
+        "gf_mcpenv": r"\bMCP_[A-Z][A-Z_]*\b|[\"'][^\"']*\.env[\"']|\benv_file\s*=",
+        "gf_textmime": r"[\"']text/[^\"'\n]*[\"']|[\"']application/(?:json|xml)[^\"'\n]*[\"']|\+(?:json|xml)\b",
+    }
+    result = guards.check_pattern_shape(patterns)
+    assert not result.ok
+    for name in patterns:
+        assert name in result.reason
+
+
+def test_pattern_shape_spares_literal_anchored_patterns():
+    # p1_fastmcp, p7_removedtyp, p84_authcode, p64_modeldump: real
+    # patterns from the same run, each an alternation of fully literal
+    # identifiers (p7_removedtyp has one open branch, TASK_STATUS_\w+,
+    # but its own literal anchor is 12 chars -- well past the floor, and
+    # this check judges every branch independently).
+    patterns = {
+        "p1_fastmcp": r"\b(FastMCP|FastMCPError)\b",
+        "p7_removedtyp": r"\b(Content|ResourceReference|Cursor|TASK_STATUS_\w+)\b",
+        "p84_authcode": r"\bAuthorizationCodeResult\b|\bcallback_handler\b|\bredirect_handler\b",
+        "p64_modeldump": r"\.model_dump\s*\(|\.model_validate(_json)?\s*\(",
+    }
+    result = guards.check_pattern_shape(patterns)
+    assert result.ok
+
+
+def test_pattern_shape_spares_bounded_wildcard_between_two_literals():
+    # A skip-gap wildcard sandwiched between two required literal anchors
+    # (method name, then a specific kwarg) is not the failure shape this
+    # check targets, even though it also contains an open span.
+    patterns = {"p101_toolrun": r"\.(run|call_tool|render|create_resource)\s*\([^)]*context\s*="}
+    result = guards.check_pattern_shape(patterns)
+    assert result.ok
+
+
 def test_balanced_vocabulary_passes():
     patterns = {"p1": r"foo", "p2": r"bar", "p3": r"baz"}
     candidates = (

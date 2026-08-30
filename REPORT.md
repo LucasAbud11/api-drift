@@ -1084,3 +1084,75 @@ can never reach a threshold calibrated for the 70-pattern regime this
 fix targets). 4 unrelated failures in `test_prompt_cache.py`
 (`ModuleNotFoundError: anthropic`, confirmed pre-existing via `git
 stash`) are an environment gap, not a regression.
+
+**Added a structural check on pattern shape -- `check_pattern_shape` --
+to catch the half `check_vocabulary_yield` provably cannot.** Runs on
+the vocabulary alone, no candidates, no grep: it parses each pattern's
+regex source (via `re`'s own AST, `re._parser`/`sre_parse`) and asks
+whether some alternative branch can match with almost no
+pattern-specific literal text, padded out by an open span -- a
+quantified character class or `\w`/`.` repeated more than a couple of
+times (`[A-Z_]*`, `[^"']*`, `.+`; deliberately not `\s*`, which is
+formatting flexibility, and not a small bounded repeat like `{1,3}`) --
+that absorbs whatever content is actually there instead of naming a
+specific symbol.
+
+**Worked the rule from the real regexes, not from the English
+description of the four bad ones.** `gf_uristrlit`
+(`["'][A-Za-z][A-Za-z0-9+.\-]{1,30}://[^"'\n]*["']`) requires 3 literal
+characters (`://`) with open spans on both sides -- it names a string
+*shape*, not a symbol. `gf_mcpenv`'s `MCP_[A-Z][A-Z_]*` requires 4
+(`MCP_`) before an open suffix. `gf_textmime`'s `text/[^"'\n]*` requires
+5 (`text/`). `gf_tooldecor`'s `@\s*\w+\.(?:tool|prompt)\s*\(` requires 6
+(`@`+`tool`+`(`) -- the open span is on the receiver, not the method
+name, and it's one character under the floor `check_vocabulary_yield`
+uses in its own docstring (25/0.35) but the *right* number for this
+check turned out to be a different floor entirely, on a different
+scale, derived from a different set of comparisons. Held against the
+comparisons the task named: `p1_fastmcp` (`\b(FastMCP|FastMCPError)\b`)
+requires 7 literal characters and has zero open spans anywhere.
+`p84_authcode` similarly. `p7_removedtyp` is a 24-way alternation where
+one branch (`TASK_STATUS_\w+`) does have an open span, but its own
+literal anchor is 12 characters -- this check evaluates every branch of
+an alternation independently (not one representative path), so a
+pattern combining a short-open branch with a longer-open one is judged
+on its worst branch, not let off by a safer one.
+
+**`min_literal_anchor=8` is the tightest integer the real vocabulary
+supports.** `gf_tooldecor`/`gf_tooldec` sit at 7 literal characters and
+must be caught; `p99_srvctor`
+(`\bServer\s*\(\s*["'][^"']*["']\s*,`) sits at exactly 8 and is spared
+-- it's a plausible instance of the same failure shape (any `Server(...)`
+constructor call, string argument unconstrained) but it never actually
+fired on this run (0 candidates), so there's no real match to check the
+threshold against, and it's left alone rather than guessed at.
+
+**Verified on all three recorded runs' full vocabularies, not just the
+four patterns named.** run-scanner-dedup (298 patterns, the merged
+post-gap-fill vocabulary): flags exactly the four known-bad patterns,
+plus four more in the same gap-fill family never separately measured --
+`gf_charset` (any string/dict-key containing "charset" -- fires on a
+`{"charset": charset}` response payload in an unrelated eval fixture),
+`gf_strurl` (`str(...)` on any variable merely named like a URI --
+fires on `str(resource_uri)`), `gf_tasktypes` (any capitalized `Task*`
+identifier -- fires on anyio's own `TaskGroup`, nothing to do with this
+guide), `gf_traversal` (path-traversal string shapes -- fires correctly
+on this run's own adversarial eval fixtures, i.e. exactly where it
+should). Zero of the other 289 patterns flagged, including all 114
+non-gap-fill ones. run-youtrack-v2 and run-jmeter (115 patterns each,
+no gap-fill): zero false positives on either.
+
+**Wired into the pipeline before grep, not after.**
+`check_vocabulary_yield` can only see the problem once grep has already
+paid for it (2,795 candidates against a normal run's tens-to-hundreds).
+`check_pattern_shape` runs right after `check_vocabulary_coverage`, on
+the vocabulary alone -- a bad pattern now stops the run (or prints under
+`--force`) before a single grep pass, and `pattern_shape.txt` is written
+to the workdir alongside `vocabulary_coverage.txt`.
+
+235 offline tests pass (7 new). Note on test counts: yesterday's entry
+reported 228 passed / 4 failed under a bare `python3` missing the
+`anthropic` package; run through this repo's own `.venv` (which has it
+installed) the same suite is 235/0 -- the 4 `test_prompt_cache.py`
+failures were an interpreter-selection mistake on my part, not a real
+gap. Using `.venv/bin/python3` from here on.
