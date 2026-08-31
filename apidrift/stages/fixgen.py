@@ -31,8 +31,15 @@ _run_joint_group) -- the coordinated-fix increment this module didn't have
 before. Every jointly-resolved group's fixes are re-verified by the
 deterministic, model-free `_check_group_value_flow` guard before they are
 trusted: a coordinated edit that silently drops a value (removes it from
-one call, never threads it into the other) is rejected and the whole group
-falls back to flagged_for_human, never shipped as a fix nothing checked."""
+one call, never threads it into the other) OR silently invents one (adds
+a keyword to one call with no matching value removed from any other
+member -- e.g. a hallucinated `host="0.0.0.0"` on `run()` the constructor
+never carried) is rejected and the whole group falls back to
+flagged_for_human, never shipped as a fix nothing checked. The guard
+cannot distinguish an invented value from a legitimately new one (a
+migration-required parameter with no prior equivalent anywhere in the
+group); it flags both the same way, on purpose -- see the function's own
+docstring."""
 import ast
 import json
 import math
@@ -361,54 +368,111 @@ def _extract_call_keywords(text):
     return keywords
 
 
+def _parses(text):
+    """Whether `text` parses as Python once dedented, same preprocessing as
+    _extract_call_keywords. Used by _check_group_value_flow to tell "this
+    side genuinely has no keywords" apart from "this side failed to parse
+    and _extract_call_keywords silently degraded to {}" -- the two look
+    identical to that function's return value alone, but must be treated
+    differently: a parse failure must not be read as proof of absence in
+    either direction (see _check_group_value_flow's docstring)."""
+    try:
+        ast.parse(textwrap.dedent(text))
+    except SyntaxError:
+        return False
+    return True
+
+
 def _check_group_value_flow(group_fixes):
     """The deterministic safety net a jointly-resolved group's fixes must
     pass before any of them is trusted, per the design pass: a model can
     produce a coordinated edit that parses fine, passes ordinary line-match
-    verification, and still silently drops a value -- moves a keyword
-    argument out of one call and never threads it into the other, or
-    replaces it with a plausible-looking but wrong literal (`port=port`
-    quietly becoming `port=8000`). Neither tier 1 nor tier 2 verification
-    (apidrift/verify.py) can see this: both check a fix's own internal
-    consistency, never whether a SET of fixes jointly preserves a value
-    that moved between them.
+    verification, and still silently mishandles a value that has to move
+    between two calls -- either direction. Neither tier 1 nor tier 2
+    verification (apidrift/verify.py) can see this: both check a fix's own
+    internal consistency, never whether a SET of fixes jointly preserves a
+    value that moved between them.
 
-    For every fix in the group, a keyword argument present in its original
-    block but ABSENT (or changed) in its own proposed block is "removed"
-    there and must reappear, with an AST-EQUAL value expression (ast.dump
-    comparison, not name/string matching), in some OTHER member's proposed
-    block. Deliberately expression-equality, not name-presence: `port=port`
-    removed at one site and `port=8000` added at another has the same
-    keyword NAME present but a different value expression, so it still
-    fails -- exactly the silent-substitution shape this check exists to
-    catch.
+    Checks BOTH directions of the same move, symmetrically:
 
-    Returns None if every removed value is accounted for, or a
-    human-readable string naming what's missing otherwise. Deterministic,
-    no model call -- pure AST comparison over fixes already produced.
+    - REMOVAL: a keyword argument present in a fix's original block but
+      ABSENT (or changed) in its own proposed block is "removed" there and
+      must reappear, with an AST-EQUAL value expression (ast.dump
+      comparison, not name/string matching), in some OTHER member's
+      proposed block. Deliberately expression-equality, not name-presence:
+      `port=port` removed at one site and `port=8000` added at another has
+      the same keyword NAME present but a different value expression, so
+      it still fails -- the silent-substitution shape this side catches.
+      Unmatched, this is reported as a value dropped on the floor.
+
+    - ADDITION: a keyword argument present in a fix's proposed block but
+      ABSENT (or changed) from its own original block is "added" there and
+      must be traceable to an AST-EQUAL value removed from some OTHER
+      member's original block. Unmatched, this is reported as a value that
+      appeared from nowhere -- the case a purely-removal-side check misses:
+      a joint call can invent `host="0.0.0.0"` on a `run()` call the
+      constructor never carried, produce a plausible-looking coordinated
+      edit, and pass a removal-only check clean because nothing was
+      dropped anywhere.
+
+    LEGITIMATE EXCEPTION, stated rather than assumed away: a real migration
+    can require adding a keyword that existed nowhere in the group before
+    (a new required parameter with no prior equivalent, not a moved one).
+    This check cannot tell that case apart from an invented one -- both are
+    "a value appears with no matching removal" to a purely textual/AST
+    comparison. It deliberately does NOT special-case this: a grounded
+    addition and an invented one are indistinguishable to a guard with no
+    access to the migration semantics, so both are flagged for a human to
+    resolve rather than one being silently let through on the assumption
+    it must be the legitimate case. This will produce some false positives
+    on real new-parameter migrations; that is the intended, safe failure
+    direction -- flagged_for_human, not a silently shipped guess.
+
+    Returns None if every removed value is accounted for AND every added
+    value is accounted for, or a human-readable string naming what's wrong
+    otherwise. Deterministic, no model call -- pure AST comparison over
+    fixes already produced.
 
     Known limits, stated plainly rather than silently: (1) this only
-    tracks KEYWORD arguments in Call nodes -- a value carried via a
-    positional argument, a plain assignment, or any non-call construct is
-    invisible to it. (2) a block that fails to parse on its own (should not
-    happen -- these blocks come from _multiline_spans, whose whole reason
-    for existing is that its spans ARE complete, independently parseable
-    simple statements -- but if it ever does) degrades to an empty keyword
-    set for that member, silently, rather than raising -- such a member
-    neither contributes an obligation nor discharges one. (3) this proves
-    an expression MOVED unchanged; it cannot prove the destination is the
-    semantically right place for it, or that the code is behaviorally
-    correct at runtime -- that residual gap is real and is not closed by
-    this or any other static check in this pipeline."""
+    tracks KEYWORD arguments in Call nodes, in both directions -- a value
+    carried via a positional argument, a plain assignment, or any
+    non-call construct is invisible to it, whether it's the removed side
+    or the added side of a move. (2) a block that fails to parse on its
+    own (should not happen -- these blocks come from _multiline_spans,
+    whose whole reason for existing is that its spans ARE complete,
+    independently parseable simple statements -- but if it ever does)
+    degrades to an empty keyword set for that member from
+    _extract_call_keywords, but that emptiness is NOT trusted as proof of
+    absence here: a member whose OWN original failed to parse contributes
+    no "added" obligations from its proposed side (we can't tell whether a
+    keyword was already there), and a member whose OWN proposed failed to
+    parse contributes no "removed" obligations from its original side (we
+    can't tell whether a keyword survived) -- tracked via _parses()
+    separately from the keyword extraction itself, so a parse failure
+    degrades to "neither contributes nor discharges an obligation on
+    either side" exactly as documented, in both directions, not just the
+    removal one. (3) this proves an expression MOVED unchanged, in either
+    direction; it cannot prove the destination is the semantically right
+    place for it, or that the code is behaviorally correct at runtime --
+    that residual gap is real and is not closed by this or any other
+    static check in this pipeline."""
     orig_kw = {}
     prop_kw = {}
+    orig_ok = {}
+    prop_ok = {}
     for fix in group_fixes:
         key = (fix["file"], fix["line"])
-        orig_kw[key] = _extract_call_keywords("\n".join(fix["original_lines"]))
-        prop_kw[key] = _extract_call_keywords("\n".join(fix["proposed_lines"]))
+        orig_text = "\n".join(fix["original_lines"])
+        prop_text = "\n".join(fix["proposed_lines"])
+        orig_kw[key] = _extract_call_keywords(orig_text)
+        prop_kw[key] = _extract_call_keywords(prop_text)
+        orig_ok[key] = _parses(orig_text)
+        prop_ok[key] = _parses(prop_text)
 
     missing = []
     for key, kws in orig_kw.items():
+        if not prop_ok[key]:
+            continue  # own proposed side failed to parse -- can't tell if this survived
         own_prop = prop_kw[key]
         for name, dump in kws.items():
             if own_prop.get(name) == dump:
@@ -420,9 +484,35 @@ def _check_group_value_flow(group_fixes):
             if not found_elsewhere:
                 missing.append(f"{key[0]}:{key[1]} keyword {name!r}")
 
+    unexplained = []
+    for key, kws in prop_kw.items():
+        if not orig_ok[key]:
+            continue  # own original side failed to parse -- can't tell if this is new
+        own_orig = orig_kw[key]
+        for name, dump in kws.items():
+            if own_orig.get(name) == dump:
+                continue  # unchanged at the same site -- not an addition at all
+            sourced_elsewhere = any(
+                other_key != key and orig_kw[other_key].get(name) == dump
+                for other_key in orig_kw
+            )
+            if not sourced_elsewhere:
+                unexplained.append(f"{key[0]}:{key[1]} keyword {name!r}")
+
+    problems = []
     if missing:
-        return ("value(s) removed with no matching reappearance elsewhere in the group: "
-                + ", ".join(missing))
+        problems.append(
+            "value(s) removed with no matching reappearance elsewhere in the group: "
+            + ", ".join(missing)
+        )
+    if unexplained:
+        problems.append(
+            "value(s) added with no matching removal elsewhere in the group "
+            "(grounded new parameter or invented guess -- indistinguishable here): "
+            + ", ".join(unexplained)
+        )
+    if problems:
+        return "; ".join(problems)
     return None
 
 

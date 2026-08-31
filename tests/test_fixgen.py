@@ -427,15 +427,57 @@ def test_value_flow_guard_fails_when_value_replaced_by_a_different_literal():
 
 
 def test_value_flow_guard_ignores_a_keyword_unchanged_at_the_same_site():
-    group = [_group_fix("a.py", 1, 1, ["f(x=x, y=y)"], ["f(x=x, y=y, z=1)"])]
+    group = [_group_fix("a.py", 1, 1, ["f(x=x, y=y)"], ["f(x=x, y=y)"])]
     assert fixgen._check_group_value_flow(group) is None
 
 
-def test_value_flow_guard_degrades_gracefully_on_unparseable_block():
-    # An unparseable block (should not happen -- see the guard's own
-    # docstring) contributes no obligation and discharges none, rather
-    # than raising.
+def test_value_flow_guard_fails_when_value_invented_with_no_removal_source():
+    # The addition-side blind spot: a keyword appears in a proposed block
+    # with no corresponding value removed anywhere else in the group -- a
+    # joint call inventing host="0.0.0.0" on run() when the constructor
+    # never carried it. Must fail even though nothing was silently dropped.
+    group = [
+        _group_fix("main.py", 3, 3,
+                   ["mcp = FastMCP(\"name\")"],
+                   ["mcp = FastMCP(\"name\")"]),  # untouched -- no keywords at all
+        _group_fix("main.py", 16, 16,
+                   ["    mcp.run(transport=\"sse\")"],
+                   ["    mcp.run(transport=\"sse\", host=\"0.0.0.0\")"]),
+    ]
+    failure = fixgen._check_group_value_flow(group)
+    assert failure is not None
+    assert "host" in failure
+
+
+def test_value_flow_guard_passes_when_addition_is_sourced_from_a_real_removal():
+    # Mirror of the correctly-threaded test, phrased as the addition side:
+    # a keyword that appears newly at one site is fine as long as an
+    # AST-equal value was actually removed from another member.
+    group = [
+        _group_fix("main.py", 3, 7,
+                   ["mcp = FastMCP(", "    \"name\",", "    host=host,", ")"],
+                   ["mcp = FastMCP(", "    \"name\",", ")"]),
+        _group_fix("main.py", 16, 16,
+                   ["    mcp.run(transport=\"sse\")"],
+                   ["    mcp.run(transport=\"sse\", host=host)"]),
+    ]
+    assert fixgen._check_group_value_flow(group) is None
+
+
+def test_value_flow_guard_degrades_gracefully_on_unparseable_original():
+    # Original side fails to parse; proposed side parses fine and has
+    # keywords. Those keywords must NOT be treated as "added from nowhere"
+    # -- the unparseable original might have had them, we just can't tell.
     group = [_group_fix("a.py", 1, 1, ["f(x=x"], ["f(x=x, y=y)"])]
+    assert fixgen._check_group_value_flow(group) is None
+
+
+def test_value_flow_guard_degrades_gracefully_on_unparseable_proposed():
+    # Symmetric case: proposed side fails to parse; original side parses
+    # fine and has keywords. Those keywords must NOT be treated as
+    # "removed with no reappearance" -- the unparseable proposed might
+    # still carry them, we just can't tell.
+    group = [_group_fix("a.py", 1, 1, ["f(x=x, y=y)"], ["f(x=x"])]
     assert fixgen._check_group_value_flow(group) is None
 
 
