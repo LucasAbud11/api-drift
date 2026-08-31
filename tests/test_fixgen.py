@@ -177,31 +177,62 @@ MULTILINE_CALL_BODY = (
 )
 
 
-def test_multiline_span_opening_line_flags_without_calling_model(tmp_path):
+def test_multiline_span_opening_line_now_reaches_a_solo_joint_call(tmp_path):
+    # A lone span-guarded site (no related_sites companion) used to be
+    # declined unconditionally with no model call at all. It now gets its
+    # own single-member joint-resolution call instead -- eligibility is a
+    # property of being span-guarded, not of having an edge (see
+    # _add_singleton_span_groups). A clean rename with no keyword changes
+    # passes _check_group_value_flow trivially and ships as a real fix.
     reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
     sites = [{"file": "pkg/mod.py", "line": 5, "snippet": "    mcp = OldMCP(",
               "pattern": "1", "reason": "constructor of the renamed class"}]
-    client = FakeLLMClient([])  # any complete() call would IndexError -- proves the model is never asked
+    response = {
+        "fixes": [{
+            "file": "pkg/mod.py", "line": 5, "end_line": 9,
+            "original_lines": ["    mcp = OldMCP(", "        \"name\",",
+                                "        host=host,", "        port=port,", "    )"],
+            "proposed_lines": ["    mcp = NewMCP(", "        \"name\",",
+                                "        host=host,", "        port=port,", "    )"],
+            "reason": "fact 1: class renamed, keyword args unchanged",
+        }],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
     workdir = str(tmp_path / "workdir")
 
     merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
 
     validate.validate_fixgen_dict(merged)
-    assert merged["fixes"] == []
-    assert len(merged["flagged_for_human"]) == 1
-    flag = merged["flagged_for_human"][0]
-    assert flag["file"] == "pkg/mod.py"
-    assert flag["line"] == 5
-    assert flag["flag_source"] == "multiline_span_guard"
-    assert flag["span"] == [5, 9]
-    assert client.calls == []
+    assert merged["flagged_for_human"] == []
+    assert len(merged["fixes"]) == 1
+    assert merged["fixes"][0]["line"] == 5
+    assert merged["fixes"][0]["group_id"] == "pkg/mod.py:5"
+    assert len(client.calls) == 1
+    assert client.calls[0]["stage"] == "fixgen_group_pkg_mod.py_5"
 
 
-def test_multiline_span_non_opening_line_also_flags(tmp_path):
+def test_multiline_span_non_opening_line_also_reaches_a_solo_joint_call(tmp_path):
+    # Same routing question, but the candidate given is a non-opening line
+    # inside the span -- _span_for_site maps any line in [5, 9] to the same
+    # (5, 9) span, so the synthetic group forms under THIS site's own key
+    # (pkg/mod.py:7), not the statement's opening line. Model declines
+    # here rather than fixes -- a schema-valid block fix needs its own
+    # line/end_line to describe the full replaced range, and whether that
+    # should be the candidate's own line (7) or the span's start (5) for a
+    # non-opening-line candidate is a pre-existing, orthogonal question
+    # this test isn't about; what it proves is that eligibility (reaching
+    # the model at all, via its own solo call) no longer depends on the
+    # candidate happening to be the span's first line.
     reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
     sites = [{"file": "pkg/mod.py", "line": 7, "snippet": "        host=host,",
               "pattern": "1", "reason": "keyword argument moved off the constructor"}]
-    client = FakeLLMClient([])
+    response = {
+        "fixes": [],
+        "flagged_for_human": [{"file": "pkg/mod.py", "line": 7,
+                                "reason": "not confident without seeing the full call resolved"}],
+    }
+    client = FakeLLMClient([response])
     workdir = str(tmp_path / "workdir")
 
     merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
@@ -210,23 +241,42 @@ def test_multiline_span_non_opening_line_also_flags(tmp_path):
     assert len(merged["flagged_for_human"]) == 1
     flag = merged["flagged_for_human"][0]
     assert flag["line"] == 7
-    assert flag["flag_source"] == "multiline_span_guard"
-    assert flag["span"] == [5, 9]
-    assert client.calls == []
+    assert flag["flag_source"] == "joint_resolution_declined"
+    assert client.calls[0]["stage"] == "fixgen_group_pkg_mod.py_7"
 
 
-def test_multiline_span_flag_reason_includes_full_span_range(tmp_path):
+def test_multiline_span_solo_call_declines_safely_when_a_keyword_would_be_dropped(tmp_path):
+    # The exact youtrack-mcp failure shape, now reachable through the solo
+    # path: a fix that drops host/port from the constructor with no other
+    # member in this (1-element) group to receive them. Requirement is
+    # that this NOT ship -- _check_group_value_flow needs no special-casing
+    # for single-member groups to catch it (see that function's own
+    # docstring): a removed keyword can never find "some other member" in
+    # a group of one, so it fails unconditionally, every time.
     reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
     sites = [{"file": "pkg/mod.py", "line": 5, "snippet": "    mcp = OldMCP(",
               "pattern": "1", "reason": "constructor of the renamed class"}]
-    client = FakeLLMClient([])
+    response = {
+        "fixes": [{
+            "file": "pkg/mod.py", "line": 5, "end_line": 9,
+            "original_lines": ["    mcp = OldMCP(", "        \"name\",",
+                                "        host=host,", "        port=port,", "    )"],
+            "proposed_lines": ["    mcp = NewMCP(", "        \"name\",", "    )"],
+            "reason": "fact 1: class renamed; host/port dropped -- WRONG, nothing receives them",
+        }],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
     workdir = str(tmp_path / "workdir")
 
     merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
 
-    reason = merged["flagged_for_human"][0]["reason"]
-    assert "5-9" in reason
-    assert "not evaluated" in reason
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 1
+    flag = merged["flagged_for_human"][0]
+    assert flag["line"] == 5
+    assert flag["flag_source"] == "value_flow_guard"
+    assert "host" in flag["reason"] and "port" in flag["reason"]
 
 
 def test_same_rename_on_single_line_call_still_fixes(tmp_path):
@@ -263,10 +313,12 @@ def test_same_rename_on_single_line_call_still_fixes(tmp_path):
     assert len(client.calls) == 1  # the model WAS asked, unlike the multi-line cases above
 
 
-def test_multiline_and_singleline_sites_mixed_in_one_run(tmp_path):
-    # One site inside the multi-line call (must FLAG, no model call for it)
-    # and one ordinary single-line site (must FIX via the model) in the
-    # same run -- proves the guard filters per-site, not per-run.
+def test_multiline_and_singleline_sites_routed_differently_in_one_run(tmp_path):
+    # One site inside the multi-line call (routed through its own solo
+    # joint-resolution call) and one ordinary single-line site (routed
+    # through the regular per-chunk call) in the same run -- proves the
+    # guard still filters per-site, not per-run, just via two different
+    # call shapes now instead of "silently flag vs. ask the model."
     reader = _make_repo(tmp_path, body=MULTILINE_CALL_BODY)
     sites = [
         {"file": "pkg/mod.py", "line": 5, "snippet": "    mcp = OldMCP(",
@@ -274,7 +326,18 @@ def test_multiline_and_singleline_sites_mixed_in_one_run(tmp_path):
         {"file": "pkg/mod.py", "line": 1, "snippet": "from old_pkg import OldMCP",
          "pattern": "1", "reason": "import of the renamed package"},
     ]
-    response = {
+    solo_response = {
+        "fixes": [{
+            "file": "pkg/mod.py", "line": 5, "end_line": 9,
+            "original_lines": ["    mcp = OldMCP(", "        \"name\",",
+                                "        host=host,", "        port=port,", "    )"],
+            "proposed_lines": ["    mcp = NewMCP(", "        \"name\",",
+                                "        host=host,", "        port=port,", "    )"],
+            "reason": "fact 1: class renamed",
+        }],
+        "flagged_for_human": [],
+    }
+    chunk_response = {
         "fixes": [{
             "file": "pkg/mod.py", "line": 1, "end_line": 1,
             "original_lines": ["from old_pkg import OldMCP"],
@@ -283,20 +346,23 @@ def test_multiline_and_singleline_sites_mixed_in_one_run(tmp_path):
         }],
         "flagged_for_human": [],
     }
-    client = FakeLLMClient([response])
+    # Joint-resolution calls (Pass 2) happen before ordinary chunk calls
+    # (the later per-chunk pass), so the solo call is queued first.
+    client = FakeLLMClient([solo_response, chunk_response])
     workdir = str(tmp_path / "workdir")
 
     merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
 
-    assert len(merged["fixes"]) == 1
-    assert merged["fixes"][0]["line"] == 1
-    assert len(merged["flagged_for_human"]) == 1
-    assert merged["flagged_for_human"][0]["line"] == 5
-    assert merged["flagged_for_human"][0]["flag_source"] == "multiline_span_guard"
-    # only the single-line site was ever sent to the model
-    assert len(client.calls) == 1
-    assert "pkg/mod.py:5" not in client.calls[0]["user_text"]
-    assert "pkg/mod.py:1" in client.calls[0]["user_text"]
+    assert merged["flagged_for_human"] == []
+    assert {f["line"] for f in merged["fixes"]} == {1, 5}
+    assert len(client.calls) == 2
+    stages = {c["stage"] for c in client.calls}
+    assert stages == {"fixgen_group_pkg_mod.py_5", "fixgen_chunk_000"}
+    # each call's context shows only its own site, not the other's
+    group_call = next(c for c in client.calls if c["stage"] == "fixgen_group_pkg_mod.py_5")
+    chunk_call = next(c for c in client.calls if c["stage"] == "fixgen_chunk_000")
+    assert "pkg/mod.py:5" in group_call["user_text"] and "pkg/mod.py:1" not in group_call["user_text"]
+    assert "pkg/mod.py:1" in chunk_call["user_text"] and "pkg/mod.py:5" not in chunk_call["user_text"]
 
 
 # ---------------------------------------------------------------------
@@ -479,6 +545,51 @@ def test_value_flow_guard_degrades_gracefully_on_unparseable_proposed():
     # still carry them, we just can't tell.
     group = [_group_fix("a.py", 1, 1, ["f(x=x, y=y)"], ["f(x=x"])]
     assert fixgen._check_group_value_flow(group) is None
+
+
+# ---------------------------------------------------------------------
+# Single-member groups (fixgen.run()'s _add_singleton_span_groups: a lone
+# span-guarded site with no related_sites companion, now given its own
+# joint-resolution call). No special-casing was added to
+# _check_group_value_flow for this -- these tests are what justifies that:
+# with exactly one fix in the group, "some OTHER member" can never be
+# satisfied, so any keyword change at all fails unconditionally. That is
+# the correct, safe answer, not a gap -- see the function's own
+# "SINGLE-MEMBER GROUPS" docstring section.
+# ---------------------------------------------------------------------
+
+def test_value_flow_guard_passes_a_single_member_pure_rename():
+    # No keyword touched at all -- passes exactly like any other
+    # unchanged-keyword case, regardless of group size.
+    group = [_group_fix("a.py", 5, 9,
+                         ["mcp = OldMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+                         ["mcp = NewMCP(", "    \"name\",", "    host=host,", "    port=port", ")"])]
+    assert fixgen._check_group_value_flow(group) is None
+
+
+def test_value_flow_guard_fails_a_single_member_group_that_drops_a_keyword():
+    # The exact youtrack-mcp shape: host/port removed with nowhere else in
+    # this (one-element) group to receive them. Must fail unconditionally
+    # -- there is no "some other member" a single-member group could ever
+    # have, so this can never pass, by construction, regardless of how the
+    # rest of the fix looks.
+    group = [_group_fix("a.py", 5, 9,
+                         ["mcp = OldMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+                         ["mcp = NewMCP(", "    \"name\",", ")"])]
+    failure = fixgen._check_group_value_flow(group)
+    assert failure is not None
+    assert "host" in failure and "port" in failure
+
+
+def test_value_flow_guard_fails_a_single_member_group_with_an_invented_keyword():
+    # Symmetric to the removal case: a keyword appearing with no prior
+    # equivalent anywhere in a one-element group also fails unconditionally
+    # -- same "nowhere else to source it from" reasoning as the removal
+    # side, just the addition side of the same guard.
+    group = [_group_fix("a.py", 1, 1, ["f(x=x)"], ["f(x=x, host=\"0.0.0.0\")"])]
+    failure = fixgen._check_group_value_flow(group)
+    assert failure is not None
+    assert "host" in failure
 
 
 def test_extract_call_keywords_finds_every_keyword_in_a_call():

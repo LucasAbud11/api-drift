@@ -1069,3 +1069,189 @@ def test_mutual_dependency_warnings_empty_when_no_pair_contradicts(tmp_path):
     merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
 
     assert merged["mutual_dependency_warnings"] == []
+
+
+# ---------------------------------------------------------------------
+# Solo span groups -- _add_singleton_span_groups. Joint-resolution
+# eligibility used to be a property of HAVING a related_sites edge, not
+# of BEING span-guarded: a span-guarded site reached _run_joint_group only
+# if adjudication happened to link it to a companion. On real run data
+# (run-secops, run-youtrack) two essentially identical span-guarded
+# constructors got different treatment for a reason that had nothing to
+# do with either site's own shape -- one had an edge, the other didn't.
+# This gives every span-guarded, ungrouped PROPOSED site its own
+# synthetic one-member group so the EXISTING group_class pass (which
+# already treats any group with a span member and no uncertain member as
+# "joint_resolve", regardless of size) picks it up too, with no changes
+# to that pass itself.
+# ---------------------------------------------------------------------
+
+def test_add_singleton_span_groups_creates_a_group_for_an_ungrouped_span_site():
+    sites_by_key = {("a.py", 5): {"role": "proposed", "site": {"related_sites": []}}}
+    span_map = {("a.py", 5): (5, 9)}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, span_map,
+    )
+    assert group_id_by_key == {("a.py", 5): "a.py:5"}
+    assert group_members_by_id == {"a.py:5": [("a.py", 5)]}
+
+
+def test_add_singleton_span_groups_leaves_an_already_grouped_span_site_untouched():
+    # A span site that already has a real (>=2-member) group via
+    # related_sites must not get a second, synthetic one -- its existing
+    # group_id/members are the ones the classification pass sees.
+    sites_by_key = {
+        ("a.py", 5): {"role": "proposed", "site": {"related_sites": []}},
+        ("a.py", 20): {"role": "proposed", "site": {"related_sites": []}},
+    }
+    span_map = {("a.py", 5): (5, 9)}
+    existing_id_by_key = {("a.py", 5): "a.py:20", ("a.py", 20): "a.py:20"}
+    existing_members_by_id = {"a.py:20": [("a.py", 5), ("a.py", 20)]}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        existing_id_by_key, existing_members_by_id, sites_by_key, span_map,
+    )
+    assert group_id_by_key == existing_id_by_key
+    assert group_members_by_id == existing_members_by_id
+
+
+def test_add_singleton_span_groups_ignores_a_non_span_site():
+    sites_by_key = {("a.py", 5): {"role": "proposed", "site": {"related_sites": []}}}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, {},  # span_map empty -- (a.py, 5) is not span-guarded
+    )
+    assert group_id_by_key == {}
+    assert group_members_by_id == {}
+
+
+def test_add_singleton_span_groups_keeps_independent_lone_spans_separate():
+    # Two unrelated lone span sites must get two DIFFERENT synthetic
+    # groups, never merged into one just because both needed one.
+    sites_by_key = {
+        ("a.py", 5): {"role": "proposed", "site": {"related_sites": []}},
+        ("b.py", 40): {"role": "proposed", "site": {"related_sites": []}},
+    }
+    span_map = {("a.py", 5): (5, 9), ("b.py", 40): (40, 42)}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, span_map,
+    )
+    assert group_id_by_key == {("a.py", 5): "a.py:5", ("b.py", 40): "b.py:40"}
+    assert group_members_by_id == {"a.py:5": [("a.py", 5)], "b.py:40": [("b.py", 40)]}
+
+
+def test_add_singleton_span_groups_does_not_mutate_its_inputs():
+    orig_id_by_key = {}
+    orig_members_by_id = {}
+    sites_by_key = {("a.py", 5): {"role": "proposed", "site": {"related_sites": []}}}
+    span_map = {("a.py", 5): (5, 9)}
+    fixgen._add_singleton_span_groups(orig_id_by_key, orig_members_by_id, sites_by_key, span_map)
+    assert orig_id_by_key == {}
+    assert orig_members_by_id == {}
+
+
+# ---------------------------------------------------------------------
+# End-to-end: all three group kinds in ONE run, proving the new solo path
+# doesn't disturb the other two. Reuses AZEROTH_JOINT_BODY's shape for the
+# multi-member cases (already-verified fixtures from the section above)
+# plus a lone span site with no related_sites at all.
+# ---------------------------------------------------------------------
+
+_MIXED_BODY = (
+    "import os\n"                        # line 1
+    "\n"                                 # line 2
+    "mcp = FastMCP(\n"                   # line 3 -- multi-member joint_resolve anchor
+    "    \"name\",\n"                    # line 4
+    "    host=host,\n"                   # line 5
+    "    port=port\n"                    # line 6
+    ")\n"                                # line 7
+    "\n"                                 # line 8
+    "if __name__ == \"__main__\":\n"     # line 9
+    "    mcp.run(transport=\"sse\")\n"   # line 10
+    "\n"                                 # line 11
+    "other = OtherThing(\n"              # line 12 -- lone span site, no group at all
+    "    \"solo\",\n"                    # line 13
+    "    x=x,\n"                         # line 14
+    ")\n"                                # line 15
+)
+
+
+def test_solo_multi_and_uncertain_groups_coexist_without_interference(tmp_path):
+    reader = _make_repo(tmp_path, body=_MIXED_BODY)
+    proposed = [
+        # multi-member joint_resolve group (main.py:10 depends on main.py:3
+        # -- one-directional on purpose, same reasoning as the mutual-pair
+        # fixtures elsewhere in this file: reciprocating it would make this
+        # pair a mutual-dependency contradiction instead, a different case).
+        {"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1",
+         "reason": "constructor referencing FastMCP", "related_sites": []},
+        {"file": "main.py", "line": 10, "snippet": "    mcp.run(transport=\"sse\")", "pattern": "1",
+         "reason": "host/port formerly given to the constructor must now be passed here",
+         "related_sites": [{"file": "main.py", "line": 3}]},
+        # lone span site, no related_sites, no group at all
+        {"file": "main.py", "line": 12, "snippet": "other = OtherThing(", "pattern": "1",
+         "reason": "constructor of another renamed class", "related_sites": []},
+    ]
+    joint_success = {
+        "fixes": [
+            {"file": "main.py", "line": 3, "end_line": 7,
+             "original_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+             "proposed_lines": ["mcp = FastMCP(", "    \"name\",", ")"],
+             "reason": "moved host/port"},
+            {"file": "main.py", "line": 10, "end_line": 10,
+             "original_lines": ["    mcp.run(transport=\"sse\")"],
+             "proposed_lines": ["    mcp.run(transport=\"sse\", host=host, port=port)"],
+             "reason": "received host/port"},
+        ],
+        "flagged_for_human": [],
+    }
+    solo_success = {
+        "fixes": [{"file": "main.py", "line": 12, "end_line": 15,
+                   "original_lines": ["other = OtherThing(", "    \"solo\",", "    x=x,", ")"],
+                   "proposed_lines": ["other = NewThing(", "    \"solo\",", "    x=x,", ")"],
+                   "reason": "renamed, keyword arg unchanged"}],
+        "flagged_for_human": [],
+    }
+    # Pass 2 runs joint gids in sorted order: "main.py:12" (solo) < "main.py:3" (multi).
+    client = FakeLLMClient([solo_success, joint_success])
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert merged["flagged_for_human"] == []
+    fixed_lines = {f["line"] for f in merged["fixes"]}
+    assert fixed_lines == {3, 10, 12}
+    solo_fix = next(f for f in merged["fixes"] if f["line"] == 12)
+    assert solo_fix["group_id"] == "main.py:12"
+    multi_fix = next(f for f in merged["fixes"] if f["line"] == 3)
+    assert multi_fix["group_id"] == "main.py:3"
+    stages = {c["stage"] for c in client.calls}
+    assert stages == {"fixgen_group_main.py_12", "fixgen_group_main.py_3"}
+    assert merged["mutual_dependency_warnings"] == []
+
+
+def test_solo_span_group_still_declines_when_grouped_with_an_uncertain_sibling(tmp_path):
+    # The existing group_consistency_guard (uncertain_decline) must still
+    # take priority when a span site DOES have a related_sites companion
+    # that's uncertain -- this shape was already correct before the solo
+    # addition and must not change: has_uncertain wins over "has a span
+    # member", so the group is classified "uncertain_decline", never
+    # "joint_resolve", and this never reaches _run_joint_group at all.
+    # Pass 1's immediate span flag catches it first either way (a span
+    # member's own group not being "joint_resolve" is exactly its trigger
+    # condition, same as an ungrouped span site before this whole solo
+    # addition existed) -- flag_source is multiline_span_guard, not
+    # group_consistency_guard, unchanged from pre-solo behavior (see
+    # test_span_declined_anchor_propagates_group_to_uncertain_siblings
+    # above, the pre-existing test of this exact same priority).
+    reader = _make_repo(tmp_path, body=_MIXED_BODY)
+    proposed = [{"file": "main.py", "line": 12, "snippet": "other = OtherThing(", "pattern": "1",
+                 "reason": "constructor of another renamed class", "related_sites": []}]
+    uncertain = [{"file": "main.py", "line": 20, "snippet": "whatever(x)",
+                  "reason": "depends on line 12's constructor args",
+                  "related_sites": [{"file": "main.py", "line": 12}]}]
+    client = FakeLLMClient([])  # never called -- IndexError if it were
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=uncertain, chunk_size=40)
+
+    assert client.calls == []
+    assert merged["fixes"] == []
+    flag = merged["flagged_for_human"][0]
+    assert flag["line"] == 12
+    assert flag["flag_source"] == "multiline_span_guard"

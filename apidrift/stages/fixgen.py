@@ -53,7 +53,24 @@ both halves of any such pair are added to the directional closure's
 self-unsafe set (see run()'s docstring) -- declined for review rather
 than silently trusted in either direction. Recorded unconditionally in
 the run's own `mutual_dependency_warnings` output, whether or not it
-changed any bucket outcome."""
+changed any bucket outcome.
+
+Joint-resolution eligibility is a property of being span-guarded, not of
+having a related_sites edge: `_add_singleton_span_groups` gives a
+span-guarded PROPOSED site that adjudication never linked to anything its
+own single-member group, so it reaches `_run_joint_group` too, instead of
+the immediate, no-model-call decline it used to get unconditionally --
+real-run data showed two essentially identical span-guarded constructors
+(run-secops, run-youtrack) getting different treatment for a reason that
+had nothing to do with either one's own shape, only with whether
+adjudication happened to draw an edge. A single-member call uses a
+different addendum (`_SOLO_SPAN_ADDENDUM`) that tells the model plainly
+there is no companion site and to decline rather than guess at or drop a
+value with nowhere shown to go -- and `_check_group_value_flow`, unchanged,
+backs that up mechanically: a value removed from a lone member's own block
+always fails it, since a 1-element group has no OTHER member for that
+value to reappear in. A multi-member group is entirely unaffected by any
+of this -- same addendum, same classification, same everything."""
 import ast
 import json
 import math
@@ -203,6 +220,51 @@ def _group_by_related_sites(proposed_sites, uncertain_sites):
             group_id_by_key[member_key] = gid
 
     return sites_by_key, group_id_by_key, group_members_by_id
+
+
+def _add_singleton_span_groups(group_id_by_key, group_members_by_id, sites_by_key, span_map):
+    """Gives every span-guarded PROPOSED site with no group of its own a
+    synthetic one-member group, so run()'s existing group_class pass (which
+    already classifies ANY group with a span member and no uncertain member
+    as "joint_resolve", regardless of size) picks it up for real, without
+    that pass needing to know or care that this group is synthetic.
+
+    Why this exists: before it, joint-resolution eligibility was a property
+    of HAVING a related_sites edge, not of BEING span-guarded -- a site
+    reached _run_joint_group only if adjudication happened to link it to a
+    companion. That link is arbitrary with respect to whether a joint call
+    would help a lone span-guarded site: on real run data (run-secops,
+    run-youtrack) two essentially identical span-guarded constructors got
+    different treatment (one got a shot at an automated fix, the other was
+    unconditionally declined with no model call) purely because one had a
+    related_sites edge and the other didn't. Eligibility now depends only
+    on being span-guarded, matching what the guard is actually for.
+
+    Only PROPOSED-role, already-ungrouped keys are touched -- a key already
+    in group_id_by_key (real, >=2-member group from _group_by_related_sites)
+    is left alone entirely, so a multi-member group's classification and
+    behavior are completely unchanged by this pass; span_map itself only
+    ever contains proposed-role keys in the first place (see run()'s
+    docstring), so the role check here is a defensive assertion of that
+    invariant, not a filter expected to ever exclude anything in practice.
+
+    Returns NEW group_id_by_key/group_members_by_id dicts (does not mutate
+    the ones passed in) with the synthetic single-member groups added. A
+    synthetic group's id is the member's own (file, line) -- distinct by
+    construction from any real group's id, since a real group's id is some
+    OTHER member's key (the union-find root), and this key is, by
+    definition of being processed here, not a member of any real group."""
+    group_id_by_key = dict(group_id_by_key)
+    group_members_by_id = dict(group_members_by_id)
+    for key in span_map:
+        if key in group_id_by_key:
+            continue
+        if sites_by_key[key]["role"] != "proposed":
+            continue
+        gid = f"{key[0]}:{key[1]}"
+        group_id_by_key[key] = gid
+        group_members_by_id[gid] = [key]
+    return group_id_by_key, group_members_by_id
 
 
 def _group_members_rendered(member_keys, sites_by_key):
@@ -486,6 +548,29 @@ def _check_group_value_flow(group_fixes):
     on real new-parameter migrations; that is the intended, safe failure
     direction -- flagged_for_human, not a silently shipped guess.
 
+    SINGLE-MEMBER GROUPS (run()'s _add_singleton_span_groups, a lone
+    span-guarded site with no related_sites companion): this function
+    needs, and gets, NO special-casing for them, and that is a deliberate
+    choice, not an oversight. With one fix in `group_fixes`, "some OTHER
+    member's block" in both checks above can never be satisfied -- there
+    is no other member. So ANY keyword removed or added at that lone site
+    (relative to its own original) fails unconditionally, every time. That
+    is exactly correct: this is precisely the shape of the real youtrack-mcp
+    failure this whole guard exists to prevent (a constructor's host/port
+    dropped with no visible site to receive them) -- for a single-member
+    group specifically, there is no candidate site anywhere in the call
+    that COULD have received it, so failing is not a false-positive-prone
+    approximation the way the multi-member addition case sometimes is, it
+    is the only sound answer available. A single-member fix that changes
+    NOTHING about its own keyword arguments (a pure rename, a reordering of
+    positional arguments -- invisible to this AST-Call-keyword-only check
+    regardless of group size, per limit (1) below) still passes cleanly,
+    which is exactly the shape a lone span-guarded site's fix should
+    usually take. Special-casing single-member groups to skip this check
+    -- the tempting alternative -- would silently reopen the exact failure
+    this guard exists for, on exactly the sites (no companion in sight)
+    where a human would least expect a dropped value to have been caught.
+
     Returns None if every removed value is accounted for AND every added
     value is accounted for, or a human-readable string naming what's wrong
     otherwise. Deterministic, no model call -- pure AST comparison over
@@ -602,6 +687,26 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
     is necessary but never sufficient here -- every fixes-bucket result is
     re-verified by _check_group_value_flow below before it is trusted.
 
+    `member_keys` of length 1 is the solo-span case (see run()'s
+    _add_singleton_span_groups): a span-guarded site with no related_sites
+    companion, given its own single-member call rather than the immediate,
+    no-model-call decline it used to get unconditionally. It uses a
+    DIFFERENT addendum (_SOLO_SPAN_ADDENDUM, not _JOINT_ADDENDUM) -- the
+    multi-member addendum talks about a value moving "between these exact
+    sites" and instructs the model to find where a removed value "actually
+    appears... in whichever other member's block", which is nonsensical
+    and actively misleading when there is no other member. The solo
+    addendum instead tells the model plainly that no companion is shown
+    and to decline rather than invent or silently drop a value it can't
+    see a destination for -- belt-and-suspenders with _check_group_value_flow
+    below, which independently enforces the same thing mechanically
+    regardless of what the model was told (see that function's docstring
+    for why a single-member group can never pass it if a fix drops a
+    keyword: there is nowhere else in a 1-element group for it to
+    reappear, so the guard fails closed exactly on the shape that matters).
+    A multi-member call is completely unchanged from before this addition
+    -- same addendum, same framing, same everything.
+
     Returns (fixes, flags): fixes is a list of fix dicts with this
     function's own group_id stamped on (never taken from the model);
     flags is a list of flagged_for_human dicts, each carrying group_id/
@@ -611,6 +716,7 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
     the two returned lists is non-empty."""
     path = _group_call_path(fg_dir, gid)
     member_set = set(member_keys)
+    is_solo = len(member_keys) == 1
 
     if not _group_call_is_done(path, member_keys):
         blocks = []
@@ -625,14 +731,22 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
                 f"Context (every line of this member's own statement marked with >>):\n"
                 f"```\n{_context_block_for_span(reader, f, start, end)}\n```"
             )
-        user_text = (
-            f"COORDINATED GROUP {gid} -- {len(member_keys)} member site(s) that must be "
-            f"resolved TOGETHER (see this call's coordinated-group instructions above):\n\n"
-            + "\n\n".join(blocks)
-        )
+        if is_solo:
+            user_text = (
+                f"SPAN-GUARDED SITE {gid} -- a multi-line statement with no "
+                f"related_sites companion in this run (see this call's instructions "
+                f"above):\n\n" + "\n\n".join(blocks)
+            )
+        else:
+            user_text = (
+                f"COORDINATED GROUP {gid} -- {len(member_keys)} member site(s) that must be "
+                f"resolved TOGETHER (see this call's coordinated-group instructions above):\n\n"
+                + "\n\n".join(blocks)
+            )
+        addendum = _SOLO_SPAN_ADDENDUM if is_solo else _JOINT_ADDENDUM
         result = client.complete(
             stage=f"fixgen_group_{_sanitize_gid(gid)}",
-            system_text=base_system_text + "\n\n---\n\n" + _JOINT_ADDENDUM,
+            system_text=base_system_text + "\n\n---\n\n" + addendum,
             user_text=user_text,
             schema=SCHEMA,
             cache_system=cache_system,
@@ -696,6 +810,8 @@ with open(os.path.join(_PROMPT_DIR, "fixgen_system.md")) as _f:
     _TEMPLATE = _f.read()
 with open(os.path.join(_PROMPT_DIR, "fixgen_joint_addendum.md")) as _f:
     _JOINT_ADDENDUM = _f.read()
+with open(os.path.join(_PROMPT_DIR, "fixgen_solo_span_addendum.md")) as _f:
+    _SOLO_SPAN_ADDENDUM = _f.read()
 
 # `group_id` is deliberately absent from this schema -- see
 # _validate_fix_block_fields's docstring in validate.py: it is stamped by
@@ -936,12 +1052,33 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
         if span is not None:
             span_map[_site_key(site)] = span
 
-    # Classify every multi-member group once:
+    # A span-guarded site adjudication never linked to anything gets its
+    # own synthetic one-member group here, so the classification pass right
+    # below (which already treats ANY group with a span member and no
+    # uncertain member as "joint_resolve", regardless of size) picks it up
+    # too -- eligibility for a joint-style call is a property of being
+    # span-guarded, not of happening to have a related_sites edge. See
+    # _add_singleton_span_groups's own docstring for the real-run gap this
+    # closes (run-secops, run-youtrack) and _run_joint_group's docstring
+    # for how a single-member call differs (a different addendum, and why
+    # _check_group_value_flow is still both necessary and sufficient on a
+    # 1-element group).
+    group_id_by_key, group_members_by_id = _add_singleton_span_groups(
+        group_id_by_key, group_members_by_id, sites_by_key, span_map,
+    )
+
+    # Classify every group once (real, >=2-member groups from related_sites,
+    # and the synthetic 1-member span groups just added above -- this loop
+    # doesn't distinguish them, by design):
     #  - "uncertain_decline": contains a not-confirmed member -- no
     #    jointly-consistent set is possible this run, exactly as before.
+    #    Never applies to a synthetic group: _add_singleton_span_groups only
+    #    ever creates one from a PROPOSED-role key.
     #  - "joint_resolve": every member is confirmed, but at least one needs
     #    block-level treatment a lone per-line call can't safely give --
-    #    the youtrack-mcp shape this increment adds real handling for.
+    #    the youtrack-mcp shape this increment adds real handling for, and
+    #    what a synthetic 1-member group always is (that's the only reason
+    #    it exists).
     #  - unclassified: ordinary confident members with nothing forcing
     #    coordinated handling -- already handled correctly by reaching the
     #    model independently (same chunk, no group framing), per the
@@ -989,14 +1126,26 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     # whether it was eligible to try.
     joint_fixes = []
     joint_gids = sorted(gid for gid, c in group_class.items() if c == "joint_resolve")
-    cache_joint = len(joint_gids) > 1 or cache_ttl != "5m"
+    # Cached per KIND (solo vs multi-member), not as one flag for all of
+    # them: a solo call's system_text carries _SOLO_SPAN_ADDENDUM, a
+    # multi-member call's carries _JOINT_ADDENDUM -- the two are different
+    # byte-for-byte, so caching only pays off when there's more than one
+    # call of the SAME kind to read the cache write back. Getting this
+    # wrong doesn't break anything (a cache write nothing reads back just
+    # costs the cache_creation rate instead of the plain input rate on that
+    # one call), but there's no reason to pay it needlessly.
+    solo_gids = {gid for gid in joint_gids if len(group_members_by_id[gid]) == 1}
+    solo_count = len(solo_gids)
+    multi_count = len(joint_gids) - solo_count
     joint_resolved_keys = set()  # every member of a joint_resolve group, fixed or not
     joint_fixed_keys = set()     # the subset that actually received a fix
     for gid in joint_gids:
         member_keys = group_members_by_id[gid]
+        same_kind_count = solo_count if gid in solo_gids else multi_count
+        cache_this_call = same_kind_count > 1 or cache_ttl != "5m"
         result_fixes, result_flags = _run_joint_group(
             client, reader, gid, member_keys, sites_by_key, span_map,
-            system_text, fg_dir, cache_joint, cache_ttl,
+            system_text, fg_dir, cache_this_call, cache_ttl,
         )
         joint_fixes.extend(result_fixes)
         auto_flagged.extend(result_flags)
