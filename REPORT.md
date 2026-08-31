@@ -1443,3 +1443,35 @@ it converted an unconditional, no-attempt decline into a real, deliberate
 refusal grounded in a specific runtime consequence — but it did not, and
 by its own one-member design could not, resolve the underlying
 insufficient-fix-set case; only seeing the companion site would.
+
+**The `targetb_small` cassette was re-recorded for the RELATED SITES
+prompt tightening, and the mutual-pair structure changed shape, not just
+count.** The prior recording (578a289) had one 4-member visibility group
+in `test_jmeter_server.py` — `{11, 12, 21, 22}` — containing 3 mutual
+(bidirectional) `related_sites` pairs, an artifact of the symmetric
+phrasing the tightening removed. This recording splits that into two
+2-member groups, `{11, 22}` and `{12, 21}`, containing exactly 2 mutual
+pairs. Line 12 (the borderline stub-class site) itself did not move
+buckets — it stayed FLAG-UNCERTAIN — so no precision regression needed
+accepting here. One other site did resolve cleanly: `mcp_client.py:44`,
+which had self-cited itself in `related_sites` under the old prompt, is
+now REJECTed outright with a direct reason ("Fact 6: plain
+`ClientSession.call_tool()` is unchanged") instead of being flagged
+uncertain — the tightening fixed the one case in this host where the
+symmetric-edge bug was visibly live.
+
+**The finding worth keeping is a raw-candidate-count difference between
+two recordings of the same host, with neither search-stage input file
+touched.** This recording found 25 raw candidates before prefiltering
+against the prior run's 28 — `tonyzorin_youtrack-mcp/main.py:39` (a
+`REJECT`, not a GT site, so scoring was unaffected) simply never appeared
+as a candidate this time. Fact-block and vocabulary derivation both
+re-run live on every recording and are not perfectly deterministic call
+to call (Section 8 already measured this for a redis-py guide's fact
+count); this is the same variance showing up one stage downstream, in
+the actual candidate set a real repo search produces. The acceptance
+harness's 100%/100% bar held through it because the missing candidate
+was never a GT site, but the harness's floor is not as fixed as "same
+host, same guide, same code" implies — a future guide/repo pairing could
+lose a real candidate to this same variance without any code change to
+blame.
