@@ -782,6 +782,47 @@ def test_report_renders_model_own_joint_decline(tmp_path):
     assert "### Model judgment call" not in text
 
 
+def test_report_renders_ordinary_chunk_decline_under_model_judgment_call(tmp_path):
+    # An ordinary, non-span, non-grouped confirmed site declined in a plain
+    # per-chunk call (fixgen.run()'s "model_declined" tag) -- no group_id,
+    # so it belongs under "Model judgment call", not "Coupled edit group".
+    # A second, group_flagged entry is included alongside it so more than
+    # one category is present -- report.py only prints the "### Model
+    # judgment call" subheading itself when n_categories > 1, otherwise
+    # the lone category's items render directly under FLAG-FOR-HUMAN with
+    # no subheading at all (see test above for that single-category case).
+    fixgen_expanded = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "main.py", "line": 20,
+             "reason": "requires coordinated restructuring, not a single-line fix",
+             "flag_source": "model_declined"},
+            {"file": "other.py", "line": 5, "reason": "not confident jointly",
+             "flag_source": "joint_resolution_declined", "group_id": "other.py:5",
+             "group_members": [{"file": "other.py", "line": 5, "role": "proposed",
+                                 "reason": "constructor"}]},
+        ],
+    }
+    expanded_merged = {
+        "proposed_sites": [
+            {"file": "main.py", "line": 20, "snippet": "old_pkg.thing()", "pattern": "1",
+             "reason": "call site"},
+            {"file": "other.py", "line": 5, "snippet": "OldMCP(", "pattern": "1",
+             "reason": "constructor"},
+        ],
+        "flag_uncertain": [], "considered_and_rejected": [],
+    }
+    path = report.write(
+        str(tmp_path), expanded_merged, {}, FACTBLOCK, {"patterns": {"p1": "x"}},
+        fixgen_expanded=fixgen_expanded, verification_report=None,
+    )
+    text = open(path).read()
+    model_section = text.split("### Model judgment call")[1]
+    assert "### Coupled edit group" not in model_section
+    assert "requires coordinated restructuring, not a single-line fix" in model_section
+    assert "not confident jointly" not in model_section
+
+
 # ---------------------------------------------------------------------
 # Directional dependency -- reproduces the run-youtrack-joint regression
 # exactly: related_sites is directional (a site names what IT depends on,

@@ -1413,8 +1413,18 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     merged = {"fixes": list(joint_fixes), "flagged_for_human": list(auto_flagged)}
     for idx, _ in chunks:
         data = validate.validate_fixgen_file(_chunk_path(fg_dir, idx))
-        for bucket in merged:
-            merged[bucket].extend(data[bucket])
+        merged["fixes"].extend(data["fixes"])
+        # SCHEMA's flagged_for_human items carry only file/line/reason (see
+        # _run_joint_group's identical comment above) -- this is the
+        # model's own decline reached through an ordinary, single-site
+        # chunk call rather than a guard or a dedicated joint-resolution
+        # call, so it gets its own source name rather than staying
+        # untagged (report.py's model_flagged bucket already renders
+        # anything not carrying one of the guard/joint sources; it merely
+        # relied on `None` for this path instead of naming it).
+        merged["flagged_for_human"].extend(
+            {**item, "flag_source": "model_declined"} for item in data["flagged_for_human"]
+        )
 
     # Added after the per-chunk merge above, never inside it: this key is
     # computed once by this function from the whole run's dependency graph,

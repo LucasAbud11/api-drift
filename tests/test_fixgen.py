@@ -65,6 +65,34 @@ def test_run_produces_validated_merged_fixes(tmp_path):
     assert os.path.isfile(os.path.join(workdir, "fixgen", "chunk_000.json"))
 
 
+def test_ordinary_chunk_decline_is_tagged_model_declined(tmp_path):
+    # A plain, non-span, non-grouped confirmed site reaching the ordinary
+    # per-chunk call and declined there -- e.g. a coordinated restructuring
+    # the model doesn't attempt as a single-line fix. SCHEMA's
+    # flagged_for_human items carry only file/line/reason (no flag_source
+    # property), so unlike the guard/joint paths this one has nothing of
+    # its own to stamp itself with unless run() does it during the merge.
+    reader = _make_repo(tmp_path)
+    sites = [{"file": "pkg/mod.py", "line": 4, "snippet": "    old_pkg.thing()",
+              "pattern": "1", "reason": "call site depends on a restructuring elsewhere"}]
+    response = {
+        "fixes": [],
+        "flagged_for_human": [{"file": "pkg/mod.py", "line": 4,
+                                "reason": "requires coordinated restructuring, not a single-line fix"}],
+    }
+    client = FakeLLMClient([response])
+    workdir = str(tmp_path / "workdir")
+
+    merged = fixgen.run(client, reader, sites, FACTBLOCK, workdir, chunk_size=40)
+
+    validate.validate_fixgen_dict(merged)  # does not raise
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 1
+    flag = merged["flagged_for_human"][0]
+    assert flag["line"] == 4
+    assert flag["flag_source"] == "model_declined"
+
+
 def test_run_raises_on_incomplete_chunk_coverage(tmp_path):
     reader = _make_repo(tmp_path)
     sites = [
