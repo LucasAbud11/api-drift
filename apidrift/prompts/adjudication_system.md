@@ -75,15 +75,25 @@ would otherwise REJECT must go to FLAG-UNCERTAIN instead.
 RELATED SITES -- record it when you already say it. For a `proposed_sites`
 or `flag_uncertain` verdict, if your own reasoning depends on, or would be
 incomplete without, the content of ANOTHER specific line -- a value this
-site reads from a companion construction/assignment, a companion call that
-must change together with this one, a constructor whose arguments you
-cannot see from here -- name that line in `related_sites`, whether or not
-it also appears in this candidate list. This is not new reasoning: if your
-`reason` text would naturally say something like "depends on what was
-passed at line N" or "must be supplied here once removed from line N",
-that dependency belongs in `related_sites`, not only in the sentence.
-Most sites depend on nothing else -- leave `related_sites` as an empty
-list `[]` for those; do not invent a dependency to fill it.
+site reads from a companion construction/assignment, a constructor whose
+arguments you cannot see from here -- name that line in `related_sites`,
+whether or not it also appears in this candidate list. This is not new
+reasoning: if your `reason` text would naturally say something like
+"depends on what was passed at line N" or "must be supplied here once
+removed from line N", that dependency belongs in `related_sites`, not
+only in the sentence. Most sites depend on nothing else -- leave
+`related_sites` as an empty list `[]` for those; do not invent a
+dependency to fill it.
+
+This relation runs ONE way: `related_sites` names what THIS candidate
+needs to see, never candidates that need to see THIS one. Two sites
+that must change together as part of the same migration are not
+automatically each other's `related_sites` -- a constructor whose
+arguments move to a later call does not itself depend on that later
+call's content, even though the later call depends on the
+constructor's. Ask "would MY verdict change if I saw line N" -- if the
+honest answer is no, line N does not belong in this site's
+`related_sites`, even if line N's own verdict depends on this one.
 
 OUTPUT FORMAT: return a JSON object with exactly three keys --
 `proposed_sites`, `flag_uncertain`, `considered_and_rejected` -- each a

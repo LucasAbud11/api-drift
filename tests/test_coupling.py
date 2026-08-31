@@ -172,11 +172,16 @@ def test_single_line_anchor_coupled_to_uncertain_sibling_declines_without_model_
     # multi-line.
     body = "x = 1\ny = 2\nz = call(x)\n"
     reader = _make_repo(tmp_path, body=body)
+    # One-directional on purpose: site 1 names site 3 as its dependency,
+    # site 3 names nothing (an uncertain site's own related_sites plays no
+    # role in whether IT declines -- it always does, being uncertain).
+    # Reciprocating the edge here would make this pair a mutual-dependency
+    # contradiction instead (see the mutual_dependency_guard tests below),
+    # which is a different case than the one this test targets.
     proposed = [{"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1",
                  "reason": "x must change", "related_sites": [{"file": "main.py", "line": 3}]}]
     uncertain = [{"file": "main.py", "line": 3, "snippet": "z = call(x)",
-                  "reason": "depends on x's new value",
-                  "related_sites": [{"file": "main.py", "line": 1}]}]
+                  "reason": "depends on x's new value", "related_sites": []}]
     client = FakeLLMClient([])  # never called -- IndexError if it were
     merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
                          uncertain_sites=uncertain, chunk_size=40)
@@ -196,7 +201,7 @@ def test_uncertain_site_never_appears_as_its_own_fix_or_flag(tmp_path):
     proposed = [{"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1",
                  "reason": "x must change", "related_sites": [{"file": "main.py", "line": 3}]}]
     uncertain = [{"file": "main.py", "line": 3, "snippet": "z = call(x)",
-                  "reason": "depends on x", "related_sites": [{"file": "main.py", "line": 1}]}]
+                  "reason": "depends on x", "related_sites": []}]
     client = FakeLLMClient([])
     merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
                          uncertain_sites=uncertain, chunk_size=40)
@@ -243,11 +248,15 @@ def test_uncertain_sites_default_to_no_grouping(tmp_path):
 def test_two_confident_coupled_sites_both_reach_the_model_together(tmp_path):
     body = "x = 1\ny = 2\n"
     reader = _make_repo(tmp_path, body=body)
+    # One-directional on purpose (site 2 depends on nothing) -- a single
+    # edge is enough to union the pair into one group; reciprocating it
+    # would make this a mutual-dependency contradiction instead, a
+    # different case (see the mutual_dependency_guard tests below).
     proposed = [
         {"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r1",
          "related_sites": [{"file": "main.py", "line": 2}]},
         {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
-         "related_sites": [{"file": "main.py", "line": 1}]},
+         "related_sites": []},
     ]
     response = {
         "fixes": [
@@ -266,11 +275,15 @@ def test_two_confident_coupled_sites_both_reach_the_model_together(tmp_path):
 def test_torn_group_is_a_hard_validation_failure(tmp_path):
     body = "x = 1\ny = 2\n"
     reader = _make_repo(tmp_path, body=body)
+    # One-directional on purpose (site 2 depends on nothing) -- a single
+    # edge is enough to union the pair into one group; reciprocating it
+    # would make this a mutual-dependency contradiction instead, a
+    # different case (see the mutual_dependency_guard tests below).
     proposed = [
         {"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r1",
          "related_sites": [{"file": "main.py", "line": 2}]},
         {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
-         "related_sites": [{"file": "main.py", "line": 1}]},
+         "related_sites": []},
     ]
     # The model splits a coupled pair -- one fixed, one flagged. Must be
     # rejected outright, never silently accepted with one site fixed alone
@@ -577,11 +590,15 @@ def test_joint_resolve_does_not_fire_for_a_group_with_no_span_member(tmp_path):
     # "fixgen_group_*" call is ever made.
     body = "x = 1\ny = 2\n"
     reader = _make_repo(tmp_path, body=body)
+    # One-directional on purpose (site 2 depends on nothing) -- a single
+    # edge is enough to union the pair into one group; reciprocating it
+    # would make this a mutual-dependency contradiction instead, a
+    # different case (see the mutual_dependency_guard tests below).
     proposed = [
         {"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r1",
          "related_sites": [{"file": "main.py", "line": 2}]},
         {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
-         "related_sites": [{"file": "main.py", "line": 1}]},
+         "related_sites": []},
     ]
     response = {
         "fixes": [
@@ -877,7 +894,8 @@ def test_describe_unsafe_cause_names_the_concrete_base_reason():
         ("a.py", 3): {"role": "uncertain", "site": {}},
     }
     unsafe_cause = {("a.py", 1): ("a.py", 2), ("a.py", 2): ("a.py", 3), ("a.py", 3): ("a.py", 3)}
-    reason = fixgen._describe_unsafe_cause(("a.py", 1), unsafe_cause, sites_by_key, span_map={})
+    reason = fixgen._describe_unsafe_cause(("a.py", 1), unsafe_cause, sites_by_key,
+                                            span_map={}, mutual_partners={})
     assert "a.py:2" in reason
     assert "a.py:3" in reason
     assert "not confirmed by adjudication" in reason
@@ -903,3 +921,151 @@ def test_check_no_fix_depends_on_an_unresolved_site_passes_when_dependent_alone_
     depends_on = {("a.py", 1): [], ("a.py", 2): [("a.py", 1)]}
     merged_bucketed = {("a.py", 1): "fixes", ("a.py", 2): "flagged_for_human"}
     fixgen._check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what="test")
+
+
+# ---------------------------------------------------------------------
+# Mutual (backwards) related_sites -- _detect_mutual_dependencies and the
+# mutual_dependency_guard it feeds. related_sites is specified as one-way
+# (adjudication_system.md: "this relation runs ONE way"), so an edge
+# present in BOTH directions between the same two sites is always a
+# contradiction to a directed reader, even though it cannot say which end
+# is wrong. The real case this is grounded in: run-azeroth-joint's
+# adjudication output (both the -coupled and -joint reruns) has
+# main.py:68 (the FastMCP constructor) list 153 and 170 in ITS OWN
+# related_sites, while 153 and 170 correctly list 68 in theirs --
+#
+#   29  -> [68]            (import, correctly depends on the constructor)
+#   68  -> [29, 153, 170]  (constructor -- WRONG: also claims to depend
+#                            on its own downstream call sites)
+#   153 -> [68]             (correct: needs the constructor's args)
+#   170 -> [68]             (correct: needs the constructor's args)
+#
+# Every edge touching 68 is therefore a real 2-cycle in the stored data,
+# not a one-sided backward link -- see the fixture below, taken directly
+# from run-azeroth-joint/adjudication/merged.json.
+# ---------------------------------------------------------------------
+
+def test_detect_mutual_dependencies_finds_a_reciprocal_pair():
+    depends_on = {("a.py", 1): [("a.py", 2)], ("a.py", 2): [("a.py", 1)]}
+    assert fixgen._detect_mutual_dependencies(depends_on) == [(("a.py", 1), ("a.py", 2))]
+
+
+def test_detect_mutual_dependencies_ignores_a_one_directional_edge():
+    # A depends on B; B depends on nothing. No contradiction -- this is
+    # the ordinary, overwhelmingly common shape (youtrack-directional's
+    # 25 -> [10], 27 -> [10], with 10 -> [] and nothing pointing back).
+    depends_on = {("a.py", 1): [("a.py", 2)], ("a.py", 2): []}
+    assert fixgen._detect_mutual_dependencies(depends_on) == []
+
+
+def test_detect_mutual_dependencies_ignores_a_self_loop():
+    # A site naming itself is a different (degenerate) defect, not a
+    # mutual-PAIR contradiction -- this function has nothing to say about it.
+    depends_on = {("a.py", 1): [("a.py", 1)]}
+    assert fixgen._detect_mutual_dependencies(depends_on) == []
+
+
+def test_detect_mutual_dependencies_reports_each_pair_once_regardless_of_iteration_order():
+    depends_on = {("a.py", 1): [("a.py", 2)], ("a.py", 2): [("a.py", 1)]}
+    pairs = fixgen._detect_mutual_dependencies(depends_on)
+    assert len(pairs) == 1
+    a, b = pairs[0]
+    assert (a, b) == (("a.py", 1), ("a.py", 2))  # canonical sorted order, not insertion order
+
+
+def test_detect_mutual_dependencies_matches_the_real_azeroth_joint_shape():
+    # Verbatim from run-azeroth-joint/adjudication/merged.json (and
+    # reproduced identically in run-azeroth-coupled): this is NOT a
+    # one-sided backward link -- 68's own related_sites reciprocates both
+    # 153's and 170's (correct) edges back at them, and 29's (also
+    # correct) edge back at it too. A mutual-pair check finds all three.
+    depends_on = {
+        ("main.py", 29): [("main.py", 68)],
+        ("main.py", 68): [("main.py", 29), ("main.py", 153), ("main.py", 170)],
+        ("main.py", 153): [("main.py", 68)],
+        ("main.py", 170): [("main.py", 68)],
+    }
+    pairs = fixgen._detect_mutual_dependencies(depends_on)
+    assert pairs == [
+        (("main.py", 29), ("main.py", 68)),
+        (("main.py", 68), ("main.py", 153)),
+        (("main.py", 68), ("main.py", 170)),
+    ]
+
+
+def test_detect_mutual_dependencies_finds_nothing_on_the_real_youtrack_directional_shape():
+    # Verbatim from run-youtrack-directional/adjudication/merged.json,
+    # the correctly-directional counterpart: no pair here contradicts
+    # itself, so the guard must not fire on it -- a clean directed graph
+    # produces zero false positives.
+    depends_on = {
+        ("main.py", 10): [],
+        ("main.py", 25): [("main.py", 10)],
+        ("main.py", 27): [("main.py", 10)],
+        ("main.py", 70): [("main.py", 27), ("main.py", 25)],
+    }
+    assert fixgen._detect_mutual_dependencies(depends_on) == []
+
+
+def test_describe_unsafe_cause_names_the_mutual_dependency_reason():
+    sites_by_key = {
+        ("a.py", 1): {"role": "proposed", "site": {}},
+        ("a.py", 2): {"role": "proposed", "site": {}},
+    }
+    unsafe_cause = {("a.py", 1): ("a.py", 1), ("a.py", 2): ("a.py", 2)}
+    mutual_partners = {("a.py", 1): [("a.py", 2)], ("a.py", 2): [("a.py", 1)]}
+    reason = fixgen._describe_unsafe_cause(("a.py", 1), unsafe_cause, sites_by_key,
+                                            span_map={}, mutual_partners=mutual_partners)
+    assert "a.py:1" in reason and "a.py:2" in reason
+    assert "name each other" in reason
+    # Must NOT fall through to the generic/uncertain-role wording -- that
+    # would misreport a self-contradictory pair as an ordinary decline.
+    assert "not confirmed by adjudication" not in reason
+    assert "was not resolved by a coordinated fix" not in reason
+
+
+def test_mutual_dependency_guard_declines_both_confident_sites_without_a_model_call(tmp_path):
+    # The real new coverage this guard adds: two ordinary PROPOSED sites
+    # (no uncertain role, no multi-line span -- nothing else would ever
+    # catch this) whose related_sites contradict each other. Before this
+    # guard, both would have reached the model as an unremarkable ordinary
+    # chunk, no consistency signal anywhere -- see run()'s docstring.
+    body = "x = 1\ny = 2\n"
+    reader = _make_repo(tmp_path, body=body)
+    proposed = [
+        {"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r1",
+         "related_sites": [{"file": "main.py", "line": 2}]},
+        {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
+         "related_sites": [{"file": "main.py", "line": 1}]},  # reciprocates -- the contradiction
+    ]
+    client = FakeLLMClient([])  # never called -- IndexError if it were
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert client.calls == []
+    assert merged["fixes"] == []
+    flagged_lines = {f["line"] for f in merged["flagged_for_human"]}
+    assert flagged_lines == {1, 2}
+    for flag in merged["flagged_for_human"]:
+        assert flag["flag_source"] == "group_consistency_guard"
+        assert "name each other in related_sites" in flag["reason"]
+
+    assert len(merged["mutual_dependency_warnings"]) == 1
+    warning = merged["mutual_dependency_warnings"][0]
+    warned_keys = {(s["file"], s["line"]) for s in warning["sites"]}
+    assert warned_keys == {("main.py", 1), ("main.py", 2)}
+
+
+def test_mutual_dependency_warnings_empty_when_no_pair_contradicts(tmp_path):
+    reader = _make_repo(tmp_path, body="import old_pkg\n")
+    proposed = [{"file": "main.py", "line": 1, "snippet": "import old_pkg", "pattern": "1",
+                 "reason": "import rename", "related_sites": []}]
+    response = {
+        "fixes": [{"file": "main.py", "line": 1, "end_line": 1,
+                   "original_lines": ["import old_pkg"], "proposed_lines": ["import new_pkg"],
+                   "reason": "renamed"}],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert merged["mutual_dependency_warnings"] == []

@@ -39,7 +39,21 @@ flagged_for_human, never shipped as a fix nothing checked. The guard
 cannot distinguish an invented value from a legitimately new one (a
 migration-required parameter with no prior equivalent anywhere in the
 group); it flags both the same way, on purpose -- see the function's own
-docstring."""
+docstring.
+
+related_sites is specified as one-way (a site names what IT needs, never
+who needs it), but a prompt can be misread and an adjudication response
+can name a related site backwards -- a real run (run-azeroth-joint,
+main.py:68) has the constructor list its own downstream call sites as
+dependencies, when the call sites correctly listed the constructor. A
+DIRECTED check cannot tell which end of such a pair is wrong, but it can
+detect that the pair contradicts itself: `_detect_mutual_dependencies`
+finds every (A, B) where A's related_sites names B and B's names A, and
+both halves of any such pair are added to the directional closure's
+self-unsafe set (see run()'s docstring) -- declined for review rather
+than silently trusted in either direction. Recorded unconditionally in
+the run's own `mutual_dependency_warnings` output, whether or not it
+changed any bucket outcome."""
 import ast
 import json
 import math
@@ -253,14 +267,45 @@ def _direct_dependencies(sites_by_key):
     return deps
 
 
+def _detect_mutual_dependencies(depends_on):
+    """Every unordered pair (A, B) where A's related_sites names B AND B's
+    related_sites names A -- a raw 2-cycle in the DIRECTED depends_on graph
+    _direct_dependencies builds. related_sites is specified as one-way
+    (adjudication_system.md: "this relation runs ONE way... would MY
+    verdict change if I saw line N"), so a real edge in both directions
+    between the same two sites is always a contradiction, never a
+    legitimate mutual need -- either a genuine adjudication error (one
+    direction real, one backwards) or, in principle, a true cycle, which
+    the guide's own migration facts never actually produce. A directed
+    check like this one cannot tell WHICH end is wrong, only that the pair
+    disagrees with itself -- see run()'s docstring for the real-run case
+    this exists for (run-azeroth-joint, main.py:68 vs. 153/170) and why it
+    is still trusted as a signal despite that limit.
+
+    Self-loops (a site naming itself) are excluded -- not a mutual-pair
+    contradiction, and not this function's concern.
+
+    Returns a sorted list of ((file, line), (file, line)) tuples, each
+    unordered pair appearing exactly once with its two keys in sorted
+    order."""
+    pairs = set()
+    for a, deps in depends_on.items():
+        for b in deps:
+            if a != b and b in depends_on and a in depends_on[b]:
+                pairs.add(tuple(sorted((a, b))))
+    return sorted(pairs)
+
+
 def _compute_unsafe_sites(all_keys, depends_on, self_unsafe):
     """Fixed-point closure over the DIRECTED depends_on graph.
 
     `self_unsafe`: the set of keys unsafe for their OWN reason -- an
-    uncertain-role site (never confirmed by adjudication), or a site with
-    an unresolved multi-line span (never fixed, whether because it was
-    never eligible for joint resolution or because a joint-resolution
-    attempt for it did not produce a fix).
+    uncertain-role site (never confirmed by adjudication), a site with an
+    unresolved multi-line span (never fixed, whether because it was never
+    eligible for joint resolution or because a joint-resolution attempt
+    for it did not produce a fix), or a site that is one half of a mutual
+    (bidirectional) related_sites pair per _detect_mutual_dependencies --
+    both halves of such a pair are treated as self-unsafe, not just one.
 
     Blocking flows in exactly one direction: from a dependency to its
     dependents, never the reverse. A site becomes unsafe if it depends --
@@ -293,16 +338,29 @@ def _compute_unsafe_sites(all_keys, depends_on, self_unsafe):
     return cause
 
 
-def _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map):
+def _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map, mutual_partners):
     """One clause explaining why `key` is unsafe, for a human-facing
     decline reason -- `key` must be a key of `unsafe_cause`. Recurses one
     logical hop at a time along the SAME chain _compute_unsafe_sites
     already resolved (never re-derives it), so the text names the real,
-    concrete, base-case reason (uncertain / span / joint-resolution
-    outcome) rather than stopping at a vague "it was declined" for a
-    multi-hop chain."""
+    concrete, base-case reason (uncertain / span / mutual-dependency /
+    joint-resolution outcome) rather than stopping at a vague "it was
+    declined" for a multi-hop chain.
+
+    `mutual_partners`: {key: [partner_key, ...]} from run()'s
+    _detect_mutual_dependencies pass -- checked before the generic
+    fallback so a site made self-unsafe by a contradictory related_sites
+    pair gets that real reason instead of the misleading generic "was not
+    resolved by a coordinated fix" (it may never have been part of any
+    joint-resolution attempt at all)."""
     cause = unsafe_cause[key]
     if cause == key:
+        if key in mutual_partners:
+            partners = ", ".join(f"{p[0]}:{p[1]}" for p in sorted(mutual_partners[key]))
+            return (f"{key[0]}:{key[1]} and {partners} name each other in related_sites -- "
+                     f"a self-contradictory link (mutual_dependency_guard); a directed check "
+                     f"cannot tell which direction, if either, is correct, so both are "
+                     f"treated as unsafe")
         if sites_by_key[key]["role"] == "uncertain":
             return f"{key[0]}:{key[1]} was not confirmed by adjudication"
         if key in span_map:
@@ -310,7 +368,7 @@ def _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map):
             return (f"{key[0]}:{key[1]} was not evaluated (multi-line statement "
                      f"spanning lines {start}-{end})")
         return f"{key[0]}:{key[1]} was not resolved by a coordinated fix"
-    dep_reason = _describe_unsafe_cause(cause, unsafe_cause, sites_by_key, span_map)
+    dep_reason = _describe_unsafe_cause(cause, unsafe_cause, sites_by_key, span_map, mutual_partners)
     return f"{key[0]}:{key[1]} depends on {cause[0]}:{cause[1]} ({dep_reason})"
 
 
@@ -957,6 +1015,21 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     self_unsafe |= (joint_resolved_keys - joint_fixed_keys)
 
     depends_on = _direct_dependencies(sites_by_key)
+
+    # Mutual-dependency guard: a related_sites edge is specified as
+    # one-way (adjudication_system.md), so a pair that names each other
+    # is always a contradiction -- see run-azeroth-joint (main.py:68 vs.
+    # 153/170) for the real case this catches. Cannot tell which end is
+    # wrong, so both halves of every such pair are added to self_unsafe
+    # here, before the closure runs, same as any other base-case reason.
+    mutual_pairs = _detect_mutual_dependencies(depends_on)
+    mutual_partners = {}
+    for a, b in mutual_pairs:
+        mutual_partners.setdefault(a, []).append(b)
+        mutual_partners.setdefault(b, []).append(a)
+        self_unsafe.add(a)
+        self_unsafe.add(b)
+
     unsafe_cause = _compute_unsafe_sites(sites_by_key.keys(), depends_on, self_unsafe)
 
     # Every "proposed" site not already resolved one way or another above,
@@ -976,7 +1049,7 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
         if key not in unsafe_cause:
             continue
         gid = group_id_by_key.get(key)
-        cause_clause = _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map)
+        cause_clause = _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map, mutual_partners)
         auto_flagged.append(_group_consistency_flag(
             entry["site"], gid, group_members_by_id.get(gid, [key]), sites_by_key,
             [cause_clause],
@@ -1035,6 +1108,31 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
         data = validate.validate_fixgen_file(_chunk_path(fg_dir, idx))
         for bucket in merged:
             merged[bucket].extend(data[bucket])
+
+    # Added after the per-chunk merge above, never inside it: this key is
+    # computed once by this function from the whole run's dependency graph,
+    # not accumulated per-chunk like fixes/flagged_for_human (a model
+    # response never has an opinion on it, so it isn't part of SCHEMA or
+    # any chunk_NNN.json file). Recorded unconditionally, whether or not
+    # the pair actually changed any bucket outcome -- a mutual pair can be
+    # entirely inert (e.g. run-azeroth-joint's main.py:68, already unsafe
+    # on its own multi-line span regardless of this guard) and still be a
+    # real adjudication-output defect worth surfacing for a human or a
+    # later prompt-quality sweep to see, independent of whether it
+    # happened to change anything this run.
+    merged["mutual_dependency_warnings"] = [
+        {
+            "sites": [{"file": a[0], "line": a[1]}, {"file": b[0], "line": b[1]}],
+            "note": (
+                "each site's related_sites names the other -- a self-contradictory "
+                "link (related_sites is specified as one-way). A directed check "
+                "cannot tell which direction, if either, is correct; both sites are "
+                "treated as unsafe for blocking purposes (mutual_dependency_guard) "
+                "regardless of role or final bucket."
+            ),
+        }
+        for a, b in mutual_pairs
+    ]
 
     merged_path = os.path.join(fg_dir, "merged.json")
 
