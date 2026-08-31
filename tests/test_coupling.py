@@ -127,12 +127,21 @@ def test_sites_missing_related_sites_field_are_tolerated():
 # fixgen.run() -- deterministic pre-model group decline
 # ---------------------------------------------------------------------
 
-def test_span_declined_anchor_propagates_group_to_uncertain_siblings(tmp_path):
-    # The real run-azeroth/run-youtrack-v2 shape: the group's only
-    # proposed member is already caught by the multi-line-span guard, so
-    # no group_consistency_guard entry is produced -- but group_id/
-    # group_members must still be attached to that span entry so the
-    # coupling is visible at all.
+def test_span_anchor_with_only_uncertain_dependents_now_reaches_a_solo_call(tmp_path):
+    # The real run-azeroth/run-youtrack-v2 shape: main.py:3 is the ONLY
+    # proposed member, its own related_sites is empty, and the only edges
+    # touching it are two UNCERTAIN sites naming IT as their dependency
+    # (13 and 16 need to see 3's constructor args). Before the
+    # run-youtrack-solo fix, this pulled 3 into an undirected group and
+    # declined it via multiline_span_guard with no model call at all --
+    # exactly the bug: nothing about 3's OWN correctness depends on 13 or
+    # 16 ever resolving, only the reverse. It must now reach its own solo
+    # joint call instead (_resolution_groups excludes edges an UNCERTAIN
+    # site declares, so 3 has zero RESOLUTION-view connections and gets a
+    # synthetic singleton group). See
+    # test_solo_call_decline_still_shows_the_full_uncertain_neighborhood
+    # below for the companion check: visibility (13/16 in the roster) is
+    # preserved even though this site is no longer blocked by them.
     reader = _make_repo(tmp_path, body=AZEROTH_SHAPED_BODY)
     proposed = [{"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1",
                  "reason": "constructor referencing FastMCP", "related_sites": []}]
@@ -144,16 +153,58 @@ def test_span_declined_anchor_propagates_group_to_uncertain_siblings(tmp_path):
          "reason": "host/port formerly given to the constructor must now be passed here",
          "related_sites": [{"file": "main.py", "line": 3}]},
     ]
-    client = FakeLLMClient([])
+    response = {
+        "fixes": [{"file": "main.py", "line": 3, "end_line": 7,
+                   "original_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+                   "proposed_lines": ["mcp = FastMCP(", "    \"name\",", "    host=host,", "    port=port", ")"],
+                   "reason": "class renamed, keyword args unchanged"}],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
     merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
                          uncertain_sites=uncertain, chunk_size=40)
 
-    assert client.calls == []
+    assert len(client.calls) == 1
+    assert client.calls[0]["stage"] == "fixgen_group_main.py_3"
+    assert merged["flagged_for_human"] == []
+    assert len(merged["fixes"]) == 1
+    assert merged["fixes"][0]["line"] == 3
+    # Fully-resolved fix still gets stamped with the VISIBILITY group_id
+    # (report.py's coordinated-group badge), not the solo RESOLUTION id --
+    # main.py:3 has a broader undirected neighborhood (13, 16) even though
+    # it was resolved alone.
+    assert merged["fixes"][0]["group_id"] == "main.py:3"
+
+
+def test_solo_call_decline_still_shows_the_full_uncertain_neighborhood(tmp_path):
+    # Companion to the test above: when the solo call DOES decline (or
+    # fails value-flow), the resulting flag must still show the full
+    # undirected VISIBILITY roster (13, 16) -- report visibility is a real
+    # requirement, unaffected by RESOLUTION-view eligibility narrowing.
+    reader = _make_repo(tmp_path, body=AZEROTH_SHAPED_BODY)
+    proposed = [{"file": "main.py", "line": 3, "snippet": "mcp = FastMCP(", "pattern": "1",
+                 "reason": "constructor referencing FastMCP", "related_sites": []}]
+    uncertain = [
+        {"file": "main.py", "line": 13, "snippet": "    starlette_app = mcp.sse_app()",
+         "reason": "depends on what was passed to the FastMCP( constructor at line 3",
+         "related_sites": [{"file": "main.py", "line": 3}]},
+        {"file": "main.py", "line": 16, "snippet": "    mcp.run(transport=\"sse\")",
+         "reason": "host/port formerly given to the constructor must now be passed here",
+         "related_sites": [{"file": "main.py", "line": 3}]},
+    ]
+    response = {"fixes": [],
+                "flagged_for_human": [{"file": "main.py", "line": 3,
+                                        "reason": "not confident without seeing the call sites"}]}
+    client = FakeLLMClient([response])
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=uncertain, chunk_size=40)
+
+    assert len(client.calls) == 1
     assert merged["fixes"] == []
     assert len(merged["flagged_for_human"]) == 1
     flag = merged["flagged_for_human"][0]
     assert flag["line"] == 3
-    assert flag["flag_source"] == "multiline_span_guard"  # unchanged -- still the real reason
+    assert flag["flag_source"] == "joint_resolution_declined"
     assert flag["group_id"] == "main.py:3"
     member_keys = {(m["file"], m["line"]) for m in flag["group_members"]}
     assert member_keys == {("main.py", 3), ("main.py", 13), ("main.py", 16)}
@@ -783,7 +834,21 @@ _YOUTRACK_UNCERTAIN = [
 ]
 
 
-def test_directional_dependency_leaves_self_contained_sites_fixable(tmp_path):
+def test_directional_dependency_group_now_gets_a_real_joint_attempt(tmp_path):
+    # _YOUTRACK_PROPOSED's 25 and 27 each have a REAL edge of their own
+    # (both -> 10) -- unlike run-youtrack-solo's shape (see the dedicated
+    # tests below), this ISN'T the "uncertain dependent contaminates an
+    # unrelated site" bug; 10/25/27 form one genuine RESOLUTION group via
+    # their OWN proposed-declared edges, same as before this fix. What
+    # changes: group_class used to read has_uncertain off the UNDIRECTED
+    # (VISIBILITY) view, which included uncertain 70 (only connected via
+    # 70's OWN edges to 27/25) and declined the whole group as
+    # "uncertain_decline" -- 27 auto-flagged, 10/25 saved only by the
+    # separate directional-unsafe closure. Now group_class reads
+    # has_uncertain off the RESOLUTION view, which correctly excludes
+    # 70's edges: none of 10/25/27 are themselves uncertain, so the group
+    # is "joint_resolve" -- all three get one real, coordinated attempt
+    # instead of 27 being auto-declined on sight.
     reader = _make_repo(tmp_path, body=YOUTRACK_JOINT_BODY)
     response = {
         "fixes": [
@@ -795,6 +860,12 @@ def test_directional_dependency_leaves_self_contained_sites_fixable(tmp_path):
              "original_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:"],
              "proposed_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> MCPServer:"],
              "reason": "return annotation renamed"},
+            {"file": "main.py", "line": 27, "end_line": 31,
+             "original_lines": ["    mcp = FastMCP(", "        \"name\",",
+                                 "        host=host,", "        port=port", "    )"],
+             "proposed_lines": ["    mcp = MCPServer(", "        \"name\",",
+                                 "        host=host,", "        port=port", "    )"],
+             "reason": "constructor renamed, keyword args unchanged"},
         ],
         "flagged_for_human": [],
     }
@@ -803,27 +874,104 @@ def test_directional_dependency_leaves_self_contained_sites_fixable(tmp_path):
     merged = fixgen.run(client, reader, _YOUTRACK_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
                          uncertain_sites=_YOUTRACK_UNCERTAIN, chunk_size=40)
 
+    assert merged["flagged_for_human"] == []
     fixed_lines = {f["line"] for f in merged["fixes"]}
-    assert fixed_lines == {10, 25}
-
-    flagged_lines = {f["line"] for f in merged["flagged_for_human"]}
-    assert flagged_lines == {27}
-    flag27 = next(f for f in merged["flagged_for_human"] if f["line"] == 27)
-    assert flag27["flag_source"] == "multiline_span_guard"
-
-    # 10 and 25 were sent to the model as ordinary sites -- no group
-    # framing, no joint-resolution call, no pre-model decline.
+    assert fixed_lines == {10, 25, 27}
     assert len(client.calls) == 1
-    assert not client.calls[0]["stage"].startswith("fixgen_group_")
+    assert client.calls[0]["stage"] == "fixgen_group_main.py_10"
 
 
-def test_directional_dependency_27_group_members_still_show_10_and_25(tmp_path):
-    # Blocking became directional, but visibility didn't: 27's own
-    # flagged entry should still cross-reference the whole undirected
-    # neighborhood (10, 25, 70), so a human reviewing it sees that 10 and
-    # 25's renames are relevant to what 27 still needs by hand.
+def test_directional_dependency_decline_still_shows_10_25_27_and_70(tmp_path):
+    # Companion: if the (now real) joint attempt for {10, 25, 27} declines
+    # instead, the resulting flags must still show the full undirected
+    # VISIBILITY neighborhood, INCLUDING uncertain 70 -- 70 was never sent
+    # to the model (member_keys for the call itself is the RESOLUTION
+    # view, {10, 25, 27} only), but a human reviewing the decline still
+    # benefits from seeing that 70 depends on this group resolving.
     reader = _make_repo(tmp_path, body=YOUTRACK_JOINT_BODY)
     response = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "main.py", "line": 10, "reason": "declined jointly with 25 and 27"},
+            {"file": "main.py", "line": 25, "reason": "declined jointly with 10 and 27"},
+            {"file": "main.py", "line": 27, "reason": "declined jointly with 10 and 25"},
+        ],
+    }
+    client = FakeLLMClient([response])
+
+    merged = fixgen.run(client, reader, _YOUTRACK_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=_YOUTRACK_UNCERTAIN, chunk_size=40)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 3
+    for flag in merged["flagged_for_human"]:
+        assert flag["flag_source"] == "joint_resolution_declined"
+        assert flag["group_id"] == "main.py:10"  # visibility root, same as resolution root here
+        member_keys = {(m["file"], m["line"]) for m in flag["group_members"]}
+        assert member_keys == {("main.py", 10), ("main.py", 25), ("main.py", 27), ("main.py", 70)}
+
+
+# ---------------------------------------------------------------------
+# run-youtrack-solo -- the exact regression this whole increment fixes,
+# reproduced verbatim from the real stored artifact
+# (~/Projects/api-drift-prs/run-youtrack-solo/adjudication/merged.json):
+#
+#   P 10 related: []
+#   P 25 related: []
+#   P 27 related: []      <- span-guarded, own links empty
+#   U 70 related: [27, 25]
+#
+# Unlike _YOUTRACK_PROPOSED above (where 25/27 have REAL edges of their
+# own to 10), here NONE of 10/25/27 has any edge of its own -- the ONLY
+# edges are 70's (uncertain), naming 27 and 25 as ITS dependencies. Before
+# this fix, _group_by_related_sites' undirected union still pulled 27
+# into one component with 70 (and, transitively, 25), and group_class
+# read has_uncertain off that same undirected component -- so 27 declined
+# via multiline_span_guard with no model call, exactly like a site that
+# genuinely depended on something unconfirmed, even though nothing about
+# 27's OWN correctness depends on 70 ever resolving. The real stored
+# run's own fixgen/merged.json confirms this: FIX 10, FIX 25, FLAG 27
+# (multiline_span_guard) -- no model call for 27 ever happened.
+# ---------------------------------------------------------------------
+
+YOUTRACK_SOLO_BODY = _line_padded_body({
+    10: "from mcp.server.fastmcp import FastMCP",
+    25: "def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:",
+    27: "    mcp = FastMCP(",
+    28: "        \"name\",",
+    29: "        host=host,",
+    30: "        port=port",
+    31: "    )",
+    70: "mcp.run(transport=\"sse\")",
+}, total_lines=70)
+
+_YOUTRACK_SOLO_PROPOSED = [
+    {"file": "main.py", "line": 10, "snippet": "from mcp.server.fastmcp import FastMCP",
+     "pattern": "1", "reason": "import path renamed", "related_sites": []},
+    {"file": "main.py", "line": 25, "snippet": "def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:",
+     "pattern": "1", "reason": "return annotation references the renamed class", "related_sites": []},
+    {"file": "main.py", "line": 27, "snippet": "    mcp = FastMCP(",
+     "pattern": "1", "reason": "constructor references the renamed class", "related_sites": []},
+]
+_YOUTRACK_SOLO_UNCERTAIN = [
+    {"file": "main.py", "line": 70, "snippet": "mcp.run(transport=\"sse\")",
+     "reason": "may need host/port depending on how the constructor at 27 is resolved",
+     "related_sites": [{"file": "main.py", "line": 27}, {"file": "main.py", "line": 25}]},
+]
+
+
+def test_youtrack_solo_shape_27_reaches_its_own_solo_call(tmp_path):
+    reader = _make_repo(tmp_path, body=YOUTRACK_SOLO_BODY)
+    solo_response = {
+        "fixes": [{"file": "main.py", "line": 27, "end_line": 31,
+                   "original_lines": ["    mcp = FastMCP(", "        \"name\",",
+                                       "        host=host,", "        port=port", "    )"],
+                   "proposed_lines": ["    mcp = MCPServer(", "        \"name\",",
+                                       "        host=host,", "        port=port", "    )"],
+                   "reason": "constructor renamed, keyword args unchanged"}],
+        "flagged_for_human": [],
+    }
+    chunk_response = {
         "fixes": [
             {"file": "main.py", "line": 10, "end_line": 10,
              "original_lines": ["from mcp.server.fastmcp import FastMCP"],
@@ -836,14 +984,65 @@ def test_directional_dependency_27_group_members_still_show_10_and_25(tmp_path):
         ],
         "flagged_for_human": [],
     }
-    client = FakeLLMClient([response])
+    # Joint-resolution calls (Pass 2) run before ordinary chunk calls.
+    client = FakeLLMClient([solo_response, chunk_response])
 
-    merged = fixgen.run(client, reader, _YOUTRACK_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
-                         uncertain_sites=_YOUTRACK_UNCERTAIN, chunk_size=40)
+    merged = fixgen.run(client, reader, _YOUTRACK_SOLO_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=_YOUTRACK_SOLO_UNCERTAIN, chunk_size=40)
 
+    assert merged["flagged_for_human"] == []
+    fixed_lines = {f["line"] for f in merged["fixes"]}
+    assert fixed_lines == {10, 25, 27}
+    fix27 = next(f for f in merged["fixes"] if f["line"] == 27)
+    # Fix still shows the VISIBILITY neighborhood (70 depends on it),
+    # not the bare solo RESOLUTION id.
+    assert fix27["group_id"] == "main.py:25"  # visibility root: smallest of {25, 27, 70}
+
+    assert len(client.calls) == 2
+    stages = {c["stage"] for c in client.calls}
+    assert stages == {"fixgen_group_main.py_27", "fixgen_chunk_000"}
+    # 10 and 25 reach the model as ordinary, unrelated sites -- 25 has no
+    # edges of its own either, so it's not swept into 27's solo call.
+    chunk_call = next(c for c in client.calls if c["stage"] == "fixgen_chunk_000")
+    assert "main.py:10" in chunk_call["user_text"] and "main.py:25" in chunk_call["user_text"]
+    assert "main.py:27" not in chunk_call["user_text"]
+
+
+def test_youtrack_solo_shape_decline_still_shows_25_27_and_70(tmp_path):
+    # If 27's solo call declines, the flag must still show the full
+    # undirected VISIBILITY neighborhood (25 and 70), even though neither
+    # was sent to the model with it -- 25 has no edge to 27 either; it's
+    # connected only via 70's own edges to both.
+    reader = _make_repo(tmp_path, body=YOUTRACK_SOLO_BODY)
+    solo_response = {
+        "fixes": [],
+        "flagged_for_human": [{"file": "main.py", "line": 27,
+                                "reason": "not confident without seeing the call site"}],
+    }
+    chunk_response = {
+        "fixes": [
+            {"file": "main.py", "line": 10, "end_line": 10,
+             "original_lines": ["from mcp.server.fastmcp import FastMCP"],
+             "proposed_lines": ["from mcp.server.mcpserver import MCPServer"],
+             "reason": "import path renamed"},
+            {"file": "main.py", "line": 25, "end_line": 25,
+             "original_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> FastMCP:"],
+             "proposed_lines": ["def create_server(host=\"0.0.0.0\", port=8000) -> MCPServer:"],
+             "reason": "return annotation renamed"},
+        ],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([solo_response, chunk_response])
+
+    merged = fixgen.run(client, reader, _YOUTRACK_SOLO_PROPOSED, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=_YOUTRACK_SOLO_UNCERTAIN, chunk_size=40)
+
+    assert {f["line"] for f in merged["fixes"]} == {10, 25}
     flag27 = next(f for f in merged["flagged_for_human"] if f["line"] == 27)
+    assert flag27["flag_source"] == "joint_resolution_declined"
+    assert flag27["group_id"] == "main.py:25"
     member_keys = {(m["file"], m["line"]) for m in flag27["group_members"]}
-    assert member_keys == {("main.py", 10), ("main.py", 25), ("main.py", 27), ("main.py", 70)}
+    assert member_keys == {("main.py", 25), ("main.py", 27), ("main.py", 70)}
 
 
 def test_directional_dependency_no_site_is_blocked_by_its_own_dependent(tmp_path):
@@ -1226,26 +1425,23 @@ def test_solo_multi_and_uncertain_groups_coexist_without_interference(tmp_path):
     assert merged["mutual_dependency_warnings"] == []
 
 
-def test_solo_span_group_still_declines_when_grouped_with_an_uncertain_sibling(tmp_path):
-    # The existing group_consistency_guard (uncertain_decline) must still
-    # take priority when a span site DOES have a related_sites companion
-    # that's uncertain -- this shape was already correct before the solo
-    # addition and must not change: has_uncertain wins over "has a span
-    # member", so the group is classified "uncertain_decline", never
-    # "joint_resolve", and this never reaches _run_joint_group at all.
-    # Pass 1's immediate span flag catches it first either way (a span
-    # member's own group not being "joint_resolve" is exactly its trigger
-    # condition, same as an ungrouped span site before this whole solo
-    # addition existed) -- flag_source is multiline_span_guard, not
-    # group_consistency_guard, unchanged from pre-solo behavior (see
-    # test_span_declined_anchor_propagates_group_to_uncertain_siblings
-    # above, the pre-existing test of this exact same priority).
+def test_solo_span_group_still_declines_when_ITS_OWN_edge_reaches_uncertain(tmp_path):
+    # The legitimate uncertain_decline case, not the run-youtrack-solo bug:
+    # here site 12 (span-guarded, PROPOSED) names 20 (uncertain) as ITS OWN
+    # dependency -- 12's own correctness genuinely depends on unconfirmed
+    # content, the mirror of the bug case where an uncertain site named a
+    # self-contained span site as ITS dependency. _resolution_groups counts
+    # a PROPOSED site's own edges, so this one still unions {12, 20} in the
+    # RESOLUTION view, group_class still reads "uncertain_decline" for it,
+    # and 12 still declines immediately via Pass 1's span flag, with no
+    # model call -- has_uncertain (via a real, directional dependency) still
+    # wins over "has a span member", exactly as intended.
     reader = _make_repo(tmp_path, body=_MIXED_BODY)
     proposed = [{"file": "main.py", "line": 12, "snippet": "other = OtherThing(", "pattern": "1",
-                 "reason": "constructor of another renamed class", "related_sites": []}]
+                 "reason": "constructor of another renamed class",
+                 "related_sites": [{"file": "main.py", "line": 20}]}]
     uncertain = [{"file": "main.py", "line": 20, "snippet": "whatever(x)",
-                  "reason": "depends on line 12's constructor args",
-                  "related_sites": [{"file": "main.py", "line": 12}]}]
+                  "reason": "constructor args at line 12 unclear", "related_sites": []}]
     client = FakeLLMClient([])  # never called -- IndexError if it were
     merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
                          uncertain_sites=uncertain, chunk_size=40)
@@ -1255,3 +1451,38 @@ def test_solo_span_group_still_declines_when_grouped_with_an_uncertain_sibling(t
     flag = merged["flagged_for_human"][0]
     assert flag["line"] == 12
     assert flag["flag_source"] == "multiline_span_guard"
+    member_keys = {(m["file"], m["line"]) for m in flag["group_members"]}
+    assert member_keys == {("main.py", 12), ("main.py", 20)}
+
+
+def test_solo_span_group_reaches_solo_call_when_only_an_uncertain_dependent_names_it(tmp_path):
+    # The run-youtrack-solo bug shape, isolated: site 12 (span-guarded,
+    # PROPOSED) has EMPTY related_sites of its own; only an UNCERTAIN
+    # sibling (20) names 12 as ITS dependency (the reverse direction from
+    # the test above). Since _resolution_groups only counts edges a
+    # PROPOSED site declares, this contributes no RESOLUTION edge at all,
+    # so 12 gets its own synthetic solo group and reaches a real call --
+    # it must NOT be swept into uncertain_decline purely because something
+    # depends on it.
+    reader = _make_repo(tmp_path, body=_MIXED_BODY)
+    proposed = [{"file": "main.py", "line": 12, "snippet": "other = OtherThing(", "pattern": "1",
+                 "reason": "constructor of another renamed class", "related_sites": []}]
+    uncertain = [{"file": "main.py", "line": 20, "snippet": "whatever(x)",
+                  "reason": "depends on line 12's constructor args",
+                  "related_sites": [{"file": "main.py", "line": 12}]}]
+    response = {"fixes": [{"file": "main.py", "line": 12, "end_line": 15,
+                            "original_lines": ["other = OtherThing(", "    \"solo\",", "    x=x,", ")"],
+                            "proposed_lines": ["other = NewThing(", "    \"solo\",", "    x=x,", ")"],
+                            "reason": "renamed, keyword arg unchanged"}],
+                "flagged_for_human": []}
+    client = FakeLLMClient([response])
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"),
+                         uncertain_sites=uncertain, chunk_size=40)
+
+    assert merged["flagged_for_human"] == []
+    assert len(merged["fixes"]) == 1
+    assert merged["fixes"][0]["line"] == 12
+    assert client.calls[0]["stage"] == "fixgen_group_main.py_12"
+    # The fix still shows the full VISIBILITY neighborhood (20 depends on
+    # it), even though 20 was never sent to the model.
+    assert merged["fixes"][0]["group_id"] == "main.py:12"

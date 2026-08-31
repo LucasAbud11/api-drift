@@ -133,16 +133,28 @@ def _span_for_site(reader, span_cache, relpath, line):
 
 
 def _multiline_span_flag(site, span):
+    """This fires in exactly one case now (see run()'s Pass 1): a
+    span-guarded PROPOSED site whose RESOLUTION group is "uncertain_decline"
+    -- a PROPOSED member's own dependency (this site's or a companion's)
+    reaches an unconfirmed FLAG-UNCERTAIN site. Every OTHER span-guarded
+    site -- with or without a related_sites companion -- is now routed to
+    a joint or solo model call instead (_add_singleton_span_groups), so
+    the reason text below no longer claims fixgen can't produce a
+    block-level fix at all; it explains why no attempt was made for THIS
+    site specifically."""
     start, end = span
     return {
         "file": site["file"],
         "line": site["line"],
         "reason": (
             f"this line is part of a multi-line statement spanning lines "
-            f"{start}-{end}; fixgen evaluates and rewrites exactly one line "
-            f"at a time, so the rest of that statement (lines {start}-{end}) "
-            f"was not evaluated -- a fix to this line alone may leave the "
-            f"statement broken."
+            f"{start}-{end}; a fix has to cover the whole statement, but no "
+            f"coordinated attempt was made because this site's own "
+            f"resolution group also depends on a site adjudication could "
+            f"not confirm (see group_members below) -- resolving this "
+            f"statement without also resolving what that unconfirmed site "
+            f"needs from it risks shipping a fix that leaves the migration "
+            f"incomplete."
         ),
         "flag_source": "multiline_span_guard",
         "span": [start, end],
@@ -153,37 +165,20 @@ def _site_key(site):
     return (site["file"], site["line"])
 
 
-def _group_by_related_sites(proposed_sites, uncertain_sites):
-    """Deterministic union-find over every proposed/uncertain site's
-    related_sites links -- computed once, before the model sees anything,
-    per the coupling design pass: fact-citation was measured to both
-    over-group (a self-contained rename shares fact numbers with the
-    constructor it has nothing to do with) and under-group (the actually
-    coupled sites on run-azeroth share zero fact numbers), so grouping is
-    derived from adjudication's own related_sites field instead -- the
-    structural record of the dependency it already states in prose (e.g.
-    "depends on what was passed to the FastMCP( constructor at line 68").
+def _union_find_groups(sites_by_key, edge_from):
+    """Deterministic union-find over sites_by_key's related_sites links,
+    counting an edge FROM a given site only when edge_from(entry) says to
+    -- the shared core behind _group_by_related_sites (every edge counts,
+    the full undirected VISIBILITY view) and _resolution_groups (only a
+    PROPOSED site's own edges count, the RESOLUTION view; see that
+    function's docstring for why the two must differ). Kept as one small
+    function, not duplicated, so the union-find mechanics themselves --
+    unrelated to which edges are being asked about -- have exactly one
+    implementation.
 
-    Returns (sites_by_key, group_id_by_key, group_members_by_id):
-      - sites_by_key: {(file, line): {"role": "proposed"|"uncertain", "site": dict}}
-        for every site in proposed_sites + uncertain_sites (uncertain wins
-        on a key collision, which should not happen -- adjudication assigns
-        each candidate to exactly one bucket -- but is harmless either way,
-        since role only affects auto-decline eligibility below).
-      - group_id_by_key: {(file, line): group_id} for keys in a
-        multi-member group; singletons are absent.
-      - group_members_by_id: {group_id: sorted [(file, line), ...]}.
-
-    A related_sites entry naming a (file, line) outside this run's own
-    proposed_sites/uncertain_sites (e.g. a REJECTed candidate, or a line
-    that was never a candidate at all) contributes no edge -- there is
-    nothing on this run's side of that link to group with, or to decline."""
-    sites_by_key = {}
-    for site in proposed_sites:
-        sites_by_key[_site_key(site)] = {"role": "proposed", "site": site}
-    for site in uncertain_sites:
-        sites_by_key.setdefault(_site_key(site), {"role": "uncertain", "site": site})
-
+    Returns (group_id_by_key, group_members_by_id): group_id_by_key is
+    {(file, line): group_id} for keys in a multi-member group (singletons
+    absent); group_members_by_id is {group_id: sorted [(file, line), ...]}."""
     parent = {key: key for key in sites_by_key}
 
     def find(k):
@@ -200,6 +195,8 @@ def _group_by_related_sites(proposed_sites, uncertain_sites):
             parent[rb] = ra
 
     for key, entry in sites_by_key.items():
+        if not edge_from(entry):
+            continue
         for rel in entry["site"].get("related_sites", []):
             other = (rel["file"], rel["line"])
             if other in sites_by_key:
@@ -219,7 +216,87 @@ def _group_by_related_sites(proposed_sites, uncertain_sites):
         for member_key in members:
             group_id_by_key[member_key] = gid
 
+    return group_id_by_key, group_members_by_id
+
+
+def _group_by_related_sites(proposed_sites, uncertain_sites):
+    """The full undirected VISIBILITY view -- computed once, before the
+    model sees anything, per the coupling design pass: fact-citation was
+    measured to both over-group (a self-contained rename shares fact
+    numbers with the constructor it has nothing to do with) and
+    under-group (the actually coupled sites on run-azeroth share zero fact
+    numbers), so grouping is derived from adjudication's own related_sites
+    field instead -- the structural record of the dependency it already
+    states in prose (e.g. "depends on what was passed to the FastMCP(
+    constructor at line 68").
+
+    Every edge counts here, regardless of which site's role declared it --
+    this is the view report.py and every human-facing flag's group_id/
+    group_members render, so a reviewer sees the WHOLE coupled
+    neighborhood (an uncertain site included) around whatever declined.
+    It is deliberately NOT the view that decides eligibility or what gets
+    sent to the model together -- see _resolution_groups and run()'s
+    docstring for the real-run regression (run-youtrack-solo) that
+    conflating the two caused: an uncertain site's edge to a span-guarded
+    site with no dependencies of its own pulled that site into an
+    undirected group, and group_class read "contains an uncertain member"
+    off that same undirected group, wrongly declining a site nothing
+    about its own correctness depends on.
+
+    Returns (sites_by_key, group_id_by_key, group_members_by_id):
+      - sites_by_key: {(file, line): {"role": "proposed"|"uncertain", "site": dict}}
+        for every site in proposed_sites + uncertain_sites (uncertain wins
+        on a key collision, which should not happen -- adjudication assigns
+        each candidate to exactly one bucket -- but is harmless either way,
+        since role only affects auto-decline eligibility below).
+      - group_id_by_key, group_members_by_id: see _union_find_groups.
+
+    A related_sites entry naming a (file, line) outside this run's own
+    proposed_sites/uncertain_sites (e.g. a REJECTed candidate, or a line
+    that was never a candidate at all) contributes no edge -- there is
+    nothing on this run's side of that link to group with, or to decline."""
+    sites_by_key = {}
+    for site in proposed_sites:
+        sites_by_key[_site_key(site)] = {"role": "proposed", "site": site}
+    for site in uncertain_sites:
+        sites_by_key.setdefault(_site_key(site), {"role": "uncertain", "site": site})
+
+    group_id_by_key, group_members_by_id = _union_find_groups(sites_by_key, lambda entry: True)
     return sites_by_key, group_id_by_key, group_members_by_id
+
+
+def _resolution_groups(sites_by_key):
+    """The RESOLUTION view: union-find restricted to edges declared by
+    PROPOSED sites only -- an UNCERTAIN site's own related_sites entries
+    contribute no edge here. This is what decides eligibility (group_class)
+    and what actually gets sent to _run_joint_group together; the full
+    undirected view from _group_by_related_sites is for report rendering
+    only (see that function's docstring and run()'s for the regression
+    this fixes).
+
+    Why restricting to PROPOSED-declared edges is the right rule, not an
+    arbitrary one: an uncertain site is NEVER itself sent to the model --
+    its own resolution was never confirmed by adjudication, so it can
+    never be a member of an actual _run_joint_group call. Its related_sites
+    claim ("I need to see line N") therefore creates no real coordination
+    NEED on line N's part; line N's own correctness does not depend on
+    the uncertain site ever resolving (this is the same "blocking flows
+    from a dependency to its dependents, never the reverse" principle
+    _compute_unsafe_sites already applies -- this function applies the
+    identical principle one step earlier, to GROUPING, not just BLOCKING).
+    A PROPOSED site's own edge is different: that site DOES get sent to
+    the model, and if its own fix genuinely depends on a companion's
+    content, the two must be resolved together -- exactly the legitimate,
+    unchanged multi-member joint_resolve case (e.g. a call site that
+    needs a constructor's arguments). And a PROPOSED site's edge landing
+    on an UNCERTAIN site is preserved too, correctly: if a confident site's
+    own correctness depends on unconfirmed content, uncertain_decline
+    SHOULD still apply to it -- that was always the legitimate reason the
+    guard exists, untouched by this restriction.
+
+    Returns (group_id_by_key, group_members_by_id), same shape as
+    _group_by_related_sites' own -- see _union_find_groups."""
+    return _union_find_groups(sites_by_key, lambda entry: entry["role"] == "proposed")
 
 
 def _add_singleton_span_groups(group_id_by_key, group_members_by_id, sites_by_key, span_map):
@@ -240,20 +317,34 @@ def _add_singleton_span_groups(group_id_by_key, group_members_by_id, sites_by_ke
     related_sites edge and the other didn't. Eligibility now depends only
     on being span-guarded, matching what the guard is actually for.
 
-    Only PROPOSED-role, already-ungrouped keys are touched -- a key already
-    in group_id_by_key (real, >=2-member group from _group_by_related_sites)
-    is left alone entirely, so a multi-member group's classification and
-    behavior are completely unchanged by this pass; span_map itself only
-    ever contains proposed-role keys in the first place (see run()'s
-    docstring), so the role check here is a defensive assertion of that
-    invariant, not a filter expected to ever exclude anything in practice.
+    MUST be called with _resolution_groups' output, not
+    _group_by_related_sites' -- run() does this. A key already grouped in
+    the full undirected VISIBILITY view but NOT in the RESOLUTION view
+    (an uncertain site's edge is the only thing connecting it to anyone)
+    still needs a synthetic group here; only the RESOLUTION view can tell
+    the two cases apart. This is the fix for the run-youtrack-solo
+    regression: passing the visibility view here was the original bug --
+    an uncertain site naming a span-guarded site with no dependencies of
+    its own made that site look "already grouped" and skip this pass
+    entirely, even though nothing about ITS OWN correctness depends on
+    the uncertain site ever resolving. See run()'s docstring.
+
+    Only PROPOSED-role, already-ungrouped (in the RESOLUTION view) keys
+    are touched -- a key already in group_id_by_key there (a real,
+    >=2-member RESOLUTION group) is left alone entirely, so a multi-member
+    group's classification and behavior are completely unchanged by this
+    pass; span_map itself only ever contains proposed-role keys in the
+    first place (see run()'s docstring), so the role check here is a
+    defensive assertion of that invariant, not a filter expected to ever
+    exclude anything in practice.
 
     Returns NEW group_id_by_key/group_members_by_id dicts (does not mutate
     the ones passed in) with the synthetic single-member groups added. A
     synthetic group's id is the member's own (file, line) -- distinct by
     construction from any real group's id, since a real group's id is some
     OTHER member's key (the union-find root), and this key is, by
-    definition of being processed here, not a member of any real group."""
+    definition of being processed here, not a member of any real
+    RESOLUTION group."""
     group_id_by_key = dict(group_id_by_key)
     group_members_by_id = dict(group_members_by_id)
     for key in span_map:
@@ -678,14 +769,46 @@ def _group_call_is_done(path, member_keys):
     return covered == set(member_keys)
 
 
+def _visibility_group_fields(member_keys, vis_group_id_by_key, vis_group_members_by_id, sites_by_key):
+    """The group_id/group_members to stamp on a fix or flag coming out of
+    _run_joint_group -- the full undirected VISIBILITY neighborhood for
+    this call's members (see _group_by_related_sites, _resolution_groups,
+    and run()'s docstring for why this differs from what the call's own
+    RESOLUTION-scoped member_keys is), falling back to member_keys itself,
+    rendered the same way, when none of them has a broader one.
+
+    Every member of a real (non-synthetic) RESOLUTION group shares the
+    exact same VISIBILITY group by construction -- RESOLUTION-view edges
+    (PROPOSED-declared only) are a subset of VISIBILITY-view edges (every
+    edge), so two keys unioned in the former are guaranteed unioned in the
+    (possibly larger) latter too. Checking just the first member is
+    therefore sufficient, not an assumption specific to any one caller."""
+    first = member_keys[0]
+    vis_gid = vis_group_id_by_key.get(first)
+    if vis_gid is not None:
+        return vis_gid, _group_members_rendered(vis_group_members_by_id[vis_gid], sites_by_key)
+    return None, _group_members_rendered(member_keys, sites_by_key)
+
+
 def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
-                      base_system_text, fg_dir, cache_system, cache_ttl):
+                      base_system_text, fg_dir, cache_system, cache_ttl,
+                      vis_group_id_by_key, vis_group_members_by_id):
     """One idempotent, resumable call resolving every member of a
     joint_resolve group (see run()'s classification pass) together: either
     a consistent set of (possibly multi-line) block fixes for every member,
     or a joint decline for the whole group. The model's own bucket choice
     is necessary but never sufficient here -- every fixes-bucket result is
     re-verified by _check_group_value_flow below before it is trusted.
+
+    `gid`/`member_keys` are RESOLUTION-scoped (see run()'s docstring) --
+    who is actually sent to the model, and the only members validated for
+    complete/consistent bucket coverage. `vis_group_id_by_key`/
+    `vis_group_members_by_id` are the separate, full undirected VISIBILITY
+    view, consulted ONLY to decide what `group_id`/`group_members` a
+    resulting fix or flag renders for a human -- never to decide who's in
+    this call or what the model sees. The two can differ: an uncertain
+    site can be part of member_keys' VISIBILITY neighborhood (it depends
+    on one of these members) without ever being sent here itself.
 
     `member_keys` of length 1 is the solo-span case (see run()'s
     _add_singleton_span_groups): a span-guarded site with no related_sites
@@ -771,23 +894,32 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
                 for b in ("fixes", "flagged_for_human") for it in result[b]}
     _check_group_consistency(bucketed, {gid: list(member_keys)}, what=path)
 
-    members_rendered = _group_members_rendered(member_keys, sites_by_key)
+    # What a human sees on any resulting fix/flag -- the VISIBILITY
+    # neighborhood if these members have one, else just themselves. NOT
+    # `gid`/member_keys directly: those are RESOLUTION-scoped and may be
+    # narrower (run()'s docstring; e.g. this call's own solo `gid` when an
+    # uncertain site depends on this member without being sent here).
+    render_gid, members_rendered = _visibility_group_fields(
+        member_keys, vis_group_id_by_key, vis_group_members_by_id, sites_by_key,
+    )
+    if render_gid is None:
+        render_gid = gid
 
     if result["fixes"]:
-        fixes = [dict(item, group_id=gid) for item in result["fixes"]]
+        fixes = [dict(item, group_id=render_gid) for item in result["fixes"]]
         failure = _check_group_value_flow(fixes)
         if failure is not None:
             flags = [{
                 "file": f, "line": l,
                 "reason": (
-                    f"this site's confident-looking joint fix for coordinated group {gid} "
+                    f"this site's confident-looking joint fix for coordinated group {render_gid} "
                     f"was rejected by the deterministic value-flow guard: {failure}. A "
                     f"model-proposed coordinated edit is never trusted without this check. "
                     f"Falling back to flagged_for_human for every member of this group "
                     f"rather than shipping an edit that may have silently dropped a value."
                 ),
                 "flag_source": "value_flow_guard",
-                "group_id": gid,
+                "group_id": render_gid,
                 "group_members": members_rendered,
             } for f, l in member_keys]
             return [], flags
@@ -799,7 +931,7 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
     # read from the model.
     flags = [
         {**item, "flag_source": "joint_resolution_declined",
-         "group_id": gid, "group_members": members_rendered}
+         "group_id": render_gid, "group_members": members_rendered}
         for item in result["flagged_for_human"]
     ]
     return [], flags
@@ -1036,9 +1168,19 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     facts_text = factblock_stage.render_facts_text(factblock)
     system_text = _TEMPLATE.replace("{MIGRATION_FACTS}", facts_text)
 
+    # group_id_by_key/group_members_by_id below is the full undirected
+    # VISIBILITY view -- used ONLY to render group_id/group_members on a
+    # human-facing flag, never again after this point. resolve_id_by_key/
+    # resolve_members_by_id, computed right after, is the RESOLUTION view
+    # (PROPOSED-declared edges only) -- everything that decides ELIGIBILITY
+    # or what gets sent to _run_joint_group together uses that one instead.
+    # See _group_by_related_sites' and _resolution_groups' own docstrings,
+    # and the run-youtrack-solo regression in this docstring above, for why
+    # the two must not be the same structure.
     sites_by_key, group_id_by_key, group_members_by_id = _group_by_related_sites(
         sites, uncertain_sites,
     )
+    resolve_id_by_key, resolve_members_by_id = _resolution_groups(sites_by_key)
 
     # Every site's enclosing-statement span, computed once, up front,
     # independent of any decline/joint-resolution decision below -- the
@@ -1063,17 +1205,19 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     # for how a single-member call differs (a different addendum, and why
     # _check_group_value_flow is still both necessary and sufficient on a
     # 1-element group).
-    group_id_by_key, group_members_by_id = _add_singleton_span_groups(
-        group_id_by_key, group_members_by_id, sites_by_key, span_map,
+    resolve_id_by_key, resolve_members_by_id = _add_singleton_span_groups(
+        resolve_id_by_key, resolve_members_by_id, sites_by_key, span_map,
     )
 
-    # Classify every group once (real, >=2-member groups from related_sites,
-    # and the synthetic 1-member span groups just added above -- this loop
-    # doesn't distinguish them, by design):
-    #  - "uncertain_decline": contains a not-confirmed member -- no
-    #    jointly-consistent set is possible this run, exactly as before.
-    #    Never applies to a synthetic group: _add_singleton_span_groups only
-    #    ever creates one from a PROPOSED-role key.
+    # Classify every RESOLUTION group once (real, >=2-member groups from
+    # PROPOSED-declared related_sites edges, and the synthetic 1-member
+    # span groups just added above -- this loop doesn't distinguish them,
+    # by design):
+    #  - "uncertain_decline": a member of this group depends -- via a
+    #    PROPOSED site's own edge, since that's the only kind of edge the
+    #    RESOLUTION view contains -- on an unconfirmed site. Never applies
+    #    to a synthetic group: _add_singleton_span_groups only ever
+    #    creates one from a PROPOSED-role key with no edges of its own.
     #  - "joint_resolve": every member is confirmed, but at least one needs
     #    block-level treatment a lone per-line call can't safely give --
     #    the youtrack-mcp shape this increment adds real handling for, and
@@ -1084,7 +1228,7 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     #    model independently (same chunk, no group framing), per the
     #    original coupling increment's own measured scope.
     group_class = {}
-    for gid, member_keys in group_members_by_id.items():
+    for gid, member_keys in resolve_members_by_id.items():
         has_uncertain = any(sites_by_key[k]["role"] == "uncertain" for k in member_keys)
         if has_uncertain:
             group_class[gid] = "uncertain_decline"
@@ -1094,25 +1238,33 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     auto_flagged = []
 
     # Pass 1 -- immediate multi-line-span flags. Fires for every span-having
-    # site EXCEPT one whose group is classified "joint_resolve": that
-    # site's fate is decided jointly with the rest of its group in pass 3
-    # below, with full visibility into every member, instead of alone here.
-    # An ungrouped span site, or one in an "uncertain_decline" group, is
-    # flagged immediately exactly as before this increment.
+    # site EXCEPT one whose RESOLUTION group is classified "joint_resolve":
+    # that site's fate is decided jointly with the rest of that group in
+    # pass 2 below, with full visibility into every member, instead of
+    # alone here. Eligibility is read from the RESOLUTION view
+    # (resolve_id_by_key) -- after _add_singleton_span_groups, this is
+    # never None for a span-having key, so the only way a span site is
+    # flagged here now is a genuine "uncertain_decline" RESOLUTION group
+    # (a PROPOSED member's own edge reaches an unconfirmed site). The
+    # flag's OWN group_id/group_members, though, render the full
+    # undirected VISIBILITY view (group_id_by_key) -- a reviewer sees
+    # every related site, uncertain ones included, even ones the
+    # RESOLUTION view excluded from eligibility.
     for key, (start, end) in span_map.items():
-        gid = group_id_by_key.get(key)
-        if gid is not None and group_class.get(gid) == "joint_resolve":
+        resolve_gid = resolve_id_by_key.get(key)
+        if resolve_gid is not None and group_class.get(resolve_gid) == "joint_resolve":
             continue
         site = sites_by_key[key]["site"]
         flag = _multiline_span_flag(site, (start, end))
-        if gid is not None:
-            flag["group_id"] = gid
-            flag["group_members"] = _group_members_rendered(group_members_by_id[gid], sites_by_key)
+        vis_gid = group_id_by_key.get(key)
+        if vis_gid is not None:
+            flag["group_id"] = vis_gid
+            flag["group_members"] = _group_members_rendered(group_members_by_id[vis_gid], sites_by_key)
         auto_flagged.append(flag)
 
     span_declined = {
         key for key in span_map
-        if not (group_id_by_key.get(key) and group_class.get(group_id_by_key[key]) == "joint_resolve")
+        if not (resolve_id_by_key.get(key) and group_class.get(resolve_id_by_key[key]) == "joint_resolve")
     }
 
     # Pass 2 -- joint resolution: one call per "joint_resolve" group, asking
@@ -1134,18 +1286,24 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     # wrong doesn't break anything (a cache write nothing reads back just
     # costs the cache_creation rate instead of the plain input rate on that
     # one call), but there's no reason to pay it needlessly.
-    solo_gids = {gid for gid in joint_gids if len(group_members_by_id[gid]) == 1}
+    solo_gids = {gid for gid in joint_gids if len(resolve_members_by_id[gid]) == 1}
     solo_count = len(solo_gids)
     multi_count = len(joint_gids) - solo_count
     joint_resolved_keys = set()  # every member of a joint_resolve group, fixed or not
     joint_fixed_keys = set()     # the subset that actually received a fix
     for gid in joint_gids:
-        member_keys = group_members_by_id[gid]
+        # member_keys -- who is ACTUALLY sent to the model together -- comes
+        # from the RESOLUTION view. Never the VISIBILITY one: an uncertain
+        # site can appear in the visibility group (e.g. run-youtrack-solo's
+        # 70), and it must never reach the model -- its own resolution was
+        # never confirmed by adjudication in the first place.
+        member_keys = resolve_members_by_id[gid]
         same_kind_count = solo_count if gid in solo_gids else multi_count
         cache_this_call = same_kind_count > 1 or cache_ttl != "5m"
         result_fixes, result_flags = _run_joint_group(
             client, reader, gid, member_keys, sites_by_key, span_map,
             system_text, fg_dir, cache_this_call, cache_ttl,
+            group_id_by_key, group_members_by_id,
         )
         joint_fixes.extend(result_fixes)
         auto_flagged.extend(result_flags)
