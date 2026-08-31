@@ -1399,3 +1399,47 @@ elsewhere in the same file. `27`'s own flag still carries the full
 undirected group roster, and `70` still appears in it as context, so a
 reviewer who reads the flag sees the connection to `10` and `25` rather
 than being told nothing beyond "this line is multi-line."
+
+**The solo joint-resolution path fired on a real repo for the first
+time.** `run-youtrack-solo2` made three API calls where every earlier run
+on this shape made two: adjudication, the ordinary fixgen chunk
+(`main.py:10`, `main.py:25`), and a dedicated call for `main.py:27` — the
+span-guarded `FastMCP(` constructor that, before the grouping-split fix
+above, had been declined with no model call at all purely because an
+uncertain sibling (`main.py:70`) named it as a dependency, not because
+anything about `27` itself required one.
+
+**The model declined it, and the reasoning is correct.** Verified from
+the run's own `fixgen/group_main.py_27.json`: *"The rename `FastMCP(` ->
+`MCPServer(` is mechanical, but this constructor call also passes
+`host=host` and `port=port`, which v2 removed from the constructor...
+Leaving them raises `TypeError:
+MCPServer.__init__() got an unexpected keyword argument 'port'`, and
+removing them here would silently discard the `host`/`port` arguments of
+`create_server()` since the corresponding `mcp.run(...)` call site is not
+visible in this call."* `flag_source: joint_resolution_declined`. This is
+the exact `tonyzorin/youtrack-mcp` insufficient-fix-set failure this
+section already documented — found by hand, reading the diff, ten days
+ago — reasoned about correctly by the model this time and refused rather
+than shipped.
+
+**Two limits, stated rather than claimed as a clean win.** The
+value-flow guard was not exercised: the model declined before producing
+any fix, so `_check_group_value_flow` was never called — the
+deterministic backstop built specifically to catch this failure
+mechanically remains proven only by unit test, not by a real run that
+needed it. And the declining reason is largely information adjudication
+already had: this same run's `adjudication/merged.json` proposed `27`
+with the reason *"Transport-specific kwargs passed here (e.g. host/port)
+may also need to move to run()"* — the concern the solo call's decline
+restates with more specificity (the exact `TypeError`, the explicit
+"not visible in this call"), not one it discovered. The solo call's own
+premise is showing a site its full multi-line statement instead of one
+truncated line, which solves a different problem than this one — the
+missing information was never partially visible within `27`'s own
+statement, it was never visible at all, because it lives at `mcp.run()`,
+a site outside this call's one-member group. The call was not wasted —
+it converted an unconditional, no-attempt decline into a real, deliberate
+refusal grounded in a specific runtime consequence — but it did not, and
+by its own one-member design could not, resolve the underlying
+insufficient-fix-set case; only seeing the companion site would.
