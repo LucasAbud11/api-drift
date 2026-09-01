@@ -1691,3 +1691,17 @@ behaviors again through `cli.main()` end to end (argparse's `--force`/
 `--force=name` parsing, the unknown-name STOPPED message, the
 per-guard-name `--force=<name>` hint in a real `GuardFailure`). 346
 offline tests pass.
+
+**Re-ran the GitHub code search a week after the original, to test
+whether more active targets existed.** Two new repos surfaced
+(`Avik-creator/manim-mcp`, `GobinFan/python-mcp-server-client`); both
+were last pushed in May 2025 with zero merged PRs in 2026, and one pins
+`fastmcp==1.0` rather than `mcp` at all. Both are more dormant than the
+seven repos already approached, not less. This closes the "target
+quality" explanation for the current merge rate: the pool of Python MCP
+servers still on the v1 import path is not growing, and what's left in
+it skews less maintained than what's already been tried, not more.
+Selection works against this tool structurally — a maintainer attentive
+enough to respond quickly to a migration PR is, by the same attentiveness,
+the kind who already bounded their own `mcp` pin below `2.0` before this
+tool ever found them.
