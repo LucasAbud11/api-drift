@@ -1623,3 +1623,26 @@ genuinely contained zero `gf_*` patterns, so the guard had nothing to
 flag and correctly said so. No run in this project has ever shown
 `check_pattern_shape` fail to fire on a vocabulary loaded via
 `--vocabulary` that actually contained a flaggable pattern.
+
+**A design observation, not a bug: `--force` bypasses every guard at
+once, regardless of which one actually fired or why.** It exists because
+`check_vocabulary_coverage` fired on facts later shown in this same
+section to be largely uncoverable by construction (client-side surface a
+thin FastMCP server can't exercise), and has been passed on every real
+run since. `run-databricks-gf2` is the concrete case: `--force` was
+needed for that run at all only because of `check_vocabulary_coverage`'s
+known, already-understood limitation, but the same flag silently carried
+`check_pattern_shape`'s verdict on `gf_tooldecor` past the point of
+stopping anything -- correctly computed, correctly written to
+`pattern_shape.txt`, and never read, because the run simply completed.
+One switch covering guards with different reliability records means the
+trustworthy ones inherit the noisy one's suppression; nothing about that
+run distinguished "bypassing a guard whose false-positive rate is already
+understood" from "bypassing a guard that just caught something real." Not
+changing `--force` now -- a per-guard bypass is a real design change, not
+a same-session fix, and belongs in its own pass. Worth naming on its own,
+though: this is the second consecutive finding in this section produced
+by opening a workdir's own recorded artifacts (`pattern_shape.txt`,
+`manifest.json`) rather than trusting a run's pass/fail outcome or
+re-deriving the answer from reading the code -- the more durable habit to
+carry forward than either individual fix.
