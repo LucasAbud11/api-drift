@@ -19,6 +19,20 @@ class GuardResult:
     report: str = ""
 
 
+# Canonical guard names, in the order pipeline.py runs them, one per
+# check_* function below (name = function name minus "check_"). This is
+# the single source of truth for --force=<name>[,<name>...]'s valid values,
+# the "GUARD BYPASSED [<name>]" stdout messages, and each guard's
+# <name>.txt workdir report -- all three must stay in sync, so all three
+# read from here rather than repeating the list.
+GUARD_NAMES = (
+    "factblock_coverage",
+    "vocabulary_coverage",
+    "pattern_shape",
+    "vocabulary_yield",
+)
+
+
 _CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
 
 

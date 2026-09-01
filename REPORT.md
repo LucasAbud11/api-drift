@@ -1646,3 +1646,48 @@ by opening a workdir's own recorded artifacts (`pattern_shape.txt`,
 `manifest.json`) rather than trusting a run's pass/fail outcome or
 re-deriving the answer from reading the code -- the more durable habit to
 carry forward than either individual fix.
+
+**That observation became the fix: `--force` now takes guard names, not
+just on/off.** `guards.GUARD_NAMES` (`factblock_coverage`,
+`vocabulary_coverage`, `pattern_shape`, `vocabulary_yield`) is the single
+source of truth for three things that previously had no shared name:
+`--force=<name>[,<name>...]`'s valid values, the `GUARD BYPASSED [<name>]`
+stdout line, and each guard's own `workdir/<name>.txt` report -- the
+latter now written for all four unconditionally, pass or fail, where
+`factblock_coverage` and `vocabulary_yield` previously had no on-disk
+report at all. Bare `--force` (CLI) / `force=True` (library) still means
+"bypass everything," kept rather than rejected: a first run against a new
+guide or repo routinely fails a guard nobody has diagnosed yet, and
+requiring named guards up front would force a diagnose-then-re-run cycle
+for the common case this project's own real runs hit constantly. What
+changed is that a blanket bypass can no longer be silent -- every
+suppressed guard prints its own one-line verdict to stdout as it fires
+(`_apply_guard`, `apidrift/pipeline.py`), and once the last guard has run,
+every guard actually bypassed is named again in one consolidated summary
+line, so "something was forced past" is never buried in per-stage
+scrollback the way it was when `run-databricks-gf2` bypassed
+`check_pattern_shape` and only a generic, unnamed "GUARD BYPASSED
+(--force)" line marked it. An unknown name -- `--force=vocabulary_coveragee`
+or similar -- raises `ValueError` in `_normalize_force` before
+`preflight.check_inputs` even runs, so a typo stops the run instead of
+silently resolving to an empty bypass set. `GuardFailure` now carries the
+failing guard's name, so a plain guard stop tells the user `--force=<name>`
+specifically rather than pointing at the blunt, all-or-nothing flag.
+
+10 new offline tests (`tests/test_pipeline_guard_bypass.py`): a
+purpose-built fixture that fails `factblock_coverage` and
+`vocabulary_coverage` simultaneously (a guide naming four symbols where
+the fact block only covers one, and a vocabulary with no pattern for that
+one fact) while `pattern_shape`/`vocabulary_yield` pass cleanly, so naming
+one guard and leaving the other unnamed is actually distinguishable.
+Covers: no `force` stops on the first failing guard; naming one guard
+bypasses only that one and the other still stops the run; naming both
+lets the run complete; an unknown name raises before any client call or
+workdir write; an unknown name mixed into an otherwise-valid list still
+raises, not falls back to "bypass nothing"; every bypass reaches stdout
+(not only its workdir file) plus the consolidated summary line; every
+guard's `<name>.txt` exists regardless of pass/fail; and the same set of
+behaviors again through `cli.main()` end to end (argparse's `--force`/
+`--force=name` parsing, the unknown-name STOPPED message, the
+per-guard-name `--force=<name>` hint in a real `GuardFailure`). 346
+offline tests pass.

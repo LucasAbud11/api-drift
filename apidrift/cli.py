@@ -6,6 +6,11 @@ from . import guards, llm, pipeline, preflight, validate, writer
 from .llm import AnthropicLLMClient, LLMError
 from .stages import factblock, fixgen, gapfill
 
+# argparse const for bare `--force` (no `=value`) -- distinct from any real
+# guard name or comma-separated list, and translated to pipeline.run's
+# force=True (bypass every guard) below, never passed through as a string.
+_FORCE_ALL = "__ALL__"
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="api-drift")
@@ -21,8 +26,14 @@ def main(argv=None):
                         help="Where run artifacts are written. Default: "
                              "./.api-drift-run/<timestamp>/")
     run_p.add_argument("--chunk-size", type=int, default=40)
-    run_p.add_argument("--force", action="store_true",
-                        help="Proceed past a guard failure anyway (still prints the diagnostic).")
+    run_p.add_argument("--force", nargs="?", const=_FORCE_ALL, default=False,
+                        metavar="GUARD1,GUARD2",
+                        help="Proceed past a guard failure anyway. Bare --force bypasses every "
+                             "guard; --force=GUARD1,GUARD2 bypasses only the named guard(s) -- "
+                             "an unknown name stops the run before anything else runs. Every "
+                             "bypassed guard still prints its one-line verdict to stdout (never "
+                             "only to its workdir/<name>.txt report) and is named again in a "
+                             "final summary line. Guard names: " + ", ".join(guards.GUARD_NAMES) + ".")
     run_p.add_argument("--model", default="claude-opus-5")
     run_p.add_argument("--skip-fix-generation", action="store_true",
                         help="Stop after detection; do not generate fixes.")
@@ -147,6 +158,8 @@ def main(argv=None):
                 print(line)
             return
 
+        force = True if args.force == _FORCE_ALL else args.force
+
         client = None
         try:
             preflight.check_api_key()
@@ -157,7 +170,7 @@ def main(argv=None):
                 workdir=workdir,
                 client=client,
                 chunk_size=args.chunk_size,
-                force=args.force,
+                force=force,
                 package_name_override=args.package,
                 skip_fix_generation=args.skip_fix_generation,
                 fixgen_chunk_size=args.fixgen_chunk_size or fixgen.DEFAULT_CHUNK_SIZE,
@@ -185,7 +198,8 @@ def main(argv=None):
         except pipeline.GuardFailure as e:
             print(f"\nSTOPPED: {e.reason}\n", file=sys.stderr)
             print(e.diagnostic_report, file=sys.stderr)
-            print("\nRe-run with --force to proceed anyway.", file=sys.stderr)
+            print(f"\nRe-run with --force={e.name} to proceed past just this guard, "
+                  f"or bare --force to bypass all of them.", file=sys.stderr)
             sys.exit(1)
         except ValueError as e:
             # Every artifact-shape and vocabulary-breadth hard-fail in
