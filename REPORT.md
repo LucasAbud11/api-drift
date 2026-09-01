@@ -1475,3 +1475,43 @@ was never a GT site, but the harness's floor is not as fixed as "same
 host, same guide, same code" implies — a future guide/repo pairing could
 lose a real candidate to this same variance without any code change to
 blame.
+
+**Gap-fill's added patterns were tested against ordinary server-shaped
+repos with existing baselines, not just measured for cost and
+false-positive rate.** The gap-filled vocabulary merged in
+`run-scanner-dedup` (298 patterns, 206 of them from gap-fill) was run
+against two repos with baseline runs already on record against the
+original 115-pattern, pre-gap-fill vocabulary: `RafaelCartenet/
+mcp-databricks-server` (`databricks-analysis`) and `bangumi-analysis`.
+
+**Both runs came back identical to their own baselines.**
+`databricks-analysis`: 4 raw candidates, 3 after prefilter, 2 fixes —
+unchanged from the 115-pattern baseline. `bangumi-analysis`: 15 raw, 5
+after prefilter, 2 fixes and 2 uncertain — also unchanged. Zero
+additional candidates from 206 extra patterns, on either repo.
+
+**This is the same finding as the client-side-surface gap above,
+confirmed rather than merely predicted.** Gap-fill's coverage
+concentrates on `ClientSession`, OAuth, and request-context internals —
+exactly the surface a thin FastMCP server never touches. Of the eight
+repos examined in this project, exactly one (`cisco-ai-defense/
+mcp-scanner`) contains that surface at all; the other seven, these two
+included, have no code for the added vocabulary to match, so the
+extra 206 patterns had nothing to find.
+
+**So gap-fill's roughly $3-per-guide cost buys detection that is inert
+on the repo shape this tool has actually been run against.** Worth
+running when the target exercises client-side code, and worth skipping
+otherwise — a per-target judgment call to make before spending, not a
+default to run on every guide.
+
+**One thing this run surfaced but did not explain: `check_pattern_shape`
+stayed silent on a vocabulary that should still contain the patterns it
+flagged before.** The merged vocabulary run against both repos should
+still hold the overbroad gap-fill patterns identified in the shape-check
+verification above (`gf_uristrlit`, `gf_mcpenv`, `gf_textmime`,
+`gf_tooldecor`, and the four more found alongside them) — the guard did
+not fire on either run. Not established here: whether those specific
+patterns were dropped during the dedup merge into this vocabulary, or
+whether the guard runs on this path but doesn't block. Left open rather
+than assumed.
