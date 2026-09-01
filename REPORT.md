@@ -1527,7 +1527,9 @@ run, not because the check fails to run on it, but because the natural
 filename to reload never contains it. The gap-fill-on-ordinary-repos
 question this was meant to answer is still open — cost/value for
 gap-fill against a thin FastMCP server hasn't actually been measured
-yet, since the two runs above never touched a gap-fill pattern.
+yet, since the two runs above never touched a gap-fill pattern. (Both
+the real measurement and a direct, empirical answer to the guard
+question below appear further down this section, after the fix.)
 
 **Fixed by write order, not by a load-time check.** Considered three
 shapes: write the merged vocabulary to `vocabulary.json` after gap-fill
@@ -1564,3 +1566,60 @@ now holds the 298-pattern merged vocabulary, with the original
 115-pattern input preserved as `vocabulary_pre_gapfill.json` -- so a
 repeat of the databricks/bangumi test against the same on-disk artifacts
 would no longer reproduce this failure.
+
+**The gap-fill-on-ordinary-repos test, re-run against the actual
+298-pattern merged vocabulary this time.** `run-databricks-gf2` loaded
+the repaired `run-scanner-dedup/vocabulary.json` (confirmed 298 patterns
+from its own file size and pattern count, not assumed) against
+`databricks-analysis`. Raw candidates went from 4 (the original,
+115-pattern baseline) to 9. `considered_and_rejected` went from 1 to 2 in
+`adjudication/merged.json`, which prefilter's stage-C duplicate collapse
+and `expand_duplicates` turn into the report's REJECT(1) -> REJECT(6) --
+five byte-identical `@mcp.tool()` lines (`main.py:16/50/100/123/152`)
+collapsed to one adjudication call, rejected once ("Fact 111: `@mcp.tool()`
+is explicitly NOT a breaking change"), then re-expanded back to all five
+for the report. FIX stayed at 2, identical sites and identical diffs to
+the baseline. Every one of the five additional raw candidates carries
+`_pattern: gf_tooldecor` -- confirmed directly from `candidates.json`,
+not inferred. No other gap-fill pattern among the 298 fired even once on
+this repo.
+
+**The conclusion the earlier, wrong-file comparison couldn't reach:** on
+a server-shaped repo, gap-fill's vocabulary contributes noise and an
+adjudication pass to correctly reject it, not additional correct fixes.
+`gf_tooldecor` is the same pattern identified earlier in this section as
+the largest single contributor to `mcp-scanner`'s 2,795-candidate blowup
+(745 candidates there, 26.7% of that run's total) -- the same
+any-`@x.tool()`-shaped overmatch, doing the same thing here at a scale
+five candidates makes affordable to absorb by hand, where at
+`mcp-scanner`'s scale it wasn't. The model adjudicated it correctly both
+times; the cost is candidates and an adjudication call, not incorrect
+output. Whether that trade is worth it depends entirely on repo size --
+five spurious candidates on a 200-line server is noise, the same pattern
+on a large tool-heavy server could be a meaningfully larger fraction of
+adjudication cost for zero additional fixes either way.
+
+**The guard question, resolved empirically rather than by re-reading the
+code: `check_pattern_shape` does run on the `--vocabulary` load path, and
+dedup's merge did not alter `gf_tooldecor` in any way that would let it
+escape the check.** `run-databricks-gf2/pattern_shape.txt` -- generated
+by this same run, against the loaded (not derived) 298-pattern vocabulary
+-- opens with `flagged as open-shape: 9` and lists `gf_tooldecor`
+explicitly: `OPEN SHAPE -- 7 required literal char(s)`, the identical
+verdict recorded for it earlier in this section when the check was first
+built and run against it live. Neither hypothesis this section originally
+weighed survived contact with a real run: the guard is not skipped when a
+vocabulary is loaded rather than derived -- `apidrift/pipeline.py` calls
+`check_pattern_shape(vocab["patterns"])` unconditionally, after vocab is
+finalized, with no branch on `vocabulary_source` -- and dedup's merge
+left `gf_tooldecor`'s regex untouched, character for character, from the
+version the check flagged the first time. The run only proceeded past the
+guard because it was invoked with `--force`, printing `GUARD BYPASSED`
+exactly as designed for a deliberate, already-diagnosed case -- not
+because the guard failed to fire. The earlier appearance of a silent
+guard, recorded above in this same section, was entirely downstream of
+the wrong-file bug: `run-databricks-gapfilled`'s loaded vocabulary
+genuinely contained zero `gf_*` patterns, so the guard had nothing to
+flag and correctly said so. No run in this project has ever shown
+`check_pattern_shape` fail to fire on a vocabulary loaded via
+`--vocabulary` that actually contained a flaggable pattern.
