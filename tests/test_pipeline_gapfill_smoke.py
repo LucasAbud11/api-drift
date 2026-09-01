@@ -130,6 +130,38 @@ def test_gapfill_confirmed_merges_new_pattern_through_to_candidates(tmp_path):
     assert cov["summary"]["uncovered"] == 0
 
 
+def test_gapfill_vocabulary_json_names_the_merged_vocabulary_not_the_pre_merge_one(tmp_path):
+    # Regression test: workdir/vocabulary.json used to be written before the
+    # --gapfill block ran, so it permanently held the pre-merge vocabulary on
+    # any run where gap-fill actually added patterns -- the real merged
+    # result only ever landed in vocabulary_after_gapfill.json. A later
+    # `--vocabulary <workdir>/vocabulary.json` would then silently reload the
+    # non-gap-filled vocabulary. vocabulary.json must always match whatever
+    # was actually used for grep/adjudicate in the same run, and the
+    # pre-merge input must still be recoverable under its own name.
+    repo_root, guide_path = _setup_repo(tmp_path)
+    workdir = str(tmp_path / "workdir")
+    client = ScriptedLLMClient(_script())
+
+    pipeline.run(
+        repo_root=repo_root, guide_path=guide_path, workdir=workdir, client=client,
+        force=True, skip_fix_generation=True, verify_install=False,
+        gapfill=True, gapfill_confirmed=True,
+    )
+
+    import json
+    with open(os.path.join(workdir, "vocabulary.json")) as f:
+        on_disk = json.load(f)
+    with open(os.path.join(workdir, "vocabulary_after_gapfill.json")) as f:
+        after_gapfill = json.load(f)
+    with open(os.path.join(workdir, "vocabulary_pre_gapfill.json")) as f:
+        pre_gapfill = json.load(f)
+
+    assert "gf_widgetsess" in on_disk["patterns"]
+    assert on_disk == after_gapfill
+    assert "gf_widgetsess" not in pre_gapfill["patterns"]
+
+
 def test_gapfill_id_check_warning_is_printed_but_does_not_stop_the_run(tmp_path):
     # A pattern id that doesn't read as an abbreviation of its own
     # regex is non-fatal (see validate.py's _validate_gapfill_pattern_

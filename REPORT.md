@@ -1476,42 +1476,91 @@ host, same guide, same code" implies — a future guide/repo pairing could
 lose a real candidate to this same variance without any code change to
 blame.
 
-**Gap-fill's added patterns were tested against ordinary server-shaped
-repos with existing baselines, not just measured for cost and
-false-positive rate.** The gap-filled vocabulary merged in
-`run-scanner-dedup` (298 patterns, 206 of them from gap-fill) was run
-against two repos with baseline runs already on record against the
-original 115-pattern, pre-gap-fill vocabulary: `RafaelCartenet/
-mcp-databricks-server` (`databricks-analysis`) and `bangumi-analysis`.
+**An attempt to test gap-fill's added patterns against ordinary
+server-shaped repos instead tested nothing new, and finding that out
+uncovered a real naming trap in the pipeline's own output.** The intent
+was to run the gap-filled vocabulary merged in `run-scanner-dedup` (298
+patterns, 183 of them `gf_*`) against two repos with baseline runs
+already on record against the original 115-pattern, pre-gap-fill
+vocabulary: `databricks-analysis` and `bangumi-analysis`. Both new runs
+(`run-databricks-gapfilled`, `run-bangumi-gapfilled`) came back
+byte-identical to their own baselines — `databricks-analysis`: 4 raw
+candidates, 3 after prefilter, 2 fixes; `bangumi-analysis`: 15 raw, 5
+after prefilter, 2 fixes and 2 uncertain — and `check_pattern_shape`
+stayed silent on both, despite the merged vocabulary containing the
+eight overbroad gap-fill patterns the same check had already flagged
+once (`gf_uristrlit`, `gf_mcpenv`, `gf_textmime`, `gf_tooldecor`, and
+four more found alongside them).
 
-**Both runs came back identical to their own baselines.**
-`databricks-analysis`: 4 raw candidates, 3 after prefilter, 2 fixes —
-unchanged from the 115-pattern baseline. `bangumi-analysis`: 15 raw, 5
-after prefilter, 2 fixes and 2 uncertain — also unchanged. Zero
-additional candidates from 206 extra patterns, on either repo.
+**The cause, confirmed from each run's own `manifest.json`, not
+guessed at: both runs loaded the wrong file.** `run-databricks-gapfilled`
+and `run-bangumi-gapfilled` both recorded `"vocabulary_source":
+"loaded:.../run-scanner-dedup/vocabulary.json"` — not
+`vocabulary_after_gapfill.json`, the file that actually holds the
+298-pattern merged result. Diffing `run-scanner-dedup/vocabulary.json`
+against `run-youtrack/vocabulary.json` (the file the *original*
+databricks/bangumi baselines loaded) shows they're pattern-for-pattern
+identical: 115 patterns, zero `gf_*`. Both "gap-fill" runs reloaded the
+exact same pre-gap-fill baseline vocabulary the earlier runs used, under
+a different path, and so reproduced the baseline exactly — not because
+gap-fill's patterns are inert on these repos, but because gap-fill's
+patterns were never in the input at all.
 
-**This is the same finding as the client-side-surface gap above,
-confirmed rather than merely predicted.** Gap-fill's coverage
-concentrates on `ClientSession`, OAuth, and request-context internals —
-exactly the surface a thin FastMCP server never touches. Of the eight
-repos examined in this project, exactly one (`cisco-ai-defense/
-mcp-scanner`) contains that surface at all; the other seven, these two
-included, have no code for the added vocabulary to match, so the
-extra 206 patterns had nothing to find.
+**The guard didn't misbehave; the artifact it was pointed at was never
+the merged one.** `apidrift/pipeline.py` writes `workdir/vocabulary.json`
+once, immediately after load/derive (line 165) and *before* the gap-fill
+block runs. Gap-fill's actual output is written separately, to
+`vocabulary_after_gapfill.json` (line 198) — `vocabulary.json` is never
+rewritten afterward. So in any workdir where gap-fill ran,
+`vocabulary.json` permanently holds the pre-gap-fill input, and it's the
+filename anyone would reach for by default in a follow-up `--vocabulary`
+run — confirmed here: `run-scanner-dedup/pattern_shape.txt` (the check
+run live, in-memory, during the original run) does show all eight
+patterns flagged, exactly as this section already recorded; it's only
+the two later runs, reloading the wrong on-disk file, that saw a clean
+115-pattern vocabulary and correctly reported nothing wrong with it.
+None of the three hypotheses going in were right as stated — the dedup
+merge didn't strip the patterns, and the guard isn't skipped on the load
+path — but the practical effect is the one flagged as worth checking: a
+bad post-merge vocabulary can silently go unchecked on every subsequent
+run, not because the check fails to run on it, but because the natural
+filename to reload never contains it. The gap-fill-on-ordinary-repos
+question this was meant to answer is still open — cost/value for
+gap-fill against a thin FastMCP server hasn't actually been measured
+yet, since the two runs above never touched a gap-fill pattern.
 
-**So gap-fill's roughly $3-per-guide cost buys detection that is inert
-on the repo shape this tool has actually been run against.** Worth
-running when the target exercises client-side code, and worth skipping
-otherwise — a per-target judgment call to make before spending, not a
-default to run on every guide.
-
-**One thing this run surfaced but did not explain: `check_pattern_shape`
-stayed silent on a vocabulary that should still contain the patterns it
-flagged before.** The merged vocabulary run against both repos should
-still hold the overbroad gap-fill patterns identified in the shape-check
-verification above (`gf_uristrlit`, `gf_mcpenv`, `gf_textmime`,
-`gf_tooldecor`, and the four more found alongside them) — the guard did
-not fire on either run. Not established here: whether those specific
-patterns were dropped during the dedup merge into this vocabulary, or
-whether the guard runs on this path but doesn't block. Left open rather
-than assumed.
+**Fixed by write order, not by a load-time check.** Considered three
+shapes: write the merged vocabulary to `vocabulary.json` after gap-fill
+runs (keeping the pre-merge input under its own name); leave the write
+order alone and just rename the pre-merge file to something unambiguous;
+or have vocabulary loading refuse a `vocabulary.json` whose sibling
+`manifest.json` records a gap-fill pass, redirecting to the merged file.
+Took the first. The third was rejected specifically: it would need
+`--vocabulary` loading to reach outside the one file it's given and
+parse a co-located `manifest.json` that may not travel with it, coupling
+two artifacts that are independent everywhere else in this pipeline, and
+it treats the symptom (the wrong file gets loaded) rather than the cause
+(the right file was never the merged one). `apidrift/pipeline.py` now
+writes `workdir/vocabulary.json` once, after the `--gapfill` block, from
+whatever `vocab` holds at that point -- identical to
+`vocabulary_after_gapfill.json` when gap-fill merged anything, and to the
+loaded/derived vocabulary otherwise. The pre-merge input, when `--gapfill`
+is requested at all, is written separately to `vocabulary_pre_gapfill.json`
+before the confirmation gate, so nothing observed before is lost -- a run
+that stops at `GapfillNeedsConfirmation` now correctly leaves no
+`vocabulary.json` at all, since nothing has been used for detection yet.
+This makes the invariant unconditional rather than advisory: whatever
+`--vocabulary <workdir>/vocabulary.json` loads on a later run is, by
+construction, what that workdir's own run actually searched with -- no
+cross-run manifest inspection required. One new test
+(`test_gapfill_vocabulary_json_names_the_merged_vocabulary_not_the_pre_merge_one`,
+`tests/test_pipeline_gapfill_smoke.py`) pins this by asserting
+`vocabulary.json == vocabulary_after_gapfill.json` and `gf_widgetsess`
+absent from `vocabulary_pre_gapfill.json` on the same scripted run this
+file already exercises. 336 offline tests pass. The two stale on-disk
+workdirs from the finding above (`run-scanner-dedup`, and by extension
+anything loaded from it) were also repaired directly -- `vocabulary.json`
+now holds the 298-pattern merged vocabulary, with the original
+115-pattern input preserved as `vocabulary_pre_gapfill.json` -- so a
+repeat of the databricks/bangumi test against the same on-disk artifacts
+would no longer reproduce this failure.

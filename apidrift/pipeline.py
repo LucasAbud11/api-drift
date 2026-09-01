@@ -162,8 +162,18 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         vocab = vocabulary.derive(client, guide_text, fb)
         vocab["guide_sha256"] = guide_sha256
         manifest["vocabulary_source"] = "derived"
-    _write_json(os.path.join(workdir, "vocabulary.json"), vocab)
     print_fn(f"      {len(vocab['patterns'])} patterns")
+    # vocabulary.json itself is written after the --gapfill block below, once
+    # `vocab` holds whatever was actually used for grep/adjudicate -- never
+    # here. A prior version wrote it at this point unconditionally, which
+    # made workdir/vocabulary.json a permanent pre-merge snapshot on every
+    # run where gap-fill ran (the real merged result only ever landed in
+    # vocabulary_after_gapfill.json), so `--vocabulary <old workdir>/
+    # vocabulary.json` on a later run silently reloaded the wrong,
+    # non-gap-filled vocabulary. If gap-fill is requested, this pre-merge
+    # vocab is preserved under its own explicit name so nothing is lost.
+    if gapfill:
+        _write_json(os.path.join(workdir, "vocabulary_pre_gapfill.json"), vocab)
 
     _write_json(os.path.join(workdir, "manifest.json"), manifest)
 
@@ -220,6 +230,12 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
                           f"in -- see gapfill/report.json for the full reason on each):")
                 for w in gapfill_report["anti_goodhart_warnings"]:
                     print_fn(f"        [{w['check']}] {w['pattern']} ({w['regex']!r})")
+
+    # Written here, after any gap-fill merge, so vocabulary.json always names
+    # the vocabulary actually used for grep/adjudicate below -- identical to
+    # vocabulary_after_gapfill.json when gap-fill ran and merged anything, and
+    # to the loaded/derived vocab otherwise.
+    _write_json(os.path.join(workdir, "vocabulary.json"), vocab)
 
     coverage_summary = {"non_breaking": 0, "no_identifier": 0, "unsearchable": 0, "covered": 0, "partial": 0, "uncovered": 0}
     for row in coverage_rows:
