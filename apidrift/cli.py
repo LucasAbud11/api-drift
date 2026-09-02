@@ -4,7 +4,7 @@ from argparse import BooleanOptionalAction
 
 from . import guards, llm, pipeline, preflight, validate, writer
 from .llm import AnthropicLLMClient, LLMError
-from .stages import factblock, fixgen, gapfill
+from .stages import factblock, fixgen, gapfill, vocabulary
 
 # argparse const for bare `--force` (no `=value`) -- distinct from any real
 # guard name or comma-separated list, and translated to pipeline.run's
@@ -60,6 +60,10 @@ def main(argv=None):
                         help="Approx. input-token budget per fact-block chunk -- a `##` guide "
                              "section over this budget is split further on its own `###` "
                              f"subheadings. Default: {factblock.DEFAULT_CHUNK_SIZE}.")
+    run_p.add_argument("--vocabulary-chunk-size", type=int, default=None,
+                        help="Facts per vocabulary-derivation chunk -- vocabulary's output is "
+                             "one-or-more patterns per fact, so a larger fact block needs more "
+                             f"chunks, not a higher max_tokens. Default: {vocabulary.DEFAULT_CHUNK_SIZE}.")
     run_p.add_argument("--dry-run", action="store_true",
                         help="Print the planned fact-block chunk list (guide section, approx "
                              "input tokens) and an estimated cost, then exit without making "
@@ -105,6 +109,7 @@ def main(argv=None):
             workdir = f"./.api-drift-run/{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
 
         factblock_chunk_size = args.factblock_chunk_size or factblock.DEFAULT_CHUNK_SIZE
+        vocabulary_chunk_size = args.vocabulary_chunk_size or vocabulary.DEFAULT_CHUNK_SIZE
         gapfill_chunk_size = args.gapfill_chunk_size or gapfill.DEFAULT_CHUNK_SIZE
 
         if args.dry_run:
@@ -179,6 +184,7 @@ def main(argv=None):
                 factblock_path=args.factblock,
                 vocabulary_path=args.vocabulary,
                 factblock_chunk_size=factblock_chunk_size,
+                vocabulary_chunk_size=vocabulary_chunk_size,
                 model=args.model,
                 cache_ttl=args.cache_ttl,
                 gapfill=args.gapfill,

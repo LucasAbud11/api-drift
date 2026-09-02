@@ -1705,3 +1705,42 @@ Selection works against this tool structurally — a maintainer attentive
 enough to respond quickly to a migration PR is, by the same attentiveness,
 the kind who already bounded their own `mcp` pin below `2.0` before this
 tool ever found them.
+
+**Stage 2 (vocabulary derivation) is now chunked — the last of the
+pipeline's four LLM-calling stages to stay unchunked, and its one-call
+success on the 819-fact MCP guide was itself part of a problem already
+found in this section, not a clean bill of health.** A larger real guide
+(Pydantic v1→v2) truncated stage 2 at `max_tokens=16000` with 234 facts
+derived so far — the same wall stage 1 hit twice on the MCP guide before
+raising `max_tokens` turned out to be the wrong axis (§10, above).
+`vocabulary.py` now chunks by fact count (`--vocabulary-chunk-size`,
+default 40) instead, same idempotent-per-chunk-file design
+`adjudicate.py`/`gapfill.py` already use, `cache_system` gated on the
+shared system-prompt prefix — base rules, package name, guide text —
+being read back by more than one chunk. The retrospective point: stage 2
+fitting under one call's ceiling on the 819-fact MCP guide (115 patterns)
+was never evidence it covered everything — it's the same guide gap-fill
+later measured at 269 uncovered identifier spans with zero token overlap
+with any of those 115 patterns. A single call silently narrowing its own
+attempted scope to fit a ceiling is indistinguishable, from the outside,
+from a single call that actually covered everything; chunking removes
+that ambiguity by forcing every fact into some chunk's own explicit
+attempted scope, whether or not that chunk's own response ends up
+producing a pattern for it. Merge concatenates every chunk's patterns —
+an id colliding with nothing already merged is left unchanged, an id
+colliding with an earlier chunk's own choice is renamed with a numeric
+suffix and logged, never silently dropped, the same collision response
+`gapfill.py`'s own cross-chunk case already uses. 26 new offline tests
+(`tests/test_vocabulary_chunking.py`): chunk planning, resume, id
+collision on merge, `cache_system` gating (single-chunk default-TTL off,
+multi-chunk on, single-chunk non-default-TTL on), per-chunk truncation
+naming the chunk and pointing at `--vocabulary-chunk-size`, and
+`guards.check_vocabulary_coverage`/`check_vocabulary_yield` still running
+unchanged against a merged, chunked vocabulary. This changed stage 2's
+request shape (facts moved out of `user_text` into a cacheable
+`system_text` prefix shared across chunks), which makes
+`tests/cassettes/targetb_small/cassette.json` stale by design —
+`test_replay_targetb.py`'s own docstring calls this the correct failure
+mode for a real prompt-shape change, not a bug — and re-recording it
+means a real, paid API call this session has not made without asking
+first.

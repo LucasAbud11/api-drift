@@ -73,7 +73,7 @@ def test_factblock_stage_requests_32000_max_tokens(tmp_path):
 def test_vocabulary_stage_requests_16000_max_tokens(tmp_path):
     client = ScriptedLLMClient(_script())
     fb = factblock.run(client, GUIDE_TEXT, str(tmp_path / "workdir"))
-    vocabulary.derive(client, GUIDE_TEXT, fb)
+    vocabulary.run(client, GUIDE_TEXT, fb, str(tmp_path / "workdir"))
     assert client.calls[-1]["max_tokens"] == 16000
 
 

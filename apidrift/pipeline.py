@@ -100,7 +100,8 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         package_name_override=None, print_fn=print, skip_fix_generation=False,
         fixgen_chunk_size=fixgen.DEFAULT_CHUNK_SIZE, verify_install=True,
         package_version_override=None, factblock_path=None, vocabulary_path=None,
-        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE, model=None, cache_ttl="5m",
+        factblock_chunk_size=factblock.DEFAULT_CHUNK_SIZE,
+        vocabulary_chunk_size=vocabulary.DEFAULT_CHUNK_SIZE, model=None, cache_ttl="5m",
         gapfill=False, gapfill_confirmed=False, gapfill_chunk_size=gapfill_stage.DEFAULT_CHUNK_SIZE):
     """Runs the full pipeline. Never writes anything outside `workdir` --
     repo access goes exclusively through RepoReader, which has no write
@@ -141,12 +142,15 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
     and check_factblock_coverage/check_vocabulary_coverage guard a freshly
     derived one gets -- loading is never a way to skip either.
 
-    `factblock_chunk_size`/`model`: stage 1 is chunked by guide section
-    (see stages/factblock.py) -- `factblock_chunk_size` is the approx.
-    input-token budget per chunk, and `model` (a plain string, not read
-    off `client`, since not every LLMClient implementation carries one)
-    is used only to print a per-chunk cost estimate as each chunk
-    completes; omitted entirely (no cost line) if None.
+    `factblock_chunk_size`/`vocabulary_chunk_size`/`model`: stage 1 is
+    chunked by guide section (see stages/factblock.py) --
+    `factblock_chunk_size` is the approx. input-token budget per chunk.
+    Stage 2 is chunked by fact count instead (see stages/vocabulary.py)
+    -- `vocabulary_chunk_size` is the number of facts per chunk.
+    `model` (a plain string, not read off `client`, since not every
+    LLMClient implementation carries one) is used only to print a
+    per-chunk cost estimate as each chunk completes, for both stages;
+    omitted entirely (no cost line) if None.
 
     `cache_ttl`: prompt-cache TTL for adjudicate/fixgen's system prompt
     ("5m" default, or "1h"). Only worth raising when running several
@@ -227,8 +231,10 @@ def run(repo_root, guide_path, workdir, client, chunk_size=40, force=False,
         _warn_on_guide_mismatch("vocabulary", vocab.get("guide_sha256"))
         manifest["vocabulary_source"] = f"loaded:{os.path.abspath(vocabulary_path)}"
     else:
-        print_fn(f"[2/{total_stages}] Deriving vocabulary...")
-        vocab = vocabulary.derive(client, guide_text, fb)
+        print_fn(f"[2/{total_stages}] Deriving vocabulary "
+                  f"(chunk size: {vocabulary_chunk_size} facts)...")
+        vocab = vocabulary.run(client, guide_text, fb, workdir, chunk_size=vocabulary_chunk_size,
+                                model=model, cache_ttl=cache_ttl, print_fn=print_fn)
         vocab["guide_sha256"] = guide_sha256
         manifest["vocabulary_source"] = "derived"
     print_fn(f"      {len(vocab['patterns'])} patterns")

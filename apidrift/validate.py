@@ -274,6 +274,51 @@ def validate_vocabulary_file(path):
     return validate_vocabulary(data, what=path)
 
 
+def validate_vocabulary_chunk(data, what="vocabulary chunk"):
+    """One vocabulary-derivation chunk's raw shape -- 'patterns' as the
+    {name, regex} PAIR LIST the schema actually asks the model for (see
+    vocabulary.py's own SCHEMA comment for why: structured-output schemas
+    can't express an open-ended name->regex mapping), not yet the dict
+    validate_vocabulary expects. Every pattern gets the same
+    _validate_pattern_regex discipline (compiles, no bare global flag, no
+    bare generic-method match) any vocabulary pattern gets, whether it's
+    chunk-level or already merged.
+
+    Only pattern-id uniqueness WITHIN this chunk is enforced here -- a
+    name colliding with another CHUNK's own pattern is expected (each
+    chunk is derived independently, with zero visibility into any other
+    chunk's choices) and is renamed at merge time
+    (vocabulary.py's _merge_patterns), not failed here.
+
+    A chunk's own patterns list may legitimately be empty -- a chunk
+    whose facts are all UNCHANGED/out-of-scope per the prompt's own
+    first rule contributes nothing, same relaxation
+    validate_factblock_chunk applies to an empty facts list. The merged
+    result coming out of _merge_patterns still goes through
+    validate_vocabulary unchanged, so the full vocabulary's contract
+    (non-empty patterns) is enforced exactly as before -- this
+    relaxation applies only to one chunk's partial view."""
+    if not isinstance(data, dict):
+        _fail(what, "top level is not a JSON object")
+    if "patterns" not in data:
+        _fail(what, "missing required top-level key 'patterns'")
+    patterns = data["patterns"]
+    if not isinstance(patterns, list):
+        _fail(what, f"'patterns' must be a list of {{name, regex}} objects, got "
+                     f"{type(patterns).__name__}")
+    seen_names = set()
+    for idx, item in enumerate(patterns):
+        if not isinstance(item, dict) or "name" not in item or "regex" not in item:
+            _fail(what, f"'patterns[{idx}]' malformed: expected {{'name', 'regex'}}, got {item!r}")
+        name, regex = item["name"], item["regex"]
+        if name in seen_names:
+            _fail(what, f"duplicate pattern id '{name}' within this chunk -- every id must "
+                         f"be unique at least within one chunk's own output")
+        seen_names.add(name)
+        _validate_pattern_regex(name, regex, what)
+    return data
+
+
 # ---------------------------------------------------------------------
 # Gap-fill two-bucket contract -- same discipline as the adjudication/
 # fixgen two/three-bucket contracts below: a result must declare both
