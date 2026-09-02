@@ -25,7 +25,11 @@ def main(argv=None):
     run_p.add_argument("--workdir", default=None,
                         help="Where run artifacts are written. Default: "
                              "./.api-drift-run/<timestamp>/")
-    run_p.add_argument("--chunk-size", type=int, default=40)
+    run_p.add_argument("--adjudicate-chunk-size", "--chunk-size", dest="chunk_size",
+                        type=int, default=40,
+                        help="Candidates per adjudication call. A chunk that still truncates "
+                             "at adjudication's max_tokens is a signal this is too large. "
+                             "--chunk-size is kept as an alias for this same flag.")
     run_p.add_argument("--force", nargs="?", const=_FORCE_ALL, default=False,
                         metavar="GUARD1,GUARD2",
                         help="Proceed past a guard failure anyway. Bare --force bypasses every "
@@ -39,7 +43,8 @@ def main(argv=None):
                         help="Stop after detection; do not generate fixes.")
     run_p.add_argument("--fixgen-chunk-size", type=int, default=None,
                         help="Sites per fix-generation call. Default: a smaller size than "
-                             "--chunk-size, since each site carries surrounding source context.")
+                             "--adjudicate-chunk-size, since each site carries surrounding "
+                             "source context.")
     run_p.add_argument("--no-verify-install", dest="verify_install", action="store_false",
                         help="Skip tier-2 fix verification (pip-installing the target package "
                              "into an isolated venv under --workdir and checking touched "

@@ -3,12 +3,29 @@ file per chunk, written only after it passes validate.validate_adjudication_dict
 so a partial failure costs exactly the chunks that failed, not the whole
 run. Adapted from rule_test/prefilter_experiment/pipeline.py's ChunkPlan --
 same design, wired to an LLMClient instead of a human/agent dispatch.
+
+max_tokens=16000 (raised from 8000 after a real Pydantic v1->v2 run
+truncated adjudicate_chunk_003 at 292 post-prefilter candidates, well
+above the 5-98 range every MCP run had stayed under). This is the
+opposite call from stage 1 (factblock.py) and stage 2 (vocabulary.py),
+where raising max_tokens was rejected in favor of chunking: a fact block
+or vocabulary is embedded as CONTEXT in every later call in the same run
+(and, via --factblock/--vocabulary, in every future run against the same
+guide), so letting either grow makes every one of those calls more
+expensive. Adjudication's output is not context for anything downstream
+-- each chunk's three-bucket verdict is merged, read once by
+prefilter/fixgen/report, and never re-embedded in a later prompt. A
+bigger ceiling here only lets one chunk finish exactly the same
+already-bounded verdict list it was always going to produce; it doesn't
+compound. 16000 also stays under the same non-streaming-request-duration
+threshold that made 32000 the wrong value for stage 1 (see
+AnthropicLLMClient.complete's own streaming comment in llm.py).
 """
 import json
 import math
 import os
 
-from .. import validate
+from .. import llm, validate
 from . import factblock as factblock_stage
 
 _PROMPT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts")
@@ -152,16 +169,25 @@ def run(client, candidates, factblock, workdir, chunk_size=DEFAULT_CHUNK_SIZE, c
             f"CANDIDATE LIST ({len(shown)} items):\n\n"
             f"```json\n{json.dumps(shown, indent=2)}\n```"
         )
-        result = client.complete(
-            stage=f"adjudicate_chunk_{idx:03d}",
-            system_text=system_text,
-            user_text=user_text,
-            schema=SCHEMA,
-            cache_system=cache_system,
-            cache_ttl=cache_ttl,
-            max_tokens=8000,
-            effort="high",
-        )
+        try:
+            result = client.complete(
+                stage=f"adjudicate_chunk_{idx:03d}",
+                system_text=system_text,
+                user_text=user_text,
+                schema=SCHEMA,
+                cache_system=cache_system,
+                cache_ttl=cache_ttl,
+                max_tokens=16000,
+                effort="high",
+            )
+        except llm.TruncatedResponseError as e:
+            raise llm.TruncatedResponseError(
+                f"{e} This chunk covers {len(chunk_candidates)} candidate(s) (adjudication "
+                f"chunk {idx + 1}/{len(chunks)}). Lower --adjudicate-chunk-size (currently "
+                f"{chunk_size}) so it splits into smaller chunks instead of raising "
+                f"max_tokens again -- adjudication's output scales with candidate count, so "
+                f"a bigger ceiling just moves the wall this chunking exists to avoid."
+            ) from e
         validate.validate_adjudication_dict(result, what=f"chunk_{idx:03d}")
         expected = {(c["file"], c["line"]) for c in chunk_candidates}
         adjudicated = set()
