@@ -1744,3 +1744,92 @@ request shape (facts moved out of `user_text` into a cacheable
 mode for a real prompt-shape change, not a bug — and re-recording it
 means a real, paid API call this session has not made without asking
 first.
+
+**A capability test against the largest, most actively maintained target
+run against this pipeline yet — `ALIGN-analoglayout/ALIGN-public`, 405
+Python files, `pydantic>=1.9.2,<2.0` pinned, real commit activity — not
+another thin FastMCP wrapper, and an order of magnitude past the MCP
+guide every stage limit up to this point had been tuned against.** 234
+facts derived from the official Pydantic v1→v2 migration guide (the same
+truncation the entry above documents fixing). 464 raw grep candidates,
+292 after prefilter, adjudicated to 229 `PROPOSE` / 17 `FLAG-UNCERTAIN` /
+78 `REJECT`. Fix generation produced 174 `FIX` / 55 `FLAG-FOR-HUMAN`.
+Install-tier verification resolved 2/2 touched imports against a real,
+freshly-installed `pydantic==2.12.3` in an isolated venv — the first
+run at this scale to reach tier 2 at all.
+
+**Tier 1 caught a fabricated original for the first time on any run, on
+any migration — not a hallucinated target line, a hallucinated ORDER.**
+Two of the 174 fixes failed `check_parse_and_line_match`:
+`align/schema/types.py:133` and `:222`, both `class Config:` blocks. The
+model's claimed original reproduced the first three lines
+(`class Config:`, `validate_assignment = True`, `extra = 'forbid'`)
+correctly, then gave `allow_mutation = False` before
+`copy_on_model_validation = 'none'`; the real source has
+`copy_on_model_validation = 'none'` third and `allow_mutation = False`
+fourth. Every line the model claimed is real text that exists somewhere
+in the block — nothing was invented — but the claimed sequence isn't
+the file's actual sequence: `copy_on_model_validation = 'none'` dropped
+out of its real position in the middle of the block, and
+`allow_mutation = False` was pulled up to fill the gap, with the missing
+line reappearing at the end instead of where it belongs. Applying either
+fix as proposed would have silently deleted a real v1 config key this
+migration requires a human decision about (`copy_on_model_validation`
+has no v2 equivalent), while looking, from the diff alone, like a clean
+four-line reproduction. This is exactly the failure tier 1 exists to
+catch — a hallucinated *original*, not a bad *replacement* — and the
+first time it has actually fired on a fabrication rather than a
+formatting difference, on any run this project has done.
+
+**Five stage limits exposed by this run, every one of them tuned against
+the MCP guide, a migration an order of magnitude smaller than this
+one.** Vocabulary derivation (stage 2) truncated at 234 facts — already
+fixed by chunking it (the entry immediately above this one). Adjudication
+truncated at its old `max_tokens=8000` ceiling on a 292-candidate chunk;
+raised to 16000 — the OPPOSITE call from stage 1/stage 2's own chunking
+fix, and deliberately so: a fact block or vocabulary is embedded as
+context in every later call, so letting either grow makes every one of
+them more expensive, but adjudication's per-chunk verdict is merged, read
+once, and never re-embedded downstream, so a bigger ceiling here only
+lets one chunk finish the same already-bounded output it was always going
+to produce. Fix generation (`fixgen.py`) truncated at the same `8000`
+ceiling on a 229-site chunk; raised to 16000 for the identical
+non-compounding reason, plus a structural one specific to this stage —
+block-shaped fixes carry `original_lines`/`proposed_lines` as full line
+lists, doubling response size for any multi-line fix, a cost that didn't
+exist when `8000` was first set. `fixgen._add_singleton_span_groups` gave
+every span-guarded
+site its own one-member group without checking whether one site's span
+already contained another — two lines inside ONE enclosing statement
+(`align/pdk/finfet/digital.py` 48 and 50, no `related_sites` edge between
+them) each got an independent solo call, each free to rewrite the whole
+shared statement with zero visibility into the other, producing two
+overlapping fixes; the same shape recurred at least five times in this
+run (`resistor.py` 41/42, `main.py` 184/185, `test_user_constraint.py`
+163/165, `test_check_place_on_grid.py` 65/66) before it was fixed to
+group by span overlap/containment instead of by site. And three separate
+all-or-nothing aborts — a torn coupled pair (a confident fix depending,
+per `related_sites`, on a site the model independently declined
+elsewhere), a fix-overlap check, and `verify.py`'s own `_check_overlaps`
+raising despite that module's docstring promising it never does — each,
+independently, would have blocked this entire 174-fix run over a single
+pair. All three now resolve deterministically (dedupe a provable
+duplicate, decline a real conflict into `flagged_for_human`, report
+non-fatally) instead of aborting; `writer.py`'s own apply-time overlap
+check is the one deliberate exception left raising, since it has no
+`flagged_for_human` bucket to decline into at that point and fixgen now
+guarantees it should never see an overlap in the first place. None of
+these five limits were visible on any prior run — every one of them
+needed a target an order of magnitude past MCP to surface.
+
+**Adjudication's own per-chunk coverage check caught a genuine omission —
+one candidate silently missing from an otherwise well-formed chunk
+response.** The `adjudicated != expected` mismatch check `adjudicate.py`
+has carried since it was first written (mirrored in `fixgen.py`'s own
+chunk-coverage check) fired mid-run. A retry of the same chunk cleared
+it, with every candidate present the second time: this was one dropped
+entry from that specific response, not the chunk itself being
+unanswerable — the same distinction fixgen's own
+truncation-vs-malformed-response reasoning (above) draws for a different
+symptom, this time confirmed by the retry actually succeeding rather than
+inferred from the shape of the failure.
