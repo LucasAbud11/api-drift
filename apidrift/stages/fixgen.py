@@ -526,16 +526,27 @@ def _describe_unsafe_cause(key, unsafe_cause, sites_by_key, span_map, mutual_par
 
 
 def _check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what):
-    """The real invariant this pipeline must never violate, replacing the
-    old undirected "every group member must land in the same bucket"
-    check for this run-wide sweep (see run()'s docstring for why that
-    check over-declined on run-youtrack-joint): a site that shipped as a
-    FIX must never depend on something that did not ALSO ship as a fix.
-    A fix depending on another fix is fine regardless of grouping; a fix
-    depending on a decline, an uncertain site, or anything not in
-    `merged_bucketed` at all, is the exact insufficient-fix-set shape the
-    original coupling increment exists to catch -- checked precisely by
-    dependency now, instead of by blanket group membership."""
+    """The real invariant this pipeline must never violate: a site that
+    shipped as a FIX must never depend on something that did not ALSO ship
+    as a fix. A fix depending on another fix is fine regardless of
+    grouping; a fix depending on a decline, an uncertain site, or anything
+    not in `merged_bucketed` at all, is the exact insufficient-fix-set
+    shape the original coupling increment exists to catch -- checked
+    precisely by dependency now, instead of by blanket group membership.
+
+    run() no longer relies on this raising to keep a torn pair off disk --
+    see _demote_dependents_of_unresolved_sites, which runs first and moves
+    the offending fix (and, transitively, anything that in turn depended
+    on it) into flagged_for_human instead of aborting the whole run over
+    one coupled pair. This function still runs immediately after, as a
+    defensive post-condition: that demotion is a fixed point over a
+    directed graph with a finite "fixes" set, so it always converges to a
+    state satisfying this invariant (see that function's own docstring for
+    why it can never cross into, and retear, an already-consistent
+    joint-resolved group). If this still raises, the dependency-closure
+    computation itself has a bug -- a genuine defect, not a coupling shape
+    this pipeline knows how to route around -- and aborting remains
+    correct."""
     for key, bucket in merged_bucketed.items():
         if bucket != "fixes":
             continue
@@ -546,8 +557,100 @@ def _check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, wha
                     f"{what}: {key[0]}:{key[1]} shipped as a fix but its own dependency "
                     f"{dep[0]}:{dep[1]} did not (bucket: {dep_bucket}) -- a coupled pair "
                     f"split across buckets this way is never safe to ship: a fix must "
-                    f"never depend on something that was not also fixed"
+                    f"never depend on something that was not also fixed. This should be "
+                    f"unreachable -- _demote_dependents_of_unresolved_sites runs first and "
+                    f"is supposed to resolve exactly this case by demotion instead of "
+                    f"reaching here; its failure to do so is itself the bug."
                 )
+
+
+def _demote_dependents_of_unresolved_sites(merged, depends_on, group_id_by_key,
+                                            group_members_by_id, sites_by_key):
+    """Run-wide fallback for the directional invariant
+    _check_no_fix_depends_on_an_unresolved_site enforces: rather than
+    aborting the entire run the moment ANY one fix depends (per its own
+    related_sites) on something that did not also ship as a fix, move
+    that one fix into flagged_for_human -- alongside its dependency,
+    which is by construction already resolved one way or another (see
+    below) -- and let every other, unrelated fix in the run ship
+    untouched. The old raise-on-first-violation behavior blocked a real
+    229-site Pydantic v1->v2 run entirely over one torn pair:
+    constraint.py:508 (a confident `= None` fix) depends on constraint.py
+    :512 (the same field's `always=True` validator, whose v2 replacement,
+    validate_default=True, lands on that same line 508 and so cannot be
+    decided independently of it); the model fixed 508 and declined 512 in
+    two different, independently-resolved ordinary chunks. Declining both
+    together is the correct outcome the coupling guard was always meant
+    to produce here -- aborting 228 unrelated good fixes over it was not.
+
+    Iterates to a fixed point because demoting one site can turn a
+    previously-fine fix into a new violation -- its own dependency just
+    became unresolved -- exactly the case a transitive A-on-B-on-C chain
+    needs: demoting B (because C wasn't a fix) must also demote A (which
+    depended on B), not stop after one pass.
+
+    This can never tear an already-consistent joint-resolved group (the
+    one shape _check_group_consistency exists to protect, and the reason
+    that check is NOT simply subsumed by this one): every depends_on edge
+    is a related_sites entry from a PROPOSED site, and _resolution_groups
+    unions exactly those edges into RESOLUTION groups, so a fix's
+    dependency is always either (a) a member of the SAME joint-resolved
+    group, which _check_group_consistency already forced to share its
+    bucket before this function ever runs, so no violation exists to
+    demote in the first place, or (b) a site resolved independently
+    through the ordinary per-chunk path, which carries no cross-call
+    consistency guarantee at all. This function only ever fires on (b).
+
+    A dependency that isn't itself a fix is always already present in
+    `merged["flagged_for_human"]` (any proposed site not in "fixes" is,
+    by the per-chunk/per-group coverage checks upstream, already in
+    "flagged_for_human") or is an uncertain site that was never a
+    candidate for either bucket to begin with -- there is never a
+    dependency this function needs to create a NEW entry for, only the
+    dependent fix being demoted.
+
+    Mutates and returns `merged` in place."""
+    bucket_of = {(it["file"], it["line"]): "fixes" for it in merged["fixes"]}
+    bucket_of.update({(it["file"], it["line"]): "flagged_for_human"
+                       for it in merged["flagged_for_human"]})
+
+    while True:
+        violation = None
+        for item in merged["fixes"]:
+            key = (item["file"], item["line"])
+            for dep in depends_on.get(key, ()):
+                dep_bucket = bucket_of.get(dep, "not resolved by this run")
+                if dep_bucket != "fixes":
+                    violation = (item, dep, dep_bucket)
+                    break
+            if violation is not None:
+                break
+        if violation is None:
+            return merged
+
+        item, dep, dep_bucket = violation
+        key = (item["file"], item["line"])
+        merged["fixes"].remove(item)
+        gid = group_id_by_key.get(key)
+        flag = {
+            "file": item["file"],
+            "line": item["line"],
+            "reason": (
+                f"this site shipped as a confident fix, but its own dependency "
+                f"{dep[0]}:{dep[1]} did not also ship as a fix (bucket: {dep_bucket}) -- "
+                f"per related_sites, this site's own correctness depends on that one, so "
+                f"shipping it alone risks leaving the pair inconsistent (the youtrack-mcp "
+                f"insufficient-fix-set shape). Declined together with its dependency "
+                f"instead of aborting the whole run; every other, unrelated fix here is "
+                f"unaffected."
+            ),
+            "flag_source": "unresolved_dependency_guard",
+        }
+        if gid is not None:
+            flag["group_id"] = gid
+            flag["group_members"] = _group_members_rendered(group_members_by_id[gid], sites_by_key)
+        merged["flagged_for_human"].append(flag)
+        bucket_of[key] = "flagged_for_human"
 
 
 def _extract_call_keywords(text):
@@ -1481,22 +1584,26 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
 
     merged_path = os.path.join(fg_dir, "merged.json")
 
-    # The complete, run-wide check, directional (see
-    # _check_no_fix_depends_on_an_unresolved_site and run()'s docstring):
-    # every site's final bucket is now known (auto-declined/joint-resolved
-    # above, model-generated from every ordinary chunk), so a fix that
-    # depends on something NOT also fixed -- whether that split happened
-    # across chunk boundaries or within one chunk's own model call -- is
-    # caught here. Note this is not cleanly resumable: if it fires, the
-    # individual chunks it spans each independently passed their own
-    # coverage check and are already written to disk as "done", so
-    # re-running without deleting those chunk files first reaches the
-    # exact same split again.
+    # The complete, run-wide directional pass: every site's final bucket is
+    # now known (auto-declined/joint-resolved above, model-generated from
+    # every ordinary chunk), so a fix that depends on something NOT also
+    # fixed -- whether that split happened across chunk boundaries or
+    # within one chunk's own model call -- is caught here. Demote first
+    # (see _demote_dependents_of_unresolved_sites: moves the offending
+    # fix(es) into flagged_for_human instead of failing the whole run over
+    # one coupled pair), then re-check as a defensive post-condition that
+    # should never fire -- `what` names fg_dir, the directory this run
+    # writes chunk files into, not merged_path: that file is written only
+    # AFTER this check, so it can never be the location of a problem this
+    # check finds.
+    _demote_dependents_of_unresolved_sites(
+        merged, depends_on, group_id_by_key, group_members_by_id, sites_by_key,
+    )
     merged_bucketed = {}
     for bucket in ("fixes", "flagged_for_human"):
         for item in merged[bucket]:
             merged_bucketed[(item["file"], item["line"])] = bucket
-    _check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what=merged_path)
+    _check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what=fg_dir)
 
     with open(merged_path, "w") as f:
         json.dump(merged, f, indent=2)

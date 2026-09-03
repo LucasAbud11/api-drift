@@ -323,7 +323,7 @@ def test_two_confident_coupled_sites_both_reach_the_model_together(tmp_path):
     assert len(merged["fixes"]) == 2
 
 
-def test_torn_group_is_a_hard_validation_failure(tmp_path):
+def test_torn_group_demotes_the_dependent_fix_instead_of_aborting(tmp_path):
     body = "x = 1\ny = 2\n"
     reader = _make_repo(tmp_path, body=body)
     # One-directional on purpose (site 2 depends on nothing) -- a single
@@ -336,16 +336,68 @@ def test_torn_group_is_a_hard_validation_failure(tmp_path):
         {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
          "related_sites": []},
     ]
-    # The model splits a coupled pair -- one fixed, one flagged. Must be
-    # rejected outright, never silently accepted with one site fixed alone
-    # (exactly the youtrack-mcp failure shape).
+    # The model splits a coupled pair -- one fixed, one flagged. This must
+    # never ship 1 alone (exactly the youtrack-mcp failure shape), but it
+    # also must not abort the whole run over it (the real Pydantic run
+    # this fallback is grounded in: one torn pair out of 229 sites) -- 1
+    # is demoted to flagged_for_human, alongside 2's own independent
+    # decline, and the run still completes.
     response = {
         "fixes": [{"file": "main.py", "line": 1, "end_line": 1, "original_lines": ["x = 1"], "proposed_lines": ["x = 10"], "reason": "fixed"}],
         "flagged_for_human": [{"file": "main.py", "line": 2, "reason": "unrelated decline"}],
     }
     client = FakeLLMClient([response])
-    with pytest.raises(ValueError, match="split across buckets"):
-        fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 2
+    by_line = {f["line"]: f for f in merged["flagged_for_human"]}
+    assert by_line[1]["flag_source"] == "unresolved_dependency_guard"
+    assert "main.py:2" in by_line[1]["reason"]
+    assert by_line[1]["group_id"] == "main.py:1"
+    assert {(m["file"], m["line"]) for m in by_line[1]["group_members"]} == {
+        ("main.py", 1), ("main.py", 2),
+    }
+    # 2's own independent decline is untouched -- still whatever the model
+    # itself said, not rewritten by this guard.
+    assert by_line[2]["flag_source"] == "model_declined"
+    assert by_line[2]["reason"] == "unrelated decline"
+
+
+def test_torn_group_does_not_block_unrelated_fixes_in_the_same_run(tmp_path):
+    # The actual bug report this fallback fixes: one torn coupled pair
+    # must not abort a run with 200+ other, unrelated confident fixes.
+    # Two chunks here stand in for that shape at a scale a unit test can
+    # afford -- chunk_size=2 forces the coupled pair and the unrelated
+    # site into separate per-chunk calls, same as the real run's 229
+    # sites landing across many chunks.
+    body = "x = 1\ny = 2\nz = 3\n"
+    reader = _make_repo(tmp_path, body=body)
+    proposed = [
+        {"file": "main.py", "line": 1, "snippet": "x = 1", "pattern": "1", "reason": "r1",
+         "related_sites": [{"file": "main.py", "line": 2}]},
+        {"file": "main.py", "line": 2, "snippet": "y = 2", "pattern": "1", "reason": "r2",
+         "related_sites": []},
+        {"file": "main.py", "line": 3, "snippet": "z = 3", "pattern": "1", "reason": "r3",
+         "related_sites": []},
+    ]
+    responses = [
+        {
+            "fixes": [{"file": "main.py", "line": 1, "end_line": 1,
+                       "original_lines": ["x = 1"], "proposed_lines": ["x = 10"], "reason": "fixed"}],
+            "flagged_for_human": [{"file": "main.py", "line": 2, "reason": "unrelated decline"}],
+        },
+        {
+            "fixes": [{"file": "main.py", "line": 3, "end_line": 3,
+                       "original_lines": ["z = 3"], "proposed_lines": ["z = 30"], "reason": "fixed"}],
+            "flagged_for_human": [],
+        },
+    ]
+    client = FakeLLMClient(responses)
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=2)
+
+    assert [f["line"] for f in merged["fixes"]] == [3]
+    assert {f["line"] for f in merged["flagged_for_human"]} == {1, 2}
 
 
 # ---------------------------------------------------------------------
@@ -745,6 +797,51 @@ def test_report_renders_value_flow_guard_rejection(tmp_path):
     # never rendered a second time under "Model judgment call" -- it's
     # excluded from model_flagged specifically so it isn't double-listed.
     assert "### Model judgment call" not in text
+
+
+def test_report_renders_unresolved_dependency_guard_decline(tmp_path):
+    # The fallback fixgen.run() now takes instead of aborting the whole
+    # run: a fix demoted because its own dependency didn't also ship as a
+    # fix must show up as a coupling decline, not under "Model judgment
+    # call" (that would misrepresent this tool's own guard as the model's
+    # verdict).
+    fixgen_expanded = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "constraint.py", "line": 508,
+             "reason": "this site shipped as a confident fix, but its own dependency "
+                       "constraint.py:512 did not also ship as a fix (bucket: "
+                       "flagged_for_human) -- declined together with its dependency "
+                       "instead of aborting the whole run.",
+             "flag_source": "unresolved_dependency_guard", "group_id": "constraint.py:508",
+             "group_members": [
+                 {"file": "constraint.py", "line": 508, "role": "proposed", "reason": "default value"},
+                 {"file": "constraint.py", "line": 512, "role": "proposed", "reason": "validator"},
+             ]},
+            {"file": "constraint.py", "line": 512, "reason": "unrelated model decline",
+             "flag_source": "model_declined"},
+        ],
+    }
+    expanded_merged = {
+        "proposed_sites": [
+            {"file": "constraint.py", "line": 508, "snippet": "x: int = None", "pattern": "1", "reason": "default value"},
+            {"file": "constraint.py", "line": 512, "snippet": "always=True", "pattern": "1", "reason": "validator"},
+        ],
+        "flag_uncertain": [], "considered_and_rejected": [],
+    }
+    path = report.write(
+        str(tmp_path), expanded_merged, {}, FACTBLOCK, {"patterns": {"p1": "x"}},
+        fixgen_expanded=fixgen_expanded, verification_report=None,
+    )
+    text = open(path).read()
+    assert "### Coupled edit group" in text
+    assert ("declined here -- shipped as a fix independently, but its own dependency "
+            "elsewhere in this group did not also ship as a fix") in text
+    # Not under "Model judgment call" -- this is the tool's own guard
+    # deciding, not the model.
+    if "### Model judgment call" in text:
+        section = text.split("### Model judgment call", 1)[1]
+        assert "constraint.py:508" not in section
 
 
 def test_report_renders_model_own_joint_decline(tmp_path):
@@ -1161,6 +1258,109 @@ def test_check_no_fix_depends_on_an_unresolved_site_passes_when_dependent_alone_
     depends_on = {("a.py", 1): [], ("a.py", 2): [("a.py", 1)]}
     merged_bucketed = {("a.py", 1): "fixes", ("a.py", 2): "flagged_for_human"}
     fixgen._check_no_fix_depends_on_an_unresolved_site(merged_bucketed, depends_on, what="test")
+
+
+# ---------------------------------------------------------------------
+# _demote_dependents_of_unresolved_sites -- the run-wide fallback that
+# replaced aborting the whole run over one torn coupled pair.
+# ---------------------------------------------------------------------
+
+def _fix(f, l):
+    return {"file": f, "line": l, "end_line": l, "original_lines": ["x"],
+            "proposed_lines": ["y"], "reason": "r"}
+
+
+def _flag(f, l, **extra):
+    return {"file": f, "line": l, "reason": "r", **extra}
+
+
+def test_demote_moves_only_the_dependent_fix_leaving_its_dependency_alone():
+    merged = {
+        "fixes": [_fix("a.py", 1)],
+        "flagged_for_human": [_flag("a.py", 2, flag_source="model_declined")],
+    }
+    depends_on = {("a.py", 1): [("a.py", 2)], ("a.py", 2): []}
+    sites_by_key = {
+        ("a.py", 1): {"role": "proposed", "site": {"reason": "r"}},
+        ("a.py", 2): {"role": "proposed", "site": {"reason": "r"}},
+    }
+    group_id_by_key = {("a.py", 1): "a.py:1", ("a.py", 2): "a.py:1"}
+    group_members_by_id = {"a.py:1": [("a.py", 1), ("a.py", 2)]}
+
+    fixgen._demote_dependents_of_unresolved_sites(
+        merged, depends_on, group_id_by_key, group_members_by_id, sites_by_key,
+    )
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 2
+    by_line = {f["line"]: f for f in merged["flagged_for_human"]}
+    assert by_line[1]["flag_source"] == "unresolved_dependency_guard"
+    assert by_line[1]["group_id"] == "a.py:1"
+    assert by_line[2]["flag_source"] == "model_declined"  # untouched
+
+
+def test_demote_does_not_touch_an_unrelated_fix():
+    merged = {
+        "fixes": [_fix("a.py", 1), _fix("a.py", 3)],
+        "flagged_for_human": [_flag("a.py", 2, flag_source="model_declined")],
+    }
+    depends_on = {("a.py", 1): [("a.py", 2)], ("a.py", 2): [], ("a.py", 3): []}
+    sites_by_key = {k: {"role": "proposed", "site": {"reason": "r"}}
+                     for k in [("a.py", 1), ("a.py", 2), ("a.py", 3)]}
+    group_id_by_key = {("a.py", 1): "a.py:1", ("a.py", 2): "a.py:1"}
+    group_members_by_id = {"a.py:1": [("a.py", 1), ("a.py", 2)]}
+
+    fixgen._demote_dependents_of_unresolved_sites(
+        merged, depends_on, group_id_by_key, group_members_by_id, sites_by_key,
+    )
+
+    assert [f["line"] for f in merged["fixes"]] == [3]
+
+
+def test_demote_cascades_through_a_transitive_chain():
+    # A depends on B depends on C. C never shipped as a fix (it's flagged),
+    # so B must demote -- and once B is no longer a fix, A (which depends
+    # on B) must demote too, in the same call, not require a second pass
+    # from the caller.
+    merged = {
+        "fixes": [_fix("a.py", 1), _fix("a.py", 2)],
+        "flagged_for_human": [_flag("a.py", 3, flag_source="model_declined")],
+    }
+    depends_on = {
+        ("a.py", 1): [("a.py", 2)],
+        ("a.py", 2): [("a.py", 3)],
+        ("a.py", 3): [],
+    }
+    sites_by_key = {k: {"role": "proposed", "site": {"reason": "r"}}
+                     for k in [("a.py", 1), ("a.py", 2), ("a.py", 3)]}
+    group_id_by_key = {k: "a.py:1" for k in [("a.py", 1), ("a.py", 2), ("a.py", 3)]}
+    group_members_by_id = {"a.py:1": [("a.py", 1), ("a.py", 2), ("a.py", 3)]}
+
+    fixgen._demote_dependents_of_unresolved_sites(
+        merged, depends_on, group_id_by_key, group_members_by_id, sites_by_key,
+    )
+
+    assert merged["fixes"] == []
+    by_line = {f["line"]: f for f in merged["flagged_for_human"]}
+    assert by_line[1]["flag_source"] == "unresolved_dependency_guard"
+    assert by_line[2]["flag_source"] == "unresolved_dependency_guard"
+    assert by_line[3]["flag_source"] == "model_declined"
+
+
+def test_demote_is_a_noop_when_every_dependency_is_also_a_fix():
+    merged = {"fixes": [_fix("a.py", 1), _fix("a.py", 2)], "flagged_for_human": []}
+    depends_on = {("a.py", 1): [("a.py", 2)], ("a.py", 2): []}
+    sites_by_key = {k: {"role": "proposed", "site": {"reason": "r"}}
+                     for k in [("a.py", 1), ("a.py", 2)]}
+    group_id_by_key = {("a.py", 1): "a.py:1", ("a.py", 2): "a.py:1"}
+    group_members_by_id = {"a.py:1": [("a.py", 1), ("a.py", 2)]}
+
+    fixgen._demote_dependents_of_unresolved_sites(
+        merged, depends_on, group_id_by_key, group_members_by_id, sites_by_key,
+    )
+
+    assert {f["line"] for f in merged["fixes"]} == {1, 2}
+    assert merged["flagged_for_human"] == []
 
 
 # ---------------------------------------------------------------------
