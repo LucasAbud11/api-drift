@@ -102,16 +102,36 @@ def _read_file(into_root, relpath):
 
 def _check_overlaps(relpath, items):
     """Raises ApplyError if any two of this file's fixes claim overlapping
-    line ranges -- see verify.py's identical check for why this is a real
-    possibility a block fix introduces that a single-line-only scheme
-    never had to guard against."""
+    line ranges -- see verify.py's near-identical check for why this is a
+    real possibility a block fix introduces that a single-line-only scheme
+    never had to guard against.
+
+    Deliberately still a hard, all-or-nothing failure here, unlike
+    fixgen.py's own _resolve_overlapping_fixes (which dedupes a provable
+    duplicate and declines a real conflict into flagged_for_human instead
+    of aborting) and verify.py's _check_overlaps (which reports an overlap
+    as data): this function operates on a flat fix list loaded from an
+    already-written fixes.json, with no flagged_for_human bucket to route
+    a decline into and no mandate to rewrite that file -- there is nothing
+    for it to "express" a decline AS. In normal operation this should
+    never fire at all: fixgen.py's own merge now guarantees fixes.json
+    ships free of unresolved overlaps before it is ever written. Reaching
+    here means the fixes.json being applied predates that fix, or was
+    hand-edited, or came from something other than fixgen.run() -- reject
+    it and say so, the same as check_line_matches does for any other
+    fixes.json that no longer matches what this module is willing to
+    trust, rather than silently guessing which of two conflicting edits to
+    keep at the last moment before writing to the user's repo."""
     ordered = sorted(items, key=lambda i: i["line"])
     for a, b in zip(ordered, ordered[1:]):
         if b["line"] <= a["end_line"]:
             raise ApplyError(
                 f"{relpath}: fixes at line {a['line']}-{a['end_line']} and "
                 f"{b['line']}-{b['end_line']} overlap -- cannot apply both, "
-                f"aborting with zero files modified"
+                f"aborting with zero files modified. This should not happen with "
+                f"fixes.json from a current fixgen run (it resolves overlaps before "
+                f"writing that file); regenerate fixes.json rather than editing around "
+                f"this by hand."
             )
 
 

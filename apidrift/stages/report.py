@@ -84,7 +84,7 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
         _GROUP_FLAG_SOURCES = (
             "multiline_span_guard", "group_consistency_guard",
             "value_flow_guard", "joint_resolution_declined",
-            "unresolved_dependency_guard",
+            "unresolved_dependency_guard", "overlap_conflict_guard",
         )
         model_flagged = [it for it in all_flagged if it.get("flag_source") not in _GROUP_FLAG_SOURCES]
         # A group's cross-reference lives on every flagged_for_human entry
@@ -160,6 +160,9 @@ def write(workdir, expanded_merged, stats, factblock, vocabulary,
                     elif matching is not None and matching.get("flag_source") == "unresolved_dependency_guard":
                         status = ("declined here -- shipped as a fix independently, but its own "
                                   "dependency elsewhere in this group did not also ship as a fix")
+                    elif matching is not None and matching.get("flag_source") == "overlap_conflict_guard":
+                        status = ("declined here -- this fix overlapped another proposed fix's own "
+                                  "lines and the two disagreed where they overlapped")
                     elif key in {(f["file"], f["line"]) for f in fixgen_expanded.get("fixes", [])}:
                         # Blocking is directional (see fixgen.py's run()):
                         # this member's own correctness didn't depend on

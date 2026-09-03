@@ -1589,6 +1589,115 @@ def test_add_singleton_span_groups_does_not_mutate_its_inputs():
 
 
 # ---------------------------------------------------------------------
+# _add_singleton_span_groups -- grouping ungrouped span-guarded sites by
+# span OVERLAP/CONTAINMENT, not one synthetic group per site. Real-run
+# failure (Pydantic v1->v2, 229 proposed sites): align/pdk/finfet/
+# digital.py lines 48 and 50 both fall inside one enclosing statement
+# (48-50), with no related_sites edge between them -- each got its own
+# solo joint call, each produced a fix for the whole shared statement, and
+# the two overlapped at apply time. See _resolve_overlapping_fixes below
+# for the merge-time backstop this composes with.
+# ---------------------------------------------------------------------
+
+def test_add_singleton_span_groups_merges_two_sites_in_the_same_enclosing_statement():
+    # _multiline_spans gives every line of ONE statement the exact same
+    # (start, end) tuple -- the digital.py 48/50 shape reproduced directly:
+    # two keys, identical spans, no related_sites edge.
+    sites_by_key = {
+        ("digital.py", 48): {"role": "proposed", "site": {"related_sites": []}},
+        ("digital.py", 50): {"role": "proposed", "site": {"related_sites": []}},
+    }
+    span_map = {("digital.py", 48): (48, 50), ("digital.py", 50): (48, 50)}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, span_map,
+    )
+    assert group_id_by_key == {
+        ("digital.py", 48): "digital.py:48",
+        ("digital.py", 50): "digital.py:48",
+    }
+    assert group_members_by_id == {
+        "digital.py:48": [("digital.py", 48), ("digital.py", 50)],
+    }
+
+
+def test_add_singleton_span_groups_merges_a_contained_span_not_just_an_equal_one():
+    # A different shape than digital.py's -- an outer statement's span
+    # doesn't equal the inner (nested) statement's tighter span, but one
+    # contains the other. Must still merge into one group: a joint call
+    # for the outer alone would still be free to rewrite the inner's lines
+    # with no visibility into the inner's own separate resolution.
+    sites_by_key = {
+        ("a.py", 10): {"role": "proposed", "site": {"related_sites": []}},
+        ("a.py", 13): {"role": "proposed", "site": {"related_sites": []}},
+    }
+    span_map = {("a.py", 10): (10, 20), ("a.py", 13): (12, 14)}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, span_map,
+    )
+    assert group_id_by_key == {("a.py", 10): "a.py:10", ("a.py", 13): "a.py:10"}
+    assert group_members_by_id == {"a.py:10": [("a.py", 10), ("a.py", 13)]}
+
+
+def test_add_singleton_span_groups_merges_a_three_way_overlap_chain():
+    # A overlaps B, B overlaps C, A does NOT overlap C directly -- must
+    # still land in ONE group via transitive union, not two.
+    sites_by_key = {k: {"role": "proposed", "site": {"related_sites": []}}
+                     for k in [("a.py", 1), ("a.py", 2), ("a.py", 3)]}
+    span_map = {("a.py", 1): (1, 5), ("a.py", 2): (4, 8), ("a.py", 3): (7, 10)}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, span_map,
+    )
+    gid = group_id_by_key[("a.py", 1)]
+    assert group_id_by_key == {("a.py", 1): gid, ("a.py", 2): gid, ("a.py", 3): gid}
+    assert group_members_by_id[gid] == [("a.py", 1), ("a.py", 2), ("a.py", 3)]
+
+
+def test_add_singleton_span_groups_does_not_merge_across_files():
+    # Numerically overlapping line ranges in DIFFERENT files must never be
+    # treated as the same statement.
+    sites_by_key = {
+        ("a.py", 5): {"role": "proposed", "site": {"related_sites": []}},
+        ("b.py", 5): {"role": "proposed", "site": {"related_sites": []}},
+    }
+    span_map = {("a.py", 5): (5, 9), ("b.py", 5): (5, 9)}
+    group_id_by_key, group_members_by_id = fixgen._add_singleton_span_groups(
+        {}, {}, sites_by_key, span_map,
+    )
+    assert group_id_by_key == {("a.py", 5): "a.py:5", ("b.py", 5): "b.py:5"}
+
+
+def test_digital_py_48_50_shape_reaches_one_joint_call_not_two(tmp_path):
+    # End-to-end reproduction of the reported real-run shape: one enclosing
+    # statement spanning lines 48-50, two confirmed sites inside it (48 and
+    # 50), zero related_sites edges. Before this fix: two solo calls. Now:
+    # one joint call over both members.
+    body = "\n".join(f"x{i} = {i}" for i in range(1, 48)) + "\n"
+    body += "result = foo(\n    bar,\n)\n"  # lines 48, 49, 50
+    reader = _make_repo(tmp_path, filename="align/pdk/finfet/digital.py", body=body)
+    proposed = [
+        {"file": "align/pdk/finfet/digital.py", "line": 48, "snippet": "result = foo(",
+         "pattern": "1", "reason": "renamed call", "related_sites": []},
+        {"file": "align/pdk/finfet/digital.py", "line": 50, "snippet": ")",
+         "pattern": "1", "reason": "renamed call, closing paren", "related_sites": []},
+    ]
+    response = {
+        "fixes": [
+            {"file": "align/pdk/finfet/digital.py", "line": 48, "end_line": 50,
+             "original_lines": ["result = foo(", "    bar,", ")"],
+             "proposed_lines": ["result = baz(", "    bar,", ")"], "reason": "renamed"},
+            {"file": "align/pdk/finfet/digital.py", "line": 50, "end_line": 50,
+             "original_lines": [")"], "proposed_lines": [")"], "reason": "no change needed here"},
+        ],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert len(client.calls) == 1
+    assert client.calls[0]["stage"] == "fixgen_group_align_pdk_finfet_digital.py_48"
+
+
+# ---------------------------------------------------------------------
 # End-to-end: all three group kinds in ONE run, proving the new solo path
 # doesn't disturb the other two. Reuses AZEROTH_JOINT_BODY's shape for the
 # multi-member cases (already-verified fixtures from the section above)
@@ -1727,3 +1836,266 @@ def test_solo_span_group_reaches_solo_call_when_only_an_uncertain_dependent_name
     # The fix still shows the full VISIBILITY neighborhood (20 depends on
     # it), even though 20 was never sent to the model.
     assert merged["fixes"][0]["group_id"] == "main.py:12"
+
+
+# ---------------------------------------------------------------------
+# _resolve_overlapping_fixes -- the merge-time backstop for whatever
+# _add_singleton_span_groups' own grouping fix doesn't happen to catch (or
+# a joint call still resolves inconsistently despite being grouped): two
+# overlapping fixes are deduped if they provably agree, or declined
+# together if they don't -- never an abort. Real-run shape: a 229-fix
+# Pydantic run was blocked ENTIRELY by one overlapping pair.
+# ---------------------------------------------------------------------
+
+def _overlap_fix(f, l, end, orig, prop, **extra):
+    return {"file": f, "line": l, "end_line": end, "original_lines": orig,
+            "proposed_lines": prop, "reason": "r", **extra}
+
+
+def test_resolve_overlapping_fixes_is_a_noop_with_no_overlap():
+    merged = {
+        "fixes": [_overlap_fix("a.py", 1, 1, ["x"], ["y"]),
+                  _overlap_fix("a.py", 5, 5, ["p"], ["q"])],
+        "flagged_for_human": [],
+    }
+    fixgen._resolve_overlapping_fixes(merged, {}, {})
+    assert len(merged["fixes"]) == 2
+    assert merged["flagged_for_human"] == []
+    assert merged["duplicate_fixes_dropped"] == []
+
+
+def test_resolve_overlapping_fixes_drops_an_identical_contained_duplicate():
+    # The exact digital.py 48/50 shape: both fixes cover the same 48-50
+    # statement, one keyed at 48 (the full span) and one keyed at 50 (also
+    # claiming the full span) -- equal spans, identical proposed content.
+    outer = _overlap_fix("digital.py", 48, 50,
+                          ["result = foo(", "    bar,", ")"],
+                          ["result = baz(", "    bar,", ")"])
+    inner = _overlap_fix("digital.py", 48, 50,
+                          ["result = foo(", "    bar,", ")"],
+                          ["result = baz(", "    bar,", ")"])
+    merged = {"fixes": [outer, inner], "flagged_for_human": []}
+
+    fixgen._resolve_overlapping_fixes(merged, {}, {})
+
+    assert len(merged["fixes"]) == 1
+    assert merged["flagged_for_human"] == []
+    assert len(merged["duplicate_fixes_dropped"]) == 1
+    dropped = merged["duplicate_fixes_dropped"][0]
+    assert dropped["kept"]["line"] == 48
+    assert dropped["dropped"]["line"] == 48  # same key -- equal spans, arbitrary pick
+
+
+def test_resolve_overlapping_fixes_drops_a_genuinely_contained_duplicate():
+    # A real containment case, not just equal spans: the smaller fix's
+    # span nests inside the larger one, and the larger one's own
+    # replacement is proven to already say the same thing at that offset.
+    outer = _overlap_fix("a.py", 10, 12,
+                          ["one", "two", "three"], ["ONE", "TWO", "THREE"])
+    inner = _overlap_fix("a.py", 11, 11, ["two"], ["TWO"])
+    merged = {"fixes": [outer, inner], "flagged_for_human": []}
+
+    fixgen._resolve_overlapping_fixes(merged, {}, {})
+
+    assert merged["fixes"] == [outer]
+    assert len(merged["duplicate_fixes_dropped"]) == 1
+    assert merged["duplicate_fixes_dropped"][0]["dropped"]["line"] == 11
+
+
+def test_resolve_overlapping_fixes_declines_a_real_conflict_together():
+    a = _overlap_fix("a.py", 5, 7, ["x", "y", "z"], ["X", "Y", "Z"])
+    b = _overlap_fix("a.py", 6, 6, ["y"], ["DIFFERENT"])  # disagrees with a's own "Y"
+    merged = {"fixes": [a, b], "flagged_for_human": []}
+    sites_by_key = {("a.py", 5): {"role": "proposed", "site": {"reason": "r"}},
+                     ("a.py", 6): {"role": "proposed", "site": {"reason": "r"}}}
+
+    fixgen._resolve_overlapping_fixes(merged, {}, sites_by_key)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 2
+    by_line = {f["line"]: f for f in merged["flagged_for_human"]}
+    assert by_line[5]["flag_source"] == "overlap_conflict_guard"
+    assert by_line[6]["flag_source"] == "overlap_conflict_guard"
+    assert by_line[5]["group_id"] == by_line[6]["group_id"]
+    assert merged["duplicate_fixes_dropped"] == []
+
+
+def test_resolve_overlapping_fixes_conflict_declines_the_whole_pre_existing_group():
+    # a and b already share a real group_id (e.g. from a 3-member joint
+    # call) and disagree where they overlap -- the THIRD member (c, no
+    # overlap of its own) must be declined too, not left shipped as a fix:
+    # tearing the group here is the exact insufficient-fix-set shape the
+    # coupling guard exists to prevent.
+    a = _overlap_fix("a.py", 5, 7, ["x", "y", "z"], ["X", "Y", "Z"], group_id="a.py:5")
+    b = _overlap_fix("a.py", 6, 6, ["y"], ["DIFFERENT"], group_id="a.py:5")
+    c = _overlap_fix("a.py", 20, 20, ["w"], ["W"], group_id="a.py:5")
+    merged = {"fixes": [a, b, c], "flagged_for_human": []}
+    sites_by_key = {k: {"role": "proposed", "site": {"reason": "r"}}
+                     for k in [("a.py", 5), ("a.py", 6), ("a.py", 20)]}
+    group_members_by_id = {"a.py:5": [("a.py", 5), ("a.py", 6), ("a.py", 20)]}
+
+    fixgen._resolve_overlapping_fixes(merged, group_members_by_id, sites_by_key)
+
+    assert merged["fixes"] == []
+    assert {f["line"] for f in merged["flagged_for_human"]} == {5, 6, 20}
+    assert all(f["flag_source"] == "overlap_conflict_guard" for f in merged["flagged_for_human"])
+    assert all(f["group_id"] == "a.py:5" for f in merged["flagged_for_human"])
+
+
+def test_resolve_overlapping_fixes_leaves_unrelated_fixes_untouched():
+    # The actual bug report's other half: an overlap between two sites
+    # must not affect any unrelated fix in the same run.
+    a = _overlap_fix("a.py", 5, 7, ["x", "y", "z"], ["X", "Y", "Z"])
+    b = _overlap_fix("a.py", 6, 6, ["y"], ["DIFFERENT"])
+    unrelated = _overlap_fix("b.py", 1, 1, ["p"], ["q"])
+    merged = {"fixes": [a, b, unrelated], "flagged_for_human": []}
+    sites_by_key = {("a.py", 5): {"role": "proposed", "site": {"reason": "r"}},
+                     ("a.py", 6): {"role": "proposed", "site": {"reason": "r"}}}
+
+    fixgen._resolve_overlapping_fixes(merged, {}, sites_by_key)
+
+    assert merged["fixes"] == [unrelated]
+
+
+def test_resolve_overlapping_fixes_does_not_treat_a_partial_overlap_as_a_candidate_duplicate():
+    # Neither span contains the other -- a genuine partial overlap. Even
+    # with matching text in the shared region, this pipeline never treats
+    # it as provable duplication (see _nesting_order's docstring): declined
+    # as a conflict instead of guessed at.
+    a = _overlap_fix("a.py", 5, 8, ["a", "b", "c", "d"], ["A", "B", "C", "D"])
+    b = _overlap_fix("a.py", 7, 10, ["c", "d", "e", "f"], ["C", "D", "E", "F"])
+    merged = {"fixes": [a, b], "flagged_for_human": []}
+    sites_by_key = {("a.py", 5): {"role": "proposed", "site": {"reason": "r"}},
+                     ("a.py", 7): {"role": "proposed", "site": {"reason": "r"}}}
+
+    fixgen._resolve_overlapping_fixes(merged, {}, sites_by_key)
+
+    assert merged["fixes"] == []
+    assert len(merged["flagged_for_human"]) == 2
+    assert all(f["flag_source"] == "overlap_conflict_guard" for f in merged["flagged_for_human"])
+
+
+# ---------------------------------------------------------------------
+# fixgen.run() end-to-end: overlap resolution must never abort the run,
+# and unrelated fixes must ship regardless of one torn/duplicate pair.
+# ---------------------------------------------------------------------
+
+def test_run_dedupes_the_digital_py_48_50_duplicate_end_to_end(tmp_path):
+    body = "\n".join(f"x{i} = {i}" for i in range(1, 48)) + "\n"
+    body += "result = foo(\n    bar,\n)\n"
+    reader = _make_repo(tmp_path, filename="digital.py", body=body)
+    proposed = [
+        {"file": "digital.py", "line": 48, "snippet": "result = foo(", "pattern": "1",
+         "reason": "renamed call", "related_sites": []},
+        {"file": "digital.py", "line": 50, "snippet": ")", "pattern": "1",
+         "reason": "renamed call, closing paren", "related_sites": []},
+    ]
+    response = {
+        "fixes": [
+            {"file": "digital.py", "line": 48, "end_line": 50,
+             "original_lines": ["result = foo(", "    bar,", ")"],
+             "proposed_lines": ["result = baz(", "    bar,", ")"], "reason": "renamed"},
+            {"file": "digital.py", "line": 50, "end_line": 50,
+             "original_lines": [")"], "proposed_lines": [")"], "reason": "no change needed here"},
+        ],
+        "flagged_for_human": [],
+    }
+    client = FakeLLMClient([response])
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=40)
+
+    assert len(merged["fixes"]) == 1
+    assert merged["fixes"][0]["line"] == 48
+    assert merged["fixes"][0]["end_line"] == 50
+    assert merged["flagged_for_human"] == []
+    assert len(merged["duplicate_fixes_dropped"]) == 1
+    assert merged["duplicate_fixes_dropped"][0]["dropped"]["line"] == 50
+
+
+def test_run_declines_a_real_overlap_conflict_without_aborting_and_ships_the_rest(tmp_path):
+    # Three proposed sites: two share a statement and their joint call
+    # produces genuinely CONFLICTING overlapping fixes (a model mistake, or
+    # a shape grouping didn't fully resolve); the third is entirely
+    # unrelated. The conflicting pair must decline together; the unrelated
+    # fix must still ship -- this is the actual bug report: one torn pair
+    # must never take a 229-fix run down with it.
+    body = "\n".join(f"x{i} = {i}" for i in range(1, 48)) + "\n"
+    body += "result = foo(\n    bar,\n)\n"
+    body += "other = 1\n"  # line 51, unrelated
+    reader = _make_repo(tmp_path, filename="digital.py", body=body)
+    proposed = [
+        {"file": "digital.py", "line": 48, "snippet": "result = foo(", "pattern": "1",
+         "reason": "renamed call", "related_sites": []},
+        {"file": "digital.py", "line": 50, "snippet": ")", "pattern": "1",
+         "reason": "renamed call, closing paren", "related_sites": []},
+        {"file": "digital.py", "line": 51, "snippet": "other = 1", "pattern": "1",
+         "reason": "unrelated rename", "related_sites": []},
+    ]
+    responses = [
+        {
+            "fixes": [
+                {"file": "digital.py", "line": 48, "end_line": 50,
+                 "original_lines": ["result = foo(", "    bar,", ")"],
+                 "proposed_lines": ["result = baz(", "    bar,", ")"], "reason": "renamed one way"},
+                {"file": "digital.py", "line": 50, "end_line": 50,
+                 "original_lines": [")"], "proposed_lines": ["# closed differently"],
+                 "reason": "a genuinely different, conflicting edit at the same line"},
+            ],
+            "flagged_for_human": [],
+        },
+        {
+            "fixes": [{"file": "digital.py", "line": 51, "end_line": 51,
+                       "original_lines": ["other = 1"], "proposed_lines": ["other = 2"],
+                       "reason": "unrelated fix"}],
+            "flagged_for_human": [],
+        },
+    ]
+    client = FakeLLMClient(responses)
+    merged = fixgen.run(client, reader, proposed, FACTBLOCK, str(tmp_path / "wd"), chunk_size=1)
+
+    assert [f["line"] for f in merged["fixes"]] == [51]
+    assert {f["line"] for f in merged["flagged_for_human"]} == {48, 50}
+    assert all(f["flag_source"] == "overlap_conflict_guard" for f in merged["flagged_for_human"])
+
+
+def test_report_renders_overlap_conflict_guard_decline(tmp_path):
+    fixgen_expanded = {
+        "fixes": [],
+        "flagged_for_human": [
+            {"file": "digital.py", "line": 48,
+             "reason": "this site's proposed fix overlaps another proposed fix "
+                       "(digital.py:48-50 and digital.py:50-50), and the two disagree "
+                       "where they overlap.",
+             "flag_source": "overlap_conflict_guard", "group_id": "digital.py:48",
+             "group_members": [
+                 {"file": "digital.py", "line": 48, "role": "proposed", "reason": "renamed call"},
+                 {"file": "digital.py", "line": 50, "role": "proposed", "reason": "closing paren"},
+             ]},
+            {"file": "digital.py", "line": 50,
+             "reason": "this site's proposed fix overlaps another proposed fix, and the "
+                       "two disagree where they overlap.",
+             "flag_source": "overlap_conflict_guard", "group_id": "digital.py:48",
+             "group_members": [
+                 {"file": "digital.py", "line": 48, "role": "proposed", "reason": "renamed call"},
+                 {"file": "digital.py", "line": 50, "role": "proposed", "reason": "closing paren"},
+             ]},
+        ],
+    }
+    expanded_merged = {
+        "proposed_sites": [
+            {"file": "digital.py", "line": 48, "snippet": "result = foo(", "pattern": "1", "reason": "renamed call"},
+            {"file": "digital.py", "line": 50, "snippet": ")", "pattern": "1", "reason": "closing paren"},
+        ],
+        "flag_uncertain": [], "considered_and_rejected": [],
+    }
+    path = report.write(
+        str(tmp_path), expanded_merged, {}, FACTBLOCK, {"patterns": {"p1": "x"}},
+        fixgen_expanded=fixgen_expanded, verification_report=None,
+    )
+    text = open(path).read()
+    assert "### Coupled edit group" in text
+    assert ("declined here -- this fix overlapped another proposed fix's own lines and "
+            "the two disagreed where they overlapped") in text
+    if "### Model judgment call" in text:
+        section = text.split("### Model judgment call", 1)[1]
+        assert "digital.py:48" not in section
+        assert "digital.py:50" not in section

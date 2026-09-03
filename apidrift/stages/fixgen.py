@@ -56,21 +56,30 @@ the run's own `mutual_dependency_warnings` output, whether or not it
 changed any bucket outcome.
 
 Joint-resolution eligibility is a property of being span-guarded, not of
-having a related_sites edge: `_add_singleton_span_groups` gives a
-span-guarded PROPOSED site that adjudication never linked to anything its
-own single-member group, so it reaches `_run_joint_group` too, instead of
-the immediate, no-model-call decline it used to get unconditionally --
-real-run data showed two essentially identical span-guarded constructors
-(run-secops, run-youtrack) getting different treatment for a reason that
-had nothing to do with either one's own shape, only with whether
-adjudication happened to draw an edge. A single-member call uses a
-different addendum (`_SOLO_SPAN_ADDENDUM`) that tells the model plainly
-there is no companion site and to decline rather than guess at or drop a
-value with nowhere shown to go -- and `_check_group_value_flow`, unchanged,
-backs that up mechanically: a value removed from a lone member's own block
-always fails it, since a 1-element group has no OTHER member for that
-value to reappear in. A multi-member group is entirely unaffected by any
-of this -- same addendum, same classification, same everything."""
+having a related_sites edge: `_add_singleton_span_groups` gives every
+otherwise-ungrouped span-guarded PROPOSED site a group of its own, so it
+reaches `_run_joint_group` too, instead of the immediate, no-model-call
+decline it used to get unconditionally -- real-run data showed two
+essentially identical span-guarded constructors (run-secops, run-youtrack)
+getting different treatment for a reason that had nothing to do with
+either one's own shape, only with whether adjudication happened to draw
+an edge. Sites are grouped by span OVERLAP/CONTAINMENT here, not one
+group per site: two lines inside the SAME enclosing statement (align/pdk/
+finfet/digital.py 48 and 50 on a real Pydantic v1->v2 run, with no
+related_sites edge between them) used to get two independent one-member
+groups and two independent solo calls, each free to rewrite the whole
+shared statement -- producing two overlapping fixes that hard-failed a
+229-fix run at merge time (see that function's own docstring, and
+`_resolve_overlapping_fixes`, the deterministic merge-time backstop this
+composes with). A single-member group uses a different addendum
+(`_SOLO_SPAN_ADDENDUM`) that tells the model plainly there is no companion
+site and to decline rather than guess at or drop a value with nowhere
+shown to go -- and `_check_group_value_flow`, unchanged, backs that up
+mechanically: a value removed from a lone member's own block always fails
+it, since a 1-element group has no OTHER member for that value to
+reappear in. A multi-member group (whether from a related_sites edge or a
+shared span) is entirely unaffected by any of this -- same addendum, same
+classification, same everything."""
 import ast
 import json
 import math
@@ -299,12 +308,20 @@ def _resolution_groups(sites_by_key):
     return _union_find_groups(sites_by_key, lambda entry: entry["role"] == "proposed")
 
 
+def _spans_overlap(a, b):
+    """True if closed line intervals `a` and `b` (each (start, end)) share
+    at least one line, in either direction: [s1,e1] and [s2,e2] intersect
+    iff s1 <= e2 and s2 <= e1 -- this single test covers plain overlap,
+    one span fully containing the other, and two spans being identical."""
+    return a[0] <= b[1] and b[0] <= a[1]
+
+
 def _add_singleton_span_groups(group_id_by_key, group_members_by_id, sites_by_key, span_map):
     """Gives every span-guarded PROPOSED site with no group of its own a
-    synthetic one-member group, so run()'s existing group_class pass (which
-    already classifies ANY group with a span member and no uncertain member
-    as "joint_resolve", regardless of size) picks it up for real, without
-    that pass needing to know or care that this group is synthetic.
+    synthetic group, so run()'s existing group_class pass (which already
+    classifies ANY group with a span member and no uncertain member as
+    "joint_resolve", regardless of size) picks it up for real, without that
+    pass needing to know or care that this group is synthetic.
 
     Why this exists: before it, joint-resolution eligibility was a property
     of HAVING a related_sites edge, not of BEING span-guarded -- a site
@@ -316,6 +333,30 @@ def _add_singleton_span_groups(group_id_by_key, group_members_by_id, sites_by_ke
     unconditionally declined with no model call) purely because one had a
     related_sites edge and the other didn't. Eligibility now depends only
     on being span-guarded, matching what the guard is actually for.
+
+    Ungrouped span-guarded sites are themselves grouped by span
+    OVERLAP/CONTAINMENT, not given one synthetic group each -- the fix for
+    a second real-run failure (Pydantic v1->v2, 229 sites): two lines
+    inside the SAME enclosing statement get the exact same (start, end)
+    from _multiline_spans (align/pdk/finfet/digital.py 48 and 50, both
+    48-50, with no related_sites edge between them -- adjudication had no
+    reason to state one, since neither site's own correctness depends on
+    the other's content the way the coupling guard's edge means), and a
+    nested statement's tighter inner span is CONTAINED in its outer
+    statement's span without being equal to it. Either shape previously
+    got two independent one-member groups, hence two independent solo
+    calls -- each free to rewrite the WHOLE shared statement with zero
+    visibility into the other, which is exactly how two solo calls for
+    48 and 50 each produced a fix touching line 50, overlapping at apply
+    time (see run()'s docstring and _resolve_overlapping_fixes, the
+    merge-time backstop for whatever this grouping fix doesn't happen to
+    catch -- the two are independent defenses, not one covering for the
+    other's gaps: this one removes the duplicate model call at the
+    source; that one is what actually guarantees fixes.json never ships
+    an unresolved overlap, regardless of grouping's own coverage). One
+    joint call over every span-sharing member, with full visibility into
+    each other's context, gives the model an actual chance to produce one
+    consistent result instead of two independently "confident" ones.
 
     MUST be called with _resolution_groups' output, not
     _group_by_related_sites' -- run() does this. A key already grouped in
@@ -331,30 +372,63 @@ def _add_singleton_span_groups(group_id_by_key, group_members_by_id, sites_by_ke
 
     Only PROPOSED-role, already-ungrouped (in the RESOLUTION view) keys
     are touched -- a key already in group_id_by_key there (a real,
-    >=2-member RESOLUTION group) is left alone entirely, so a multi-member
-    group's classification and behavior are completely unchanged by this
-    pass; span_map itself only ever contains proposed-role keys in the
-    first place (see run()'s docstring), so the role check here is a
-    defensive assertion of that invariant, not a filter expected to ever
-    exclude anything in practice.
+    >=2-member RESOLUTION group, from an actual related_sites edge) is
+    left alone entirely, even if its span happens to overlap an ungrouped
+    span-guarded site elsewhere: composing this pass with an existing real
+    group is a further increment with no evidence behind it yet (every
+    real-run overlap seen so far is between two sites with NO edge at
+    all), not something this pass silently half-does. span_map itself
+    only ever contains proposed-role keys in the first place (see run()'s
+    docstring), so the role check here is a defensive assertion of that
+    invariant, not a filter expected to ever exclude anything in practice.
 
     Returns NEW group_id_by_key/group_members_by_id dicts (does not mutate
-    the ones passed in) with the synthetic single-member groups added. A
-    synthetic group's id is the member's own (file, line) -- distinct by
-    construction from any real group's id, since a real group's id is some
-    OTHER member's key (the union-find root), and this key is, by
-    definition of being processed here, not a member of any real
-    RESOLUTION group."""
+    the ones passed in) with the synthetic groups added. A synthetic
+    group's id is its lowest-sorted member's own (file, line) -- distinct
+    by construction from any real group's id, since a real group's id is
+    some OTHER member's key (the union-find root), and every member
+    touched here is, by definition of reaching this point, not a member of
+    any real RESOLUTION group. A one-member component's id is that
+    member's own key, unchanged from before this function grouped by
+    span."""
     group_id_by_key = dict(group_id_by_key)
     group_members_by_id = dict(group_members_by_id)
-    for key in span_map:
-        if key in group_id_by_key:
-            continue
-        if sites_by_key[key]["role"] != "proposed":
-            continue
-        gid = f"{key[0]}:{key[1]}"
-        group_id_by_key[key] = gid
-        group_members_by_id[gid] = [key]
+
+    ungrouped = [
+        key for key in span_map
+        if key not in group_id_by_key and sites_by_key[key]["role"] == "proposed"
+    ]
+
+    parent = {key: key for key in ungrouped}
+
+    def find(k):
+        while parent[k] != k:
+            parent[k] = parent[parent[k]]
+            k = parent[k]
+        return k
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            if rb < ra:
+                ra, rb = rb, ra
+            parent[rb] = ra
+
+    for i, a in enumerate(ungrouped):
+        for b in ungrouped[i + 1:]:
+            if a[0] == b[0] and _spans_overlap(span_map[a], span_map[b]):
+                union(a, b)
+
+    components = {}
+    for key in ungrouped:
+        components.setdefault(find(key), []).append(key)
+
+    for members in components.values():
+        members = sorted(members)
+        gid = f"{members[0][0]}:{members[0][1]}"
+        group_id_by_key.update({m: gid for m in members})
+        group_members_by_id[gid] = members
+
     return group_id_by_key, group_members_by_id
 
 
@@ -651,6 +725,169 @@ def _demote_dependents_of_unresolved_sites(merged, depends_on, group_id_by_key,
             flag["group_members"] = _group_members_rendered(group_members_by_id[gid], sites_by_key)
         merged["flagged_for_human"].append(flag)
         bucket_of[key] = "flagged_for_human"
+
+
+def _fixes_overlap(a, b):
+    return a["line"] <= b["end_line"] and b["line"] <= a["end_line"]
+
+
+def _nesting_order(a, b):
+    """Returns (outer, inner) if one of the two (already known to overlap)
+    fixes' spans fully contains the other's -- including the equal-spans
+    case, where either order is a valid choice since they cover exactly
+    the same lines -- or None if this is a genuine partial overlap (spans
+    cross without either containing the other), which this pipeline never
+    treats as a candidate duplicate regardless of what the two proposals
+    say, since "the shared lines" isn't even a well-defined sub-range of
+    either fix's own replacement in that shape."""
+    if a["line"] <= b["line"] and b["end_line"] <= a["end_line"]:
+        return a, b
+    if b["line"] <= a["line"] and a["end_line"] <= b["end_line"]:
+        return b, a
+    return None
+
+
+def _duplicate_fix_agreement(outer, inner):
+    """True only if `inner` can be PROVEN a pure duplicate of the slice of
+    `outer`'s own replacement at inner's position -- never guessed. Two
+    conditions, both required: outer's original_lines and proposed_lines
+    must be the same length (the only case where "the proposed lines at
+    inner's original line offset" is even a well-defined slice -- a
+    replacement that changes the line count has no stable position
+    mapping to check against), and that slice must equal inner's own
+    proposed_lines exactly. A differing line count or a genuine content
+    difference both return False here, same as any other real
+    disagreement -- silently dropping a fix nothing has actually verified
+    matches would be a data-loss risk this pipeline does not take on a
+    hunch."""
+    if len(outer["original_lines"]) != len(outer["proposed_lines"]):
+        return False
+    offset = inner["line"] - outer["line"]
+    length = inner["end_line"] - inner["line"] + 1
+    return outer["proposed_lines"][offset:offset + length] == inner["proposed_lines"]
+
+
+def _resolve_overlapping_fixes(merged, group_members_by_id, sites_by_key):
+    """Run-wide fallback for the OTHER half of the digital.py 48/50 real-run
+    failure (see _add_singleton_span_groups's docstring for the grouping
+    half): two sites inside the same enclosing statement, each resolved
+    with no visibility into the other, produced two fixes that overlap at
+    apply time -- writer.py's/verify.py's own `_check_overlaps` correctly
+    detected this but hard-failed the ENTIRE run over it (174 fixes in the
+    real one, all blocked by one pair). Grouping removes the duplicate
+    model call and gives the model a chance at a consistent result, but it
+    cannot guarantee one: the joint-resolution schema still requires one
+    `fixes` entry PER group member (`_check_group_consistency`), so even a
+    single, well-informed call resolving a shared statement still emits
+    two block fixes for it -- this function is what actually guarantees
+    fixes.json never ships an unresolved overlap, independent of whether
+    grouping happened to prevent one upstream.
+
+    Two outcomes, chosen by whether the overlap is PROVABLE duplication or
+    not (see _duplicate_fix_agreement's docstring for why "provable," not
+    "probable"):
+
+    - **Duplication** (one span nests inside the other, equal spans
+      included, and the outer fix's own replacement is proven to already
+      say the same thing at the inner's position): drop the smaller,
+      contained fix and keep the larger one -- it already covers
+      everything the smaller one would have changed. Recorded in
+      `merged["duplicate_fixes_dropped"]`, never silently discarded.
+    - **Conflict** (a genuine partial overlap that contains neither, OR a
+      nesting overlap the outer fix's own text does not corroborate):
+      decline together, the exact `_check_group_consistency`/
+      `_demote_dependents_of_unresolved_sites` shape this pipeline already
+      uses for "some deterministic guard found a reason two sites can't
+      both ship, so route both to a human instead of guessing which one
+      is right." If either fix already carries a `group_id` (the ordinary
+      case post-grouping: both came from the same joint call), the WHOLE
+      group is declined together, not just the overlapping pair -- a
+      group's members were resolved AS ONE UNIT; leaving some of them
+      shipped as fixes while two others get pulled out over a conflict
+      would tear that unit exactly the way the coupling guard exists to
+      prevent. An overlap between two fixes with no group at all (neither
+      came from a joint call) synthesizes a two-member group of just
+      those two, so this decline is rendered the same way as every other
+      coupling decline instead of a bespoke, undocumented shape.
+
+    Never aborts. Iterates to a fixed point (each round strictly shrinks
+    `merged["fixes"]`, so this always terminates) because resolving one
+    file's overlap can reveal or resolve another pair in the same or a
+    different file; a fresh per-file grouping is recomputed every round
+    rather than assumed stable across removals.
+
+    Mutates and returns `merged` in place."""
+    merged.setdefault("duplicate_fixes_dropped", [])
+
+    while True:
+        by_file = {}
+        for item in merged["fixes"]:
+            by_file.setdefault(item["file"], []).append(item)
+
+        found = None
+        for items in by_file.values():
+            for i, a in enumerate(items):
+                for b in items[i + 1:]:
+                    if _fixes_overlap(a, b):
+                        found = (a, b)
+                        break
+                if found is not None:
+                    break
+            if found is not None:
+                break
+        if found is None:
+            return merged
+
+        a, b = found
+        nesting = _nesting_order(a, b)
+        if nesting is not None and _duplicate_fix_agreement(*nesting):
+            outer, inner = nesting
+            merged["fixes"].remove(inner)
+            merged["duplicate_fixes_dropped"].append({
+                "kept": {"file": outer["file"], "line": outer["line"], "end_line": outer["end_line"]},
+                "dropped": {"file": inner["file"], "line": inner["line"], "end_line": inner["end_line"]},
+                "note": (
+                    f"{inner['file']}:{inner['line']}-{inner['end_line']} is fully covered by "
+                    f"{outer['file']}:{outer['line']}-{outer['end_line']}'s own replacement, "
+                    f"which says the same thing at that position -- both sites fall inside one "
+                    f"enclosing statement, each independently resolved to cover the whole thing; "
+                    f"the smaller, contained fix was dropped as a duplicate rather than shipping "
+                    f"both and colliding at apply time."
+                ),
+            })
+            continue
+
+        gid = a.get("group_id") or b.get("group_id")
+        if gid is not None:
+            group_items = [it for it in merged["fixes"] if it.get("group_id") == gid]
+            member_keys = group_members_by_id.get(
+                gid, sorted((it["file"], it["line"]) for it in group_items),
+            )
+        else:
+            group_items = [a, b]
+            member_keys = sorted([(a["file"], a["line"]), (b["file"], b["line"])])
+            gid = f"{a['file']}:{min(a['line'], b['line'])}"
+
+        for it in group_items:
+            merged["fixes"].remove(it)
+        members_rendered = _group_members_rendered(member_keys, sites_by_key)
+        overlap_desc = (f"{a['file']}:{a['line']}-{a['end_line']} and "
+                        f"{b['file']}:{b['line']}-{b['end_line']}")
+        for it in group_items:
+            merged["flagged_for_human"].append({
+                "file": it["file"],
+                "line": it["line"],
+                "reason": (
+                    f"this site's proposed fix overlaps another proposed fix "
+                    f"({overlap_desc}), and the two disagree where they overlap -- a real "
+                    f"conflict, not a duplicate. Declined together (the whole coordinated "
+                    f"group, not just the overlapping pair) instead of aborting the run or "
+                    f"guessing which proposal is right."
+                ),
+                "flag_source": "overlap_conflict_guard",
+                "group_id": gid,
+                "group_members": members_rendered,
+            })
 
 
 def _extract_call_keywords(text):
@@ -1332,19 +1569,20 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     )
 
     # Classify every RESOLUTION group once (real, >=2-member groups from
-    # PROPOSED-declared related_sites edges, and the synthetic 1-member
-    # span groups just added above -- this loop doesn't distinguish them,
-    # by design):
+    # PROPOSED-declared related_sites edges, and the synthetic span groups
+    # just added above -- one or more members, unioned by span overlap
+    # rather than a related_sites edge -- this loop doesn't distinguish
+    # them, by design):
     #  - "uncertain_decline": a member of this group depends -- via a
     #    PROPOSED site's own edge, since that's the only kind of edge the
     #    RESOLUTION view contains -- on an unconfirmed site. Never applies
-    #    to a synthetic group: _add_singleton_span_groups only ever
-    #    creates one from a PROPOSED-role key with no edges of its own.
+    #    to a synthetic group: _add_singleton_span_groups only ever unions
+    #    PROPOSED-role keys with no related_sites edges of their own.
     #  - "joint_resolve": every member is confirmed, but at least one needs
     #    block-level treatment a lone per-line call can't safely give --
     #    the youtrack-mcp shape this increment adds real handling for, and
-    #    what a synthetic 1-member group always is (that's the only reason
-    #    it exists).
+    #    what a synthetic span group always is (that's the only reason it
+    #    exists).
     #  - unclassified: ordinary confident members with nothing forcing
     #    coordinated handling -- already handled correctly by reaching the
     #    model independently (same chunk, no group framing), per the
@@ -1583,6 +1821,17 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
     ]
 
     merged_path = os.path.join(fg_dir, "merged.json")
+
+    # Overlap resolution runs BEFORE the directional dependency pass below:
+    # the two are independent concerns (a line-range collision between two
+    # fixes' own spans vs. a fix depending, per related_sites, on a site
+    # that didn't also ship as a fix) over the same "fixes" list, and
+    # neither pass's correctness depends on which runs first -- this order
+    # is chosen only because an overlap is a more basic data-integrity
+    # problem (two fixes both claiming the same physical lines is
+    # meaningless before anything else about the run is even considered),
+    # not because a real ordering dependency exists between them.
+    _resolve_overlapping_fixes(merged, group_members_by_id, sites_by_key)
 
     # The complete, run-wide directional pass: every site's final bucket is
     # now known (auto-declined/joint-resolved above, model-generated from

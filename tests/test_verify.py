@@ -177,7 +177,12 @@ def test_parse_and_line_match_shrinking_block_does_not_corrupt_a_later_fix(tmp_p
     assert all(item["line_match_ok"] for item in report["items"])
 
 
-def test_parse_and_line_match_rejects_overlapping_fixes(tmp_path):
+def test_parse_and_line_match_reports_overlapping_fixes_without_raising(tmp_path):
+    # verify.py's own module docstring promises "neither ever raises out of
+    # this module" -- an overlap used to violate that (an uncaught
+    # ValueError that took down the whole run, the real Pydantic v1->v2
+    # failure this is grounded in). Now it's reported as data, same as
+    # every other verification problem here.
     reader = _make_repo(tmp_path, "mod.py", "a = 1\nb = 2\nc = 3\n")
     fixes = [
         {"file": "mod.py", "line": 1, "end_line": 2,
@@ -186,5 +191,13 @@ def test_parse_and_line_match_rejects_overlapping_fixes(tmp_path):
          "original_lines": ["b = 2", "c = 3"], "proposed_lines": ["y = 2"], "reason": "r2"},
     ]
 
-    with pytest.raises(ValueError, match="overlap"):
-        verify.check_parse_and_line_match(reader, fixes)
+    report = verify.check_parse_and_line_match(reader, fixes)
+
+    assert report["ok"] is False
+    by_line = {item["line"]: item for item in report["items"]}
+    assert by_line[1]["line_match_ok"] is False
+    assert "overlap" in by_line[1]["error"]
+    assert by_line[2]["line_match_ok"] is False
+    assert "overlap" in by_line[2]["error"]
+    assert report["file_parse_results"]["mod.py"]["parses"] is False
+    assert "overlapping" in report["file_parse_results"]["mod.py"]["error"]

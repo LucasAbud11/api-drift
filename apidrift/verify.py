@@ -45,20 +45,27 @@ def _line_ending_of(line):
 
 
 def _check_overlaps(relpath, items):
-    """Raises ValueError if any two of this file's fixes claim overlapping
-    line ranges -- two fixes may never touch the same physical line. Not
-    expected in practice (fixgen produces at most one fix per confirmed
-    site, and jointly-resolved group members are disjoint statements), but
-    a block fix's range makes this a real possibility a single-line-only
-    scheme never had to check, so it's checked explicitly rather than
-    silently corrupting the patched text."""
+    """Returns every pair of this file's fixes whose line ranges overlap --
+    empty if none. Never raises, per this module's own contract (see the
+    module docstring): a block fix's range makes overlap a real
+    possibility a single-line-only scheme never had to check, but finding
+    one is verification DATA for a human to review, not a crash that
+    should take the rest of the run down with it -- exactly the shape a
+    real Pydantic v1->v2 run hit (two span-guarded sites inside one
+    enclosing statement, each independently resolved with no visibility
+    into the other, produced two overlapping fixes) and the OLD version of
+    this function turned into an uncaught ValueError that aborted the
+    entire 174-fix run before fixes.json was ever written -- a direct
+    contradiction of the "neither ever raises" promise above.
+    fixgen.py's own `_resolve_overlapping_fixes` now resolves this at the
+    source (dedupes a provable duplicate, declines a real conflict) before
+    `fixgen.run()` ever returns, so this should be empty in normal
+    operation; it stays a real, non-fatal check rather than an assumption,
+    since `expanded_fixes` can in principle reach this function from
+    anywhere (an older fixes.json, a hand-edited one, a future caller),
+    not only from a same-run fixgen.run() call."""
     ordered = sorted(items, key=lambda i: i["line"])
-    for a, b in zip(ordered, ordered[1:]):
-        if b["line"] <= a["end_line"]:
-            raise ValueError(
-                f"{relpath}: fixes at line {a['line']}-{a['end_line']} and "
-                f"{b['line']}-{b['end_line']} overlap -- cannot apply both"
-            )
+    return [(a, b) for a, b in zip(ordered, ordered[1:]) if b["line"] <= a["end_line"]]
 
 
 def _apply_block_fixes(lines, items):
@@ -109,7 +116,10 @@ def check_parse_and_line_match(reader, expanded_fixes):
             continue
 
         lines = _split_lines_keepends(src)
-        _check_overlaps(relpath, items)
+        overlaps = _check_overlaps(relpath, items)
+        overlapping_keys = {
+            (x["file"], x["line"]) for pair in overlaps for x in pair
+        }
         for item in sorted(items, key=lambda i: i["line"]):
             start_idx = item["line"] - 1
             end_idx = item["end_line"]
@@ -118,6 +128,15 @@ def check_parse_and_line_match(reader, expanded_fixes):
                     "file": relpath, "line": item["line"], "line_match_ok": False,
                     "error": f"lines {item['line']}-{item['end_line']} are out of range "
                              f"for {relpath} ({len(lines)} lines)",
+                })
+                continue
+            if (item["file"], item["line"]) in overlapping_keys:
+                items_report.append({
+                    "file": relpath, "line": item["line"], "line_match_ok": False,
+                    "error": f"lines {item['line']}-{item['end_line']} overlap another "
+                             f"proposed fix in this file -- not applied together, see "
+                             f"fixes.json's own duplicate_fixes_dropped/flagged_for_human "
+                             f"for how fixgen resolved it",
                 })
                 continue
             actual_block = [l.rstrip("\r\n") for l in lines[start_idx:end_idx]]
@@ -129,6 +148,19 @@ def check_parse_and_line_match(reader, expanded_fixes):
                 "actual_original": "\n".join(actual_block),
                 "claimed_original": "\n".join(item["original_lines"]),
             })
+
+        if overlaps:
+            # Applying block fixes over a known overlap is undefined (two
+            # fixes' descending-order slice assignments would clobber each
+            # other) -- skip it rather than guess, same "report, don't
+            # crash or corrupt" contract as everything else in this
+            # module. Each overlapping item is already marked
+            # line_match_ok=False above, which is what all_ok reads.
+            file_parse_results[relpath] = {
+                "parses": False,
+                "error": f"skipped -- {len(overlaps)} overlapping fix pair(s) in this file",
+            }
+            continue
 
         patched_lines = _apply_block_fixes(lines, items)
         patched_src = "".join(patched_lines)
