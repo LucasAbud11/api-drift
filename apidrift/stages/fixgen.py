@@ -78,7 +78,7 @@ import os
 import re
 import textwrap
 
-from .. import validate
+from .. import llm, validate
 from . import factblock as factblock_stage
 
 # Statement types that never contain a nested statement -- their own
@@ -867,6 +867,9 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
                 + "\n\n".join(blocks)
             )
         addendum = _SOLO_SPAN_ADDENDUM if is_solo else _JOINT_ADDENDUM
+        # MAX_TOKENS, not a local literal -- see that constant's own
+        # comment for why 16000 (not 8000) is the floor for every fixgen
+        # call, this joint/solo path included.
         result = client.complete(
             stage=f"fixgen_group_{_sanitize_gid(gid)}",
             system_text=base_system_text + "\n\n---\n\n" + addendum,
@@ -874,7 +877,7 @@ def _run_joint_group(client, reader, gid, member_keys, sites_by_key, span_map,
             schema=SCHEMA,
             cache_system=cache_system,
             cache_ttl=cache_ttl,
-            max_tokens=8000,
+            max_tokens=MAX_TOKENS,
             effort="high",
         )
         validate.validate_fixgen_dict(result, what=f"group_{gid}")
@@ -987,6 +990,22 @@ SCHEMA = {
     "required": ["fixes", "flagged_for_human"],
     "additionalProperties": False,
 }
+
+# Raised from 8000 after a real Pydantic v1->v2 run (229 proposed sites)
+# truncated on chunk 8 -- the preceding attempt's malformed-looking result
+# (a fix arriving with an empty proposed_lines) was almost certainly the
+# same truncation cutting the response mid-object, not a separate failure
+# mode. Raising this (rather than shrinking DEFAULT_CHUNK_SIZE) is the fix
+# here, unlike factblock.py/vocabulary.py/adjudicate.py's own "raising
+# max_tokens again is not the fix" calls: fixgen's output is consumed and
+# applied by _run(), never fed back in as context for a later call the way
+# a fact block or vocabulary is, so a larger ceiling doesn't make every
+# downstream call more expensive -- it only raises the wall for THIS call.
+# Matches adjudication's own max_tokens (also raised to 16000 for the same
+# reason). Block-level fixes (original_lines/proposed_lines as lists, so a
+# multi-line fix carries every line twice) made responses structurally
+# larger than when 8000 was set, on top of the per-chunk item count.
+MAX_TOKENS = 16000
 
 DEFAULT_CHUNK_SIZE = 15
 DEFAULT_CONTEXT_RADIUS = 8
@@ -1381,16 +1400,25 @@ def run(client, reader, sites, factblock, workdir, uncertain_sites=(),
             continue
         blocks = "\n\n".join(_site_block(reader, s) for s in chunk_sites)
         user_text = f"CONFIRMED SITES ({len(chunk_sites)}):\n\n{blocks}"
-        result = client.complete(
-            stage=f"fixgen_chunk_{idx:03d}",
-            system_text=system_text,
-            user_text=user_text,
-            schema=SCHEMA,
-            cache_system=cache_system,
-            cache_ttl=cache_ttl,
-            max_tokens=8000,
-            effort="high",
-        )
+        try:
+            result = client.complete(
+                stage=f"fixgen_chunk_{idx:03d}",
+                system_text=system_text,
+                user_text=user_text,
+                schema=SCHEMA,
+                cache_system=cache_system,
+                cache_ttl=cache_ttl,
+                max_tokens=MAX_TOKENS,
+                effort="high",
+            )
+        except llm.TruncatedResponseError as e:
+            raise llm.TruncatedResponseError(
+                f"{e} This chunk covers {len(chunk_sites)} confirmed site(s) (fixgen "
+                f"chunk {idx + 1}/{len(chunks)}). Lower --fixgen-chunk-size (currently "
+                f"{chunk_size}) so it splits into smaller chunks instead of raising "
+                f"max_tokens again -- fixgen's output scales with confirmed site count, so "
+                f"a bigger ceiling just moves the wall this chunking exists to avoid."
+            ) from e
         validate.validate_fixgen_dict(result, what=f"chunk_{idx:03d}")
         covered = {
             (item["file"], item["line"])
